@@ -48,8 +48,7 @@ UPDATE
     active = new.active,
     valid = new.valid,
     server_token = new.server_token,
-    reasons = new.reasons
-    updated_at = CURRENT_TIMESTAMP;`,
+    reasons = new.reasons;`,
 		args...,
 	)
 
