@@ -1,0 +1,149 @@
+{
+  "StatusItems" : {
+    "management" : {
+      "declarations" : {
+        "activations" : [
+          {
+            "active" : true,
+            "identifier" : "49F6F16A-70EB-4A89-B092-465FAEC5E550",
+            "valid" : "valid",
+            "server-token" : "8f700d70-f2d6-5b02-926d-ff36b5e47260"
+          }
+        ],
+        "configurations" : [
+          {
+            "reasons" : [
+              {
+                "details" : {
+                  "Error" : "An internal error has occurred."
+                },
+                "description" : "Configuration cannot be applied",
+                "code" : "Error.ConfigurationCannotBeApplied"
+              }
+            ],
+            "active" : true,
+            "identifier" : "0FCD2F56-D5BC-48EA-B98D-E0CCC0C6F9E0",
+            "valid" : "invalid",
+            "server-token" : "2c8e5ce2-f7ba-5381-bce0-7d9c60f8c092"
+          },
+          {
+            "reasons" : [
+              {
+                "details" : {
+                  "Error" : "Profile Installation Failed"
+                },
+                "description" : "Configuration cannot be applied",
+                "code" : "Error.ConfigurationCannotBeApplied"
+              }
+            ],
+            "active" : true,
+            "identifier" : "4D6F8451-C089-4E65-A615-7C6EFF154F72",
+            "valid" : "invalid",
+            "server-token" : "ff4051a7-0ac2-517f-a54d-b5522289a85b"
+          },
+          {
+            "active" : true,
+            "identifier" : "85B5130A-4D0D-462B-AA0D-0C3B6630E5AA",
+            "valid" : "valid",
+            "server-token" : "dd59373b-1cca-54f5-aa09-09ccc8dfa84c"
+          }
+        ],
+        "assets" : [
+
+        ],
+        "management" : [
+          {
+            "active" : false,
+            "identifier" : "AF0E633E-7ADB-4B2A-A48C-1B20AA271D08",
+            "valid" : "valid",
+            "server-token" : "456fc8c6-85e9-52e9-b93d-eed694a4f487"
+          }
+        ]
+      },
+      "client-capabilities" : {
+        "supported-versions" : [
+          "1.0.0"
+        ],
+        "supported-payloads" : {
+          "declarations" : {
+            "activations" : [
+              "com.apple.activation.simple"
+            ],
+            "assets" : [
+              "com.apple.asset.credential.userpassword",
+              "com.apple.asset.useridentity"
+            ],
+            "configurations" : [
+              "com.apple.configuration.account.caldav",
+              "com.apple.configuration.account.carddav",
+              "com.apple.configuration.account.exchange",
+              "com.apple.configuration.account.google",
+              "com.apple.configuration.account.ldap",
+              "com.apple.configuration.account.mail",
+              "com.apple.configuration.account.subscribed-calendar",
+              "com.apple.configuration.legacy",
+              "com.apple.configuration.legacy.interactive",
+              "com.apple.configuration.management.status-subscriptions",
+              "com.apple.configuration.management.test",
+              "com.apple.configuration.passcode.settings"
+            ],
+            "management" : [
+              "com.apple.management.organization-info",
+              "com.apple.management.properties",
+              "com.apple.management.server-capabilities"
+            ]
+          },
+          "status-items" : [
+            "account.list.caldav",
+            "account.list.carddav",
+            "account.list.exchange",
+            "account.list.google",
+            "account.list.ldap",
+            "account.list.mail.incoming",
+            "account.list.mail.outgoing",
+            "account.list.subscribed-calendar",
+            "device.model.family",
+            "device.model.identifier",
+            "device.model.marketing-name",
+            "device.operating-system.build-version",
+            "device.operating-system.family",
+            "device.operating-system.marketing-name",
+            "device.operating-system.version",
+            "management.client-capabilities",
+            "management.declarations",
+            "mdm.app",
+            "passcode.is-compliant",
+            "passcode.is-present",
+            "test.array-value",
+            "test.boolean-value",
+            "test.dictionary-value",
+            "test.error-value",
+            "test.integer-value",
+            "test.real-value",
+            "test.string-value"
+          ]
+        },
+        "supported-features" : {
+
+        }
+      },
+      "push-token" : "bwyw7bcwAI7jmDvkYswfcQ6sHhkZIO+ss0hvLsNLJmg="
+    },
+    "device" : {
+      "model" : {
+        "family" : "iPhone",
+        "marketing-name" : "iPhone 8 Plus",
+        "identifier" : "iPhone10,2"
+      },
+      "operating-system" : {
+        "marketing-name" : "iOS 16.0",
+        "family" : "iOS",
+        "build-version" : "20A5303i",
+        "version" : "16.0"
+      }
+    }
+  },
+  "Errors" : [
+
+  ]
+}
