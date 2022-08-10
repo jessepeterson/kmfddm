@@ -39,14 +39,20 @@ def make_subscription(args):
     return decl
 
 
-def make_profile(args):
-    decl = {
-        "Type": "com.apple.configuration.legacy",
-        "Payload": {
-            "ProfileURL": args.profile,
-        },
-    }
-    return decl
+def make_profile_wrap(decl_type="com.apple.configuration.legacy"):
+    def make_profile(args):
+        payload = {
+            "ProfileURL": args.url,
+        }
+        if decl_type == "com.apple.configuration.legacy.interactive":
+            payload["VisibleName"] = args.visiblename
+        decl = {
+            "Type": decl_type,
+            "Payload": payload,
+        }
+        return decl
+
+    return make_profile
 
 
 def make_org(args):
@@ -129,11 +135,28 @@ def make_profile_subp(parent_parser):
     decl_type = "com.apple.configuration.legacy"
     p = parent_parser.add_parser("profile", help=decl_type + " DDM declaration")
     p.add_argument(
-        "profile",
+        "url",
         type=str,
-        help="URL to profile",
+        help="URL of profile",
     )
-    p.set_defaults(func=make_profile)
+    p.set_defaults(func=make_profile_wrap(decl_type))
+    return p
+
+
+def make_iprofile_subp(parent_parser):
+    decl_type = "com.apple.configuration.legacy.interactive"
+    p = parent_parser.add_parser("iprofile", help=decl_type + " DDM declaration")
+    p.add_argument(
+        "url",
+        type=str,
+        help="URL of profile",
+    )
+    p.add_argument(
+        "visiblename",
+        type=str,
+        help="Visible name of configuration.",
+    )
+    p.set_defaults(func=make_profile_wrap(decl_type))
     return p
 
 
@@ -202,6 +225,7 @@ def main():
     make_activation_subp(subps)
     make_subscription_subp(subps)
     make_profile_subp(subps)
+    make_iprofile_subp(subps)
     make_org_subp(subps)
     make_test_subp(subps)
 
