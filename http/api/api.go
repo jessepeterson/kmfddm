@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 
+	"github.com/alexedwards/flow"
 	"github.com/jessepeterson/kmfddm/log"
 	"github.com/jessepeterson/kmfddm/log/ctxlog"
 )
@@ -108,7 +109,7 @@ func simpleChangeResourceHandler(logger log.Logger, chgFn func(context.Context, 
 }
 
 func getResourceID(r *http.Request) string {
-	return r.URL.Path
+	return flow.Param(r.Context(), "id")
 }
 
 type Notifier interface {

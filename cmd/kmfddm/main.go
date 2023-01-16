@@ -10,6 +10,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/alexedwards/flow"
 	"github.com/cespare/xxhash"
 	httpddm "github.com/jessepeterson/kmfddm/http"
 	apihttp "github.com/jessepeterson/kmfddm/http/api"
@@ -27,25 +28,6 @@ var version = "unknown"
 const (
 	apiUsername = "kmfddm"
 	apiRealm    = "kmfddm"
-
-	endpointVersion = "/version"
-
-	// DDM endpoints for devices/enrollments (passed from MDM)
-	endpointDeclaration      = "/declaration/"
-	endpointDeclarationItems = "/declaration-items"
-	endpointTokens           = "/tokens"
-	endpointStatus           = "/status"
-
-	// API endpoints
-	endpointDeclarations        = "/v1/declarations"
-	endpointDeclarationsID      = "/v1/declarations/"
-	endpointSets                = "/v1/sets"
-	endpointSetDeclarationsID   = "/v1/set-declarations/"
-	endpointEnrollmentSetsID    = "/v1/enrollment-sets/"
-	endpointDeclarationSetsID   = "/v1/declaration-sets/"
-	endpointDeclarationStatusID = "/v1/declaration-status/"
-	endpointStatusErrorsID      = "/v1/status-errors/"
-	endpointStatusValuesID      = "/v1/status-values/"
 )
 
 func main() {
@@ -61,6 +43,7 @@ func main() {
 
 		flEnqueueURL = flag.String("enqueue", "http://[::1]:9000/v1/enqueue/", "URL of NanoMDM enqueue endpoint")
 		flEnqueueKey = flag.String("enqueue-key", "", "NanoMDM API key")
+		flCORSOrigin = flag.String("cors-origin", "", "CORS Origin; for browser-based API access")
 	)
 	flag.Parse()
 
@@ -86,80 +69,146 @@ func main() {
 
 	nanoNotif := notifier.New(storage, *flEnqueueURL, *flEnqueueKey, logger.With("service", "notifier"))
 
-	mux := http.NewServeMux()
+	mux := flow.New()
 
-	mux.Handle(endpointVersion, httpddm.VersionHandler(version))
+	mux.Handle("/version", httpddm.VersionHandler(version))
 
-	var diHandler http.Handler
-	diHandler = ddmhttp.TokensDeclarationItemsHandler(storage, false, logger.With("handler", "declaration-items"))
-	mux.Handle(endpointDeclarationItems, diHandler)
+	mux.Handle(
+		"/declaration-items",
+		ddmhttp.TokensDeclarationItemsHandler(storage, false, logger.With("handler", "declaration-items")),
+		"GET",
+	)
 
-	var tokHandler http.Handler
-	tokHandler = ddmhttp.TokensDeclarationItemsHandler(storage, true, logger.With("handler", "tokens"))
-	mux.Handle(endpointTokens, tokHandler)
+	mux.Handle(
+		"/tokens",
+		ddmhttp.TokensDeclarationItemsHandler(storage, true, logger.With("handler", "tokens")),
+		"GET",
+	)
 
-	var sHandler http.Handler
-	sHandler = ddmhttp.StatusReportHandler(storage, logger.With("handler", "status"))
+	mux.Handle(
+		"/declaration/:type/:id",
+		http.StripPrefix("/declaration/",
+			ddmhttp.DeclarationHandler(storage, logger.With("handler", "declaration")),
+		),
+		"GET",
+	)
+
+	var statusHandler http.Handler = ddmhttp.StatusReportHandler(storage, logger.With("handler", "status"))
 	if *flDumpStatus {
-		sHandler = DumpHandler(sHandler, os.Stdout)
+		statusHandler = DumpHandler(statusHandler, os.Stdout)
 	}
-	mux.Handle(endpointStatus, sHandler)
-
-	var dHandler http.Handler
-	dHandler = ddmhttp.DeclarationHandler(storage, logger.With("handler", "declaration"))
-	dHandler = http.StripPrefix(endpointDeclaration, dHandler)
-	mux.Handle(endpointDeclaration, dHandler)
+	mux.Handle("/status", statusHandler, "PUT")
 
 	if *flAPIKey != "" {
-		declsMux := httpddm.NewMethodMux()
-		declsMux.Handle("PUT", apihttp.PutDeclarationHandler(storage, nanoNotif, logger.With("handler", "put-declaration")))
-		declsMux.Handle("GET", apihttp.GetDeclarationsHandler(storage, logger.With("get-declarations")))
-		declsHandler := httpddm.BasicAuthMiddleware(declsMux, apiUsername, *flAPIKey, apiRealm)
-		mux.Handle(endpointDeclarations, declsHandler)
-
-		var setsHandler http.Handler
-		setsHandler = apihttp.GetSetsHandler(storage, logger.With("get-sets"))
-		setsHandler = httpddm.BasicAuthMiddleware(setsHandler, apiUsername, *flAPIKey, apiRealm)
-		mux.Handle(endpointSets, setsHandler)
-
-		handleStrippedAPI := func(prefix string, h http.Handler) {
-			h = http.StripPrefix(prefix, h)
-			h = httpddm.BasicAuthMiddleware(h, apiUsername, *flAPIKey, apiRealm)
-			mux.Handle(prefix, h)
+		if *flCORSOrigin != "" {
+			// for middleware to work on the OPTIONS method using flow router
+			// we must define a middleware on the "root" mux
+			mux.Use(func(h http.Handler) http.Handler {
+				return httpddm.CORSMiddleware(h, *flCORSOrigin)
+			})
 		}
 
-		declMux := httpddm.NewMethodMux()
-		declMux.Handle("GET", apihttp.GetDeclarationHandler(storage, logger.With("handler", "get-declaration")))
-		declMux.Handle("DELETE", apihttp.DeleteDeclarationHandler(storage, logger.With("handler", "delete-declaration")))
-		handleStrippedAPI(endpointDeclarationsID, declMux)
+		mux.Group(func(mux *flow.Mux) {
+			mux.Use(func(h http.Handler) http.Handler {
+				return httpddm.BasicAuthMiddleware(h, apiUsername, *flAPIKey, apiRealm)
+			})
 
-		setDeclMux := httpddm.NewMethodMux()
-		setDeclMux.Handle("GET", apihttp.GetSetDeclarationsHandler(storage, logger.With("handler", "get-set-declarations")))
-		setDeclMux.Handle("PUT", apihttp.PutSetDeclarationHandler(storage, nanoNotif, logger.With("handler", "put-set-declarations")))
-		setDeclMux.Handle("DELETE", apihttp.DeleteSetDeclarationHandler(storage, nanoNotif, logger.With("handler", "delete-set-delcarations")))
-		handleStrippedAPI(endpointSetDeclarationsID, setDeclMux)
+			// declarations
+			mux.Handle(
+				"/v1/declarations",
+				apihttp.GetDeclarationsHandler(storage, logger.With("get-declarations")),
+				"GET",
+			)
 
-		enrSetMux := httpddm.NewMethodMux()
-		enrSetMux.Handle("GET", apihttp.GetEnrollmentSetsHandler(storage, logger.With("handler", "get-enrollment-sets")))
-		enrSetMux.Handle("PUT", apihttp.PutEnrollmentSetHandler(storage, nanoNotif, logger.With("handler", "put-enrollment-sets")))
-		enrSetMux.Handle("DELETE", apihttp.DeleteEnrollmentSetHandler(storage, nanoNotif, logger.With("handler", "delete-enrollment-sets")))
-		handleStrippedAPI(endpointEnrollmentSetsID, enrSetMux)
+			mux.Handle(
+				"/v1/declarations",
+				apihttp.PutDeclarationHandler(storage, nanoNotif, logger.With("handler", "put-declaration")),
+				"PUT",
+			)
 
-		var dsHandler http.Handler
-		dsHandler = apihttp.GetDeclarationSetsHandler(storage, logger.With("handler", "get-declaration-sets"))
-		handleStrippedAPI(endpointDeclarationSetsID, dsHandler)
+			mux.Handle(
+				"/v1/declarations/:id",
+				apihttp.GetDeclarationHandler(storage, logger.With("handler", "get-declaration")),
+				"GET",
+			)
 
-		var siHandler http.Handler
-		siHandler = apihttp.GetDeclarationStatusHandler(storage, logger.With("handler", "get-declaration-status"))
-		handleStrippedAPI(endpointDeclarationStatusID, siHandler)
+			mux.Handle(
+				"/v1/declarations/:id",
+				apihttp.DeleteDeclarationHandler(storage, logger.With("handler", "delete-declaration")),
+				"DELETE",
+			)
 
-		var seHandler http.Handler
-		seHandler = apihttp.GetStatusErrorsHandler(storage, logger.With("handler", "get-status-errors"))
-		handleStrippedAPI(endpointStatusErrorsID, seHandler)
+			// sets
+			mux.Handle(
+				"/v1/sets",
+				apihttp.GetSetsHandler(storage, logger.With("get-sets")),
+				"GET",
+			)
 
-		var svHandler http.Handler
-		svHandler = apihttp.GetStatusValuesHandler(storage, logger.With("handler", "get-status-values"))
-		handleStrippedAPI(endpointStatusValuesID, svHandler)
+			// set declarations
+			mux.Handle(
+				"/v1/set-declarations/:id",
+				apihttp.GetSetDeclarationsHandler(storage, logger.With("handler", "get-set-declarations")),
+				"GET",
+			)
+
+			mux.Handle(
+				"/v1/set-declarations/:id",
+				apihttp.PutSetDeclarationHandler(storage, nanoNotif, logger.With("handler", "put-set-declarations")),
+				"PUT",
+			)
+
+			mux.Handle(
+				"/v1/set-declarations/:id",
+				apihttp.DeleteSetDeclarationHandler(storage, nanoNotif, logger.With("handler", "delete-set-delcarations")),
+				"DELETE",
+			)
+
+			// enrollment sets
+			mux.Handle(
+				"/v1/enrollment-sets/:id",
+				apihttp.GetEnrollmentSetsHandler(storage, logger.With("handler", "get-enrollment-sets")),
+				"GET",
+			)
+
+			mux.Handle(
+				"/v1/enrollment-sets/:id",
+				apihttp.PutEnrollmentSetHandler(storage, nanoNotif, logger.With("handler", "put-enrollment-sets")),
+				"PUT",
+			)
+
+			mux.Handle(
+				"/v1/enrollment-sets/:id",
+				apihttp.DeleteEnrollmentSetHandler(storage, nanoNotif, logger.With("handler", "delete-enrollment-sets")),
+				"DELETE",
+			)
+
+			// declarations sets
+			mux.Handle(
+				"/v1/declaration-sets/:id",
+				apihttp.GetDeclarationSetsHandler(storage, logger.With("handler", "get-declaration-sets")),
+				"GET",
+			)
+
+			// status queries
+			mux.Handle(
+				"/v1/declaration-status/:id",
+				apihttp.GetDeclarationStatusHandler(storage, logger.With("handler", "get-declaration-status")),
+				"GET",
+			)
+
+			mux.Handle(
+				"/v1/status-errors/:id",
+				apihttp.GetStatusErrorsHandler(storage, logger.With("handler", "get-status-errors")),
+				"GET",
+			)
+
+			mux.Handle(
+				"/v1/status-values/:id",
+				apihttp.GetStatusValuesHandler(storage, logger.With("handler", "get-status-values")),
+				"GET",
+			)
+		})
 	}
 
 	// init for newTraceID()
