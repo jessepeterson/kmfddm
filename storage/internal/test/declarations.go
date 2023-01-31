@@ -16,13 +16,8 @@ const testDecl = `{
     "Identifier": "test_mysql_9e6a3aa7-5e4b-4d38-aacf-0f8058b2a899"
 }`
 
-// TestDeclarations performs a simple store, retrieve and delete test for declarations
-func TestDeclarations(t *testing.T, storage api.DeclarationAPIStorage, ctx context.Context) {
-	decl, err := ddm.ParseDeclaration([]byte(testDecl))
-	if err != nil {
-		t.Fatal(err)
-	}
-	_, err = storage.StoreDeclaration(ctx, decl)
+func testStoreDeclaration(t *testing.T, storage api.DeclarationAPIStorage, ctx context.Context, decl *ddm.Declaration) {
+	_, err := storage.StoreDeclaration(ctx, decl)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -32,7 +27,7 @@ func TestDeclarations(t *testing.T, storage api.DeclarationAPIStorage, ctx conte
 	}
 	found := false
 	for _, v := range decls {
-		if v == "test_mysql_9e6a3aa7-5e4b-4d38-aacf-0f8058b2a899" {
+		if v == decl.Identifier {
 			found = true
 			break
 		}
@@ -40,27 +35,31 @@ func TestDeclarations(t *testing.T, storage api.DeclarationAPIStorage, ctx conte
 	if found != true {
 		t.Error("could not find declaration id in list")
 	}
-	decl2, err := storage.RetrieveDeclaration(ctx, "test_mysql_9e6a3aa7-5e4b-4d38-aacf-0f8058b2a899")
+	decl2, err := storage.RetrieveDeclaration(ctx, decl.Identifier)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if have, want := decl2.Identifier, "test_mysql_9e6a3aa7-5e4b-4d38-aacf-0f8058b2a899"; have != want {
+	if have, want := decl2.Identifier, decl.Identifier; have != want {
 		t.Errorf("have %q; want %q", have, want)
 	}
-	if have, want := decl2.Type, "com.apple.configuration.management.test"; have != want {
+	if have, want := decl2.Type, decl.Type; have != want {
 		t.Errorf("have %q; want %q", have, want)
 	}
-	_, err = storage.DeleteDeclaration(ctx, "test_mysql_9e6a3aa7-5e4b-4d38-aacf-0f8058b2a899")
+	// TODO: compare PayloadJSON
+}
+
+func testDeleteDeclaration(t *testing.T, storage api.DeclarationAPIStorage, ctx context.Context, id string) {
+	_, err := storage.DeleteDeclaration(ctx, id)
 	if err != nil {
 		t.Fatal(err)
 	}
-	decls, err = storage.RetrieveDeclarations(ctx)
+	decls, err := storage.RetrieveDeclarations(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
-	found = false
+	found := false
 	for _, v := range decls {
-		if v == "test_mysql_9e6a3aa7-5e4b-4d38-aacf-0f8058b2a899" {
+		if v == id {
 			found = true
 			break
 		}
@@ -68,4 +67,20 @@ func TestDeclarations(t *testing.T, storage api.DeclarationAPIStorage, ctx conte
 	if found == true {
 		t.Error("found declaration id in list (should have been deleted)")
 	}
+}
+
+// TestDeclarations performs a simple store, retrieve and delete test for declarations
+func TestDeclarations(t *testing.T, storage api.DeclarationAPIStorage, ctx context.Context) {
+	decl, err := ddm.ParseDeclaration([]byte(testDecl))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Run("StoreDeclaration", func(t *testing.T) {
+		testStoreDeclaration(t, storage, ctx, decl)
+	})
+
+	t.Run("DeleteDeclaration", func(t *testing.T) {
+		testDeleteDeclaration(t, storage, ctx, decl.Identifier)
+	})
 }

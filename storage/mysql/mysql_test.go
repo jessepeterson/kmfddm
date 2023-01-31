@@ -15,7 +15,7 @@ import (
 
 var flDSN = flag.String("dsn", "", "DSN of test MySQL instance")
 
-func TestStuff(t *testing.T) {
+func TestMySQL(t *testing.T) {
 	if *flDSN == "" {
 		t.Fatal("MySQL DSN flag not provided to test")
 	}
