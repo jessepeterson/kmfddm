@@ -28,4 +28,6 @@ func TestMySQL(t *testing.T) {
 	ctx := context.Background()
 
 	test.TestDeclarations(t, storage, ctx)
+
+	test.TestSets(t, storage, ctx)
 }

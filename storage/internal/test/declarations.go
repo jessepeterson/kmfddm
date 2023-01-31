@@ -13,7 +13,7 @@ const testDecl = `{
     "Payload": {
         "Echo": "Foo"
     },
-    "Identifier": "test_mysql_9e6a3aa7-5e4b-4d38-aacf-0f8058b2a899"
+    "Identifier": "test_golang_9e6a3aa7-5e4b-4d38-aacf-0f8058b2a899"
 }`
 
 func testStoreDeclaration(t *testing.T, storage api.DeclarationAPIStorage, ctx context.Context, decl *ddm.Declaration) {
