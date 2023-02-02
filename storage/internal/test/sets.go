@@ -74,22 +74,3 @@ func testSet(t *testing.T, storage setAndDeclStorage, ctx context.Context, decl 
 		t.Fatal(err)
 	}
 }
-
-func TestSets(t *testing.T, storage setAndDeclStorage, ctx context.Context) {
-	decl, err := ddm.ParseDeclaration([]byte(testDecl))
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	t.Run("StoreDeclaration", func(t *testing.T) {
-		testStoreDeclaration(t, storage, ctx, decl)
-	})
-
-	t.Run("TestSet", func(t *testing.T) {
-		testSet(t, storage, ctx, decl, "test_golang_set1")
-	})
-
-	t.Run("DeleteDeclaration", func(t *testing.T) {
-		testDeleteDeclaration(t, storage, ctx, decl.Identifier)
-	})
-}

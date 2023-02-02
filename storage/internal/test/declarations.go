@@ -8,14 +8,6 @@ import (
 	"github.com/jessepeterson/kmfddm/http/api"
 )
 
-const testDecl = `{
-    "Type": "com.apple.configuration.management.test",
-    "Payload": {
-        "Echo": "Foo"
-    },
-    "Identifier": "test_golang_9e6a3aa7-5e4b-4d38-aacf-0f8058b2a899"
-}`
-
 func testStoreDeclaration(t *testing.T, storage api.DeclarationAPIStorage, ctx context.Context, decl *ddm.Declaration) {
 	_, err := storage.StoreDeclaration(ctx, decl)
 	if err != nil {
@@ -67,20 +59,4 @@ func testDeleteDeclaration(t *testing.T, storage api.DeclarationAPIStorage, ctx 
 	if found == true {
 		t.Error("found declaration id in list (should have been deleted)")
 	}
-}
-
-// TestDeclarations performs a simple store, retrieve and delete test for declarations
-func TestDeclarations(t *testing.T, storage api.DeclarationAPIStorage, ctx context.Context) {
-	decl, err := ddm.ParseDeclaration([]byte(testDecl))
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	t.Run("StoreDeclaration", func(t *testing.T) {
-		testStoreDeclaration(t, storage, ctx, decl)
-	})
-
-	t.Run("DeleteDeclaration", func(t *testing.T) {
-		testDeleteDeclaration(t, storage, ctx, decl.Identifier)
-	})
 }

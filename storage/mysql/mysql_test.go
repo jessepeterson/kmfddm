@@ -25,9 +25,5 @@ func TestMySQL(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	ctx := context.Background()
-
-	test.TestDeclarations(t, storage, ctx)
-
-	test.TestSets(t, storage, ctx)
+	test.TestBasic(t, storage, context.Background())
 }
