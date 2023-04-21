@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
+	"github.com/groob/plist"
 )
 
 const agent = "kmfddm/0"
@@ -33,9 +34,15 @@ func (n *Notifier) sendCommand(ctx context.Context, ids []string) error {
 		}
 	}
 
-	cmdUUID := uuid.NewString()
-	logs = append(logs, "command_uuid", cmdUUID)
-	cmdBytes, err := NewMDMCommand(cmdUUID, tokens)
+	c := NewDeclarativeManagementCommand()
+	c.CommandUUID = uuid.NewString()
+	if len(tokens) > 0 {
+		c.Command.Data = &tokens
+	}
+
+	logs = append(logs, "command_uuid", c.CommandUUID)
+
+	cmdBytes, err := plist.Marshal(c)
 	if err != nil {
 		logs = append(logs, "err", err)
 		return err
