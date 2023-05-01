@@ -4,6 +4,7 @@ package notifier
 
 import (
 	"context"
+	"net/http"
 
 	"github.com/jessepeterson/kmfddm/log"
 )
@@ -18,20 +19,47 @@ type EnrollmentIDFinder interface {
 type Notifier struct {
 	store  EnrollmentIDFinder
 	url    string
+	user   string
+	method string
 	key    string
 	logger log.Logger
 
+	multi                 bool
 	sendTokensForSingleID bool
 }
 
-func New(store EnrollmentIDFinder, url, key string, logger log.Logger) *Notifier {
-	return &Notifier{
+type Option func(n *Notifier)
+
+func WithMicroMDM() Option {
+	return func(n *Notifier) {
+		n.user = "micromdm"
+		n.multi = false
+		n.method = http.MethodPost
+	}
+}
+
+func WithLogger(logger log.Logger) Option {
+	return func(n *Notifier) {
+		n.logger = logger
+	}
+}
+
+func New(store EnrollmentIDFinder, url, key string, opts ...Option) *Notifier {
+	n := &Notifier{
 		store:                 store,
 		url:                   url,
 		key:                   key,
-		logger:                logger,
+		logger:                log.NopLogger,
 		sendTokensForSingleID: true,
+
+		user:   "nanomdm",
+		method: http.MethodPut,
+		multi:  true,
 	}
+	for _, opt := range opts {
+		opt(n)
+	}
+	return n
 }
 
 func (n *Notifier) DeclarationChanged(ctx context.Context, declarationID string) error {

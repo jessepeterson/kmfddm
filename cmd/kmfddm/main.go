@@ -44,6 +44,7 @@ func main() {
 		flEnqueueURL = flag.String("enqueue", "http://[::1]:9000/v1/enqueue/", "URL of NanoMDM enqueue endpoint")
 		flEnqueueKey = flag.String("enqueue-key", "", "NanoMDM API key")
 		flCORSOrigin = flag.String("cors-origin", "", "CORS Origin; for browser-based API access")
+		flMicro      = flag.Bool("micromdm", false, "Use MicroMDM command API calling conventions")
 	)
 	flag.Parse()
 
@@ -67,7 +68,13 @@ func main() {
 		os.Exit(1)
 	}
 
-	nanoNotif := notifier.New(storage, *flEnqueueURL, *flEnqueueKey, logger.With("service", "notifier"))
+	nOpts := []notifier.Option{
+		notifier.WithLogger(logger.With("service", "notifier")),
+	}
+	if *flMicro {
+		nOpts = append(nOpts, notifier.WithMicroMDM())
+	}
+	nanoNotif := notifier.New(storage, *flEnqueueURL, *flEnqueueKey, nOpts...)
 
 	mux := flow.New()
 
