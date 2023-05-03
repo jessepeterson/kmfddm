@@ -6,6 +6,7 @@ import (
 	"context"
 	"net/http"
 	"net/url"
+	"strings"
 
 	"github.com/jessepeterson/kmfddm/log"
 )
@@ -57,6 +58,9 @@ func New(store EnrollmentIDFinder, urlBase, key string, opts ...Option) (*Notifi
 		multi:  true,
 	}
 	var err error
+	if !strings.HasSuffix(urlBase, "/") {
+		urlBase += "/"
+	}
 	n.url, err = url.Parse(urlBase)
 	if err != nil {
 		return n, err
