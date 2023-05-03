@@ -5,6 +5,7 @@ package notifier
 import (
 	"context"
 	"net/http"
+	"net/url"
 
 	"github.com/jessepeterson/kmfddm/log"
 )
@@ -18,7 +19,7 @@ type EnrollmentIDFinder interface {
 
 type Notifier struct {
 	store  EnrollmentIDFinder
-	url    string
+	url    *url.URL
 	user   string
 	method string
 	key    string
@@ -44,10 +45,9 @@ func WithLogger(logger log.Logger) Option {
 	}
 }
 
-func New(store EnrollmentIDFinder, url, key string, opts ...Option) *Notifier {
+func New(store EnrollmentIDFinder, urlBase, key string, opts ...Option) (*Notifier, error) {
 	n := &Notifier{
 		store:                 store,
-		url:                   url,
 		key:                   key,
 		logger:                log.NopLogger,
 		sendTokensForSingleID: true,
@@ -56,10 +56,15 @@ func New(store EnrollmentIDFinder, url, key string, opts ...Option) *Notifier {
 		method: http.MethodPut,
 		multi:  true,
 	}
+	var err error
+	n.url, err = url.Parse(urlBase)
+	if err != nil {
+		return n, err
+	}
 	for _, opt := range opts {
 		opt(n)
 	}
-	return n
+	return n, nil
 }
 
 func (n *Notifier) DeclarationChanged(ctx context.Context, declarationID string) error {

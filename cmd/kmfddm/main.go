@@ -74,7 +74,11 @@ func main() {
 	if *flMicro {
 		nOpts = append(nOpts, notifier.WithMicroMDM())
 	}
-	nanoNotif := notifier.New(storage, *flEnqueueURL, *flEnqueueKey, nOpts...)
+	nanoNotif, err := notifier.New(storage, *flEnqueueURL, *flEnqueueKey, nOpts...)
+	if err != nil {
+		logger.Info("msg", "creating notifier", "err", err)
+		os.Exit(1)
+	}
 
 	mux := flow.New()
 

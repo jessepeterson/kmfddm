@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"github.com/google/uuid"
@@ -82,8 +83,13 @@ func (n *Notifier) sendCommand(ctx context.Context, ids []string) error {
 		// TODO: this probably won't scale well. the URL could proabably
 		// reasonably store 2K of data, so for a typical UUID this works out
 		// to 50-ish IDs in a single enqueuing.
-		idsStr := strings.Join(ids, ",")
-		req, err := http.NewRequestWithContext(ctx, http.MethodPut, n.url+idsStr, cmd)
+		urlFramgent, err := url.Parse(strings.Join(ids, ","))
+		if err != nil {
+			n.logger.Info("msg", "parsing url ids", "err", err)
+			continue
+		}
+		url := n.url.ResolveReference(urlFramgent)
+		req, err := http.NewRequestWithContext(ctx, http.MethodPut, url.String(), cmd)
 		if err != nil {
 			errLogs := append(logs,
 				"err",
@@ -104,7 +110,10 @@ func (n *Notifier) sendCommand(ctx context.Context, ids []string) error {
 			n.logger.Info(errLogs...)
 			continue
 		}
-		resp.Body.Close()
+		err = resp.Body.Close()
+		if err != nil {
+			n.logger.Info("msg", "closing body", "err", err)
+		}
 
 		logs = append(logs, "http_status", resp.StatusCode)
 
