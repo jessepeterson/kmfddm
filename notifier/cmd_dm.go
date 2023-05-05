@@ -8,7 +8,7 @@ const DeclarativeManagementRequestType = "DeclarativeManagement"
 // DeclarativeManagementPayload is the "inner" command-specific payload for the "DeclarativeManagement" Apple MDM command.
 type DeclarativeManagementPayload struct {
 	Data                         *[]byte `plist:",omitempty"`
-	RequestType                  string  // must be set to "DeclarativeManagement"
+	RequestType                  string  // supported value: DeclarativeManagement
 	RequestRequiresNetworkTether *bool   `plist:",omitempty"`
 }
 
