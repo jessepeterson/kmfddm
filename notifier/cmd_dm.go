@@ -19,6 +19,9 @@ type DeclarativeManagementCommand struct {
 }
 
 // NewDeclarativeManagementCommand creates a new "DeclarativeManagement" Apple MDM command.
-func NewDeclarativeManagementCommand() *DeclarativeManagementCommand {
-	return &DeclarativeManagementCommand{Command: DeclarativeManagementPayload{RequestType: DeclarativeManagementRequestType}}
+func NewDeclarativeManagementCommand(uuid string) *DeclarativeManagementCommand {
+	return &DeclarativeManagementCommand{
+		Command:     DeclarativeManagementPayload{RequestType: DeclarativeManagementRequestType},
+		CommandUUID: uuid,
+	}
 }

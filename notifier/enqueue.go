@@ -57,8 +57,7 @@ func (n *Notifier) sendCommand(ctx context.Context, ids []string) error {
 			}
 		}
 
-		c := NewDeclarativeManagementCommand()
-		c.CommandUUID = uuid.NewString()
+		c := NewDeclarativeManagementCommand(uuid.NewString())
 		if len(tokens) > 0 {
 			c.Command.Data = &tokens
 		}
