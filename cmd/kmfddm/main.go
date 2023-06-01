@@ -39,10 +39,10 @@ func main() {
 		// flStorage = flag.String("storage", "", "storage backend")
 		flDSN = flag.String("storage-dsn", "", "storage data source name")
 
-		flDumpStatus = flag.Bool("dump-status", false, "dump the status report to stdout")
+		flDumpStatus = flag.String("dump-status", "", "file name to dump status reports to (\"-\" for stdout)")
 
-		flEnqueueURL = flag.String("enqueue", "http://[::1]:9000/v1/enqueue/", "URL of NanoMDM enqueue endpoint")
-		flEnqueueKey = flag.String("enqueue-key", "", "NanoMDM API key")
+		flEnqueueURL = flag.String("enqueue", "", "URL of MDM server enqueue endpoint")
+		flEnqueueKey = flag.String("enqueue-key", "", "MDM server enqueue API key")
 		flCORSOrigin = flag.String("cors-origin", "", "CORS Origin; for browser-based API access")
 		flMicro      = flag.Bool("micromdm", false, "Use MicroMDM command API calling conventions")
 	)
@@ -105,8 +105,17 @@ func main() {
 	)
 
 	var statusHandler http.Handler = ddmhttp.StatusReportHandler(storage, logger.With("handler", "status"))
-	if *flDumpStatus {
-		statusHandler = DumpHandler(statusHandler, os.Stdout)
+	if *flDumpStatus != "" {
+		f := os.Stdout
+		if *flDumpStatus != "-" {
+			if f, err = os.OpenFile(*flDumpStatus, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644); err != nil {
+				logger.Info("msg", "dump status", "path", *flDumpStatus, "err", err)
+				os.Exit(1)
+			}
+			defer f.Close()
+			logger.Debug("msg", "dump status", "path", *flDumpStatus)
+		}
+		statusHandler = DumpHandler(statusHandler, f)
 	}
 	mux.Handle("/status", statusHandler, "PUT")
 
