@@ -1,6 +1,6 @@
 # KMFDDM
 
-KMFDDM is an Apple Declarative Device Management (DDM) server. It works together with [NanoMDM](https://github.com/micromdm/nanomdm).
+KMFDDM is an Apple Declarative Device Management (DDM) server. It works together with open source MDM servers.
 
 ## EXPERIMENTAL
 
@@ -10,10 +10,9 @@ Thanks [@chilcote](https://github.com/chilcote) for the name idea. 😉
 
 ## Requirements
 
-- A working NanoMDM v0.3.0+ environment
-- Network access to and from the NanoMDM instance(s)
+- A working NanoMDM v0.3.0+ or MicroMDM v1.11.0+ environment
+- Network access to and from the MDM instance(s)
 - Declarative Device Management (DDM) capable device(s): iOS 15.0+, macOS 13.0+ (Ventura), etc.
-- MySQL 8.0.19+ database
 - Python 3 and shell script tools are included (technically optional, but helpful)
 
 ## Getting started & Documentation

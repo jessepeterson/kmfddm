@@ -12,7 +12,7 @@ For this guide you'll need to:
 1. Have a compatible device like iOS 15.0+ or macOS Ventura 13.0+ enrolled into your NanoMDM environment. **You'll need to know the enrollment ID of the device(s).**
 1. Take note of your MDM server's command enqueue HTTP endpoint and API key (password). For this guide we'll be using `http://[::1]:9000/v1/enqueue` as if you're running NanoMDM locally. For MicroMDM see the [raw command API docs](https://github.com/micromdm/micromdm/blob/main/docs/user-guide/api-and-webhooks.md#schedule-raw-commands-with-the-api).
 1. Obtain the KMFDDM server by either downloading a release zip or checking out the code and compiling from source. Take note of where the KMFDDM server binary and the helper scrips are. They're in the [tools](../tools) directory in the source repository — but should also be in the binary release zip.
-1. Create and setup the MySQL schema using the [schema file](../storage/mysql/schema.sql) (e.g. creating a new database, users, and executing the `CREATE TABLE` statements). Note the [DSN](https://github.com/go-sql-driver/mysql#dsn-data-source-name) where you created this.
+1. If you're using the `-storage mysql` backend: create and setup the MySQL schema using the [schema file](../storage/mysql/schema.sql) (e.g. creating a new database, users, and executing the `CREATE TABLE` statements). Note the [DSN](https://github.com/go-sql-driver/mysql#dsn-data-source-name) where you created this.
 
 With those steps taken care of we can now start the KMFDDM server.
 
@@ -25,14 +25,12 @@ Starting the server looks like this:
     -api supersecret \
     -enqueue 'http://[::1]:9000/v1/enqueue/' \
     -enqueue-key supernanosecret \
-    -storage-dsn 'kmfddm:kmfddm@tcp(192.168.0.1:3306)/kmfddm' \
     -debug
 ```
 
 * `-api` sets the *KMFDDM* API key to "supersecret"
 * `-enqueue` sets the URL for the enqueue endpoint for NanoMDM. By default NanoMDM listens on port 9000 and the enqueue API endpoint is at "/v1/enqueue/". Be sure to include the trailing slash "/".
 * `-enqueue-key` sets the API key for enqueueing commands to *NanoMDM* to "supernanosecret" (this is configured in your NanoMDM environment)
-* `-storage-dsn` sets the storage DSN for the MySQL storage backend. In this example case we're connecting to a "kmfddm" database at host "192.168.0.1" with username and password "kmfddm".
 * `-debug` turns on additional debug logging
 
 If the server started successfully you should see:
