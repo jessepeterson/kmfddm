@@ -8,9 +8,9 @@ For this guide you'll need to:
 
 1. Have familiarity with Declarative Management (DDM) concepts including declarations, tokens, status reports, etc. Please review Apple's WWDC 2021 video ["Meet Declarative Device Management"](https://developer.apple.com/videos/play/wwdc2021/10131/) as a primer.
 1. Have familiarity with KMFDDM. Please read project the [README](../README.md).
-1. Have a working NanoMDM v0.3.0+ environment setup and running with devices able to enroll.
+1. Have a working NanoMDM v0.3.0+ or MicroMDM v1.11.0+ environment setup and running with devices able to enroll.
 1. Have a compatible device like iOS 15.0+ or macOS Ventura 13.0+ enrolled into your NanoMDM environment. **You'll need to know the enrollment ID of the device(s).**
-1. Take note of your NanoMDM server's command enqueue HTTP endpoint and API key (password). For this guide we'll be using `http://[::1]:9000/v1/enqueue` as if you're running NanoMDM locally.
+1. Take note of your MDM server's command enqueue HTTP endpoint and API key (password). For this guide we'll be using `http://[::1]:9000/v1/enqueue` as if you're running NanoMDM locally. For MicroMDM see the [raw command API docs](https://github.com/micromdm/micromdm/blob/main/docs/user-guide/api-and-webhooks.md#schedule-raw-commands-with-the-api).
 1. Obtain the KMFDDM server by either downloading a release zip or checking out the code and compiling from source. Take note of where the KMFDDM server binary and the helper scrips are. They're in the [tools](../tools) directory in the source repository — but should also be in the binary release zip.
 1. Create and setup the MySQL schema using the [schema file](../storage/mysql/schema.sql) (e.g. creating a new database, users, and executing the `CREATE TABLE` statements). Note the [DSN](https://github.com/go-sql-driver/mysql#dsn-data-source-name) where you created this.
 
@@ -45,7 +45,7 @@ Note that it started on port 9002. This can be changed with the `-listen` switch
 
 ### Reconfigure NanoMDM
 
-We'll need to "point" NanoMDM at our KMFDDM instance. This is done by utilizing the `-dm` switch when starting NanoMDM. NanoMDM v0.3.0+ is required for this to work. This might look like:
+We'll need to "point" NanoMDM (or MicroMDM) at our KMFDDM instance. This is done by utilizing the `-dm` switch when starting NanoMDM. NanoMDM v0.3.0+ or MicroMDM v1.11.0+ is required for this to work. This might look like:
 
 ```sh
 ./nanomdm-darwin-amd64 -ca ca.pem -api nanomdm -debug -dm 'http://[::1]:9002/'
@@ -70,7 +70,7 @@ Awesome, you got things running! Now we'll setup a very basic DDM environment to
 
 ### Our first declaration
 
-To create a simple declaration we can use the `ideclr.py` tool:
+To create a simple declaration we can use the [`ideclr.py` tool](../tools/ideclr.py):
 
 ```sh
 $ ./tools/ideclr.py org-info 'ACME Widgets Co.'
