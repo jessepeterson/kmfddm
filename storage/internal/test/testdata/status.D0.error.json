@@ -1,0 +1,38 @@
+{
+  "StatusItems" : {
+    "management" : {
+      "declarations" : {
+        "activations" : [
+
+        ],
+        "configurations" : [
+          {
+            "reasons" : [
+              {
+                "details" : {
+                  "Identifier" : "com.example.test",
+                  "ServerToken" : "7c6d85989e823101"
+                },
+                "description" : "Configuration “com.example.test:7c6d85989e823101” is not referenced by an activation.",
+                "code" : "Info.NotReferencedByActivation"
+              }
+            ],
+            "active" : false,
+            "identifier" : "com.example.test",
+            "valid" : "unknown",
+            "server-token" : "7c6d85989e823101"
+          }
+        ],
+        "assets" : [
+
+        ],
+        "management" : [
+
+        ]
+      }
+    }
+  },
+  "Errors" : [
+
+  ]
+}

@@ -6,4 +6,5 @@ curl \
     $CURL_OPTS \
     -X DELETE \
     -u "kmfddm:$API_KEY" \
+    -w "Response HTTP Code: %{http_code}\n" \
     "$URL"

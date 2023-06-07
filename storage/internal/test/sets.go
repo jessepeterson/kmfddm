@@ -68,8 +68,11 @@ func testSet(t *testing.T, storage setAndDeclStorage, ctx context.Context, decl 
 		t.Error("could not find declaration in declaration sets list")
 	}
 
+}
+
+func testSetRemoval(t *testing.T, storage setAndDeclStorage, ctx context.Context, decl *ddm.Declaration, setName string) {
 	// dissociate
-	_, err = storage.RemoveSetDeclaration(ctx, setName, decl.Identifier)
+	_, err := storage.RemoveSetDeclaration(ctx, setName, decl.Identifier)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -6,6 +6,8 @@ import (
 
 	"github.com/jessepeterson/kmfddm/ddm"
 	"github.com/jessepeterson/kmfddm/http/api"
+	httpddm "github.com/jessepeterson/kmfddm/http/ddm"
+	"github.com/jessepeterson/kmfddm/notifier"
 )
 
 const testDecl = `{
@@ -19,6 +21,8 @@ const testDecl = `{
 type allTestStorage interface {
 	setAndDeclStorage
 	api.EnrollmentAPIStorage
+	notifier.EnrollmentIDFinder
+	httpddm.TokensDeclarationItemsRetriever
 }
 
 func TestBasic(t *testing.T, storage allTestStorage, ctx context.Context) {
@@ -36,7 +40,11 @@ func TestBasic(t *testing.T, storage allTestStorage, ctx context.Context) {
 	})
 
 	t.Run("TestEnrollmentSets", func(t *testing.T) {
-		testEnrollments(t, storage, ctx, "455399EA-4C94-4FA1-A87A-85A6CFEC4932", "test_golang_set1")
+		testEnrollments(t, storage, ctx, decl, "455399EA-4C94-4FA1-A87A-85A6CFEC4932", "test_golang_set1")
+	})
+
+	t.Run("TestSetRemoval", func(t *testing.T) {
+		testSetRemoval(t, storage, ctx, decl, "test_golang_set1")
 	})
 
 	t.Run("DeleteDeclaration", func(t *testing.T) {

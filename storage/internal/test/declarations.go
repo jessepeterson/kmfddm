@@ -24,7 +24,7 @@ func testStoreDeclaration(t *testing.T, storage api.DeclarationAPIStorage, ctx c
 			break
 		}
 	}
-	if found != true {
+	if !found {
 		t.Error("could not find declaration id in list")
 	}
 	decl2, err := storage.RetrieveDeclaration(ctx, decl.Identifier)
@@ -56,7 +56,7 @@ func testDeleteDeclaration(t *testing.T, storage api.DeclarationAPIStorage, ctx 
 			break
 		}
 	}
-	if found == true {
+	if found {
 		t.Error("found declaration id in list (should have been deleted)")
 	}
 }

@@ -1,0 +1,92 @@
+{
+  "StatusItems" : {
+    "management" : {
+      "declarations" : {
+        "activations" : [
+
+        ],
+        "configurations" : [
+
+        ],
+        "assets" : [
+
+        ],
+        "management" : [
+
+        ]
+      },
+      "client-capabilities" : {
+        "supported-versions" : [
+          "1.0.0"
+        ],
+        "supported-payloads" : {
+          "declarations" : {
+            "activations" : [
+              "com.apple.activation.simple"
+            ],
+            "assets" : [
+
+            ],
+            "configurations" : [
+              "com.apple.configuration.legacy",
+              "com.apple.configuration.legacy.interactive",
+              "com.apple.configuration.management.status-subscriptions",
+              "com.apple.configuration.management.test",
+              "com.apple.configuration.passcode.settings"
+            ],
+            "management" : [
+              "com.apple.management.organization-info",
+              "com.apple.management.properties",
+              "com.apple.management.server-capabilities"
+            ]
+          },
+          "status-items" : [
+            "device.identifier.serial-number",
+            "device.identifier.udid",
+            "device.model.family",
+            "device.model.identifier",
+            "device.model.marketing-name",
+            "device.operating-system.build-version",
+            "device.operating-system.family",
+            "device.operating-system.marketing-name",
+            "device.operating-system.supplemental.build-version",
+            "device.operating-system.supplemental.extra-version",
+            "device.operating-system.version",
+            "management.client-capabilities",
+            "management.declarations",
+            "test.array-value",
+            "test.boolean-value",
+            "test.dictionary-value",
+            "test.error-value",
+            "test.integer-value",
+            "test.real-value",
+            "test.string-value"
+          ]
+        },
+        "supported-features" : {
+
+        }
+      }
+    },
+    "device" : {
+      "identifier" : {
+        "udid" : "0000FE00-5FADE97DCBBBEDA5",
+        "serial-number" : "ZRMXJQTTFX"
+      },
+      "model" : {
+        "family" : "Mac"
+      },
+      "operating-system" : {
+        "family" : "macOS",
+        "build-version" : "22E261",
+        "supplemental" : {
+          "extra-version" : "(a)"
+        },
+        "version" : "13.3.1"
+      }
+    }
+  },
+  "Errors" : [
+
+  ]
+}

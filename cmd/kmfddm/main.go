@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"hash"
 	"io"
 	"math/rand"
 	"net/http"
@@ -11,15 +10,11 @@ import (
 	"time"
 
 	"github.com/alexedwards/flow"
-	"github.com/cespare/xxhash"
 	httpddm "github.com/jessepeterson/kmfddm/http"
 	apihttp "github.com/jessepeterson/kmfddm/http/api"
 	ddmhttp "github.com/jessepeterson/kmfddm/http/ddm"
 	"github.com/jessepeterson/kmfddm/log/stdlogfmt"
 	"github.com/jessepeterson/kmfddm/notifier"
-	"github.com/jessepeterson/kmfddm/storage/mysql"
-
-	_ "github.com/go-sql-driver/mysql"
 )
 
 // overridden by -ldflags -X
@@ -36,8 +31,8 @@ func main() {
 		flListen  = flag.String("listen", ":9002", "HTTP listen address")
 		flAPIKey  = flag.String("api", "", "API key for API endpoints")
 		flVersion = flag.Bool("version", false, "print version")
-		// flStorage = flag.String("storage", "", "storage backend")
-		flDSN = flag.String("storage-dsn", "", "storage data source name")
+		flStorage = flag.String("storage", "file", "storage backend")
+		flDSN     = flag.String("storage-dsn", "", "storage data source name")
 
 		flDumpStatus = flag.String("dump-status", "", "file name to dump status reports to (\"-\" for stdout)")
 
@@ -59,12 +54,9 @@ func main() {
 		logger.Info("msg", "empty API key; API disabled")
 	}
 
-	storage, err := mysql.New(
-		mysql.WithDSN(*flDSN),
-		mysql.WithNewHash(func() hash.Hash { return xxhash.New() }),
-	)
+	storage, err := storage(*flStorage, *flDSN)
 	if err != nil {
-		logger.Info("msg", "init MySQL storage", "err", err)
+		logger.Info("msg", "init storage", "name", *flStorage, "err", err)
 		os.Exit(1)
 	}
 
