@@ -25,7 +25,7 @@ def make_activation(args):
         },
     }
     if hasattr(args, "predicate") and args.predicate:
-        decl["Predicate"] = args.predicate
+        decl["Payload"]["Predicate"] = args.predicate
     return decl
 
 
