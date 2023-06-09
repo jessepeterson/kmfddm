@@ -58,9 +58,16 @@ To use the helper shell scripts you'll want to set some environment variables fi
 ```sh
 export BASE_URL='http://[::1]:9002'
 export API_KEY='kmfddm'
+
+# This will need to match your enrollment ID. 
+# For macOS device enrollments this is the same as the hardware UUID in System Preferences.
+# Note this is not required for the helper tools/scripts. This is just an aid for this QuickStart guide.
+export ID="2FF3196C-CACE-4AFE-9918-01C38160006F" 
 ```
 
 The base URL is where KMFDDM is running and the API key is what you gave to the `-api` switch when you started KMFDDM. The shell scripts are simple `curl` wrapprs that access KMFDDM's REST-ish API and need to know where it is running and how to authenticate.
+
+ID is the enrollment ID of the MDM client. Often this will be the UDID of the device. For example in macOS this is the same as the hardware UUID in System Preferences.
 
 ## Basic setup
 
@@ -113,7 +120,7 @@ Don't worry about the "no enrollments" message just yet — this is expected (th
 Let's check that this declaration is on the server by listing all the declarations:
 
 ```sh
-$ ./tools/api-declarations-get.sh 
+$ ./tools/api-declarations-get.sh
 ["com.example.test"]
 ```
 
@@ -184,14 +191,14 @@ Good, the set named "default" contains the "com.example.test" declaration. Let's
 
 ### Our first "enrollment"
 
-As noted in the [README](../README.md) sets don't really do anything until they are associated with enrollment IDs. But once we do that some of the fun will start to happen so I'll try and walk us through it. 
+As noted in the [README](../README.md) sets don't really do anything until they are associated with enrollment IDs. But once we do that some of the fun will start to happen so I'll try and walk us through it.
 
 When we say "enrollment" here it's not quite like an MDM enrollment. Here I'm specifically talking about associating a NanoMDM enrollment ID to the "default" set that we just created, above. Of course, once this happens, as we'll see, we'll "turn on" DDM for the enrollment which acts kinda sorta like an "enrollment" *for the DDM protocol* so it can get a little confusing. Overall when referring to "enrollments" throughout this document we're almost certainly talking about NanoMDM enrollment IDs.
 
 So, let's assign my enrollment ID (`2FF3196C-CACE-4AFE-9918-01C38160006F`) to the default set and see what happens:
 
 ```sh
-$ ./tools/api-enrollment-sets-put.sh 2FF3196C-CACE-4AFE-9918-01C38160006F default
+$ ./tools/api-enrollment-sets-put.sh $ID default
 Response HTTP Code: 204
 ```
 
@@ -245,7 +252,7 @@ We saw an error, above, what is it?
 First, let's check that what the enrollment is retrieving from the server looks correct as far as the Tokens, Declaration Items, and Declarations endpoints go:
 
 ```sh
-$ ./tools/ddm-tokens.sh 2FF3196C-CACE-4AFE-9918-01C38160006F | jq .
+$ ./tools/ddm-tokens.sh $ID | jq .
 {
   "SyncTokens": {
     "DeclarationsToken": "ed534ed640fa03dc",
@@ -257,7 +264,7 @@ $ ./tools/ddm-tokens.sh 2FF3196C-CACE-4AFE-9918-01C38160006F | jq .
 This helper script queries the same endpoint that an enrollment does when it talks the DDM protocol (note the `ddm-*` prefix of the script). By using the same endpoint we can see exactly what a response *for a given enrollment ID* might look like. The response to the tokens endpoint itself is not much to look at but what about the Declarations Items endpoint?
 
 ```sh
-$ ./tools/ddm-declaration-items.sh 2FF3196C-CACE-4AFE-9918-01C38160006F | jq .
+$ ./tools/ddm-declaration-items.sh $ID | jq .
 {
   "Declarations": {
     "Activations": [],
@@ -277,7 +284,7 @@ $ ./tools/ddm-declaration-items.sh 2FF3196C-CACE-4AFE-9918-01C38160006F | jq .
 Ah, here we see that the declaration items for this enrollment (in exactly the way the enrollment would query it) indeed lists our "com.example.test" declaration that we uploaded and assigned to a set and assigned to our enrollment, above. Also the `DeclarationsToken` matches for both it and the tokens endpoint. Looks good. Let's make sure the declaration that the client sees also matches:
 
 ```sh
-$ ./tools/ddm-declaration.sh 2FF3196C-CACE-4AFE-9918-01C38160006F configuration/com.example.test | jq .
+$ ./tools/ddm-declaration.sh $ID configuration/com.example.test | jq .
 {
   "Type": "com.apple.configuration.management.test",
   "Payload": {
@@ -295,7 +302,7 @@ This looks good too and is, again, the way the enrollment would request this dec
 When the enrollment first sent us its status report it sent along extra data. This data is commonly enrollment (and/or device) related and can include details about the particulars of its DDM support (like supported declaration types, status subscriptions, etc.). KMFDDM keeps note of this. We can query it like so:
 
 ```sh
-$ ./tools/api-status-values-get.sh 2FF3196C-CACE-4AFE-9918-01C38160006F | jq .
+$ ./tools/api-status-values-get.sh $ID | jq .
 {
   "2FF3196C-CACE-4AFE-9918-01C38160006F": [
     {
@@ -310,7 +317,7 @@ A "normalized" set of all the non-error, non-declaration data from the enrollmen
 We can also query for specific path items, too (the trailing percent `%` character is passed onto an SQL `LIKE` condition):
 
 ```sh
-$ ./tools/api-status-values-get.sh 2FF3196C-CACE-4AFE-9918-01C38160006F '.StatusItems.device.operating-system.%' | jq .
+$ ./tools/api-status-values-get.sh $ID '.StatusItems.device.operating-system.%' | jq .
 {
   "2FF3196C-CACE-4AFE-9918-01C38160006F": [
     {
@@ -336,7 +343,7 @@ This was a fun aside but doesn't particularly help us with tracking down our err
 DDM-enabled enrollments send the status of their declarations with their status reports. KMFDDM keeps note of this. We can query KMFDDM for the collection of declarations that are assigned to an enrollment (via sets) and the status (if any) that the enrollment has reported back to us. Let's check that out:
 
 ```sh
-$ ./tools/api-status-declaration-get.sh 2FF3196C-CACE-4AFE-9918-01C38160006F | jq .
+$ ./tools/api-status-declaration-get.sh $ID | jq .
 {
   "2FF3196C-CACE-4AFE-9918-01C38160006F": [
     {
@@ -370,7 +377,7 @@ It tells us plainly: it is not referenced by an activation. You see I led you as
 If a declaration is reported as neither active nor valid then we also append that as an *error* to the enrollment's error log along with the path we saw the error. So we can see that error here:
 
 ```sh
-$ ./tools/api-status-errors-get.sh 2FF3196C-CACE-4AFE-9918-01C38160006F | jq .
+$ ./tools/api-status-errors-get.sh $ID | jq .
 {
   "2FF3196C-CACE-4AFE-9918-01C38160006F": [
     {
@@ -433,14 +440,14 @@ Oops, what happend? Oh, I had a typo. Because KMFDDM's SQL schema maintains refe
 ```sh
 $ ./tools/ideclr.py -i com.example.act activation com.example.test | ./tools/api-declaration-put.sh -
 Response HTTP Code: 204
-$ ./tools/api-declarations-get.sh 
+$ ./tools/api-declarations-get.sh
 ["com.example.act","com.example.test"]
 ```
 
 Ah, much better. Now KMFDDM has two declarations and our new activation references our old one. Let's look at our enrollment ID's declarations items to make sure it'll see this declaration:
 
 ```sh
-$ ./tools/ddm-declaration-items.sh 2FF3196C-CACE-4AFE-9918-01C38160006F | jq .
+$ ./tools/ddm-declaration-items.sh $ID | jq .
 {
   "Declarations": {
     "Activations": [],
@@ -464,7 +471,7 @@ We only have our old declaration in there. Why is that? Another clue is that the
 Declarations can exist by themsleves unassigned to any anything. And they'll be just that — floating out there; disconnected. Like we initially did we need to assign declarations to sets. Sets also need to be assigned to enrollments — but we already did that, right? Our enrollment ID is already associated with the "default" set, isn't it? Let's answer that question:
 
 ```sh
-$ ./tools/api-enrollment-sets-get.sh 2FF3196C-CACE-4AFE-9918-01C38160006F
+$ ./tools/api-enrollment-sets-get.sh $ID
 ["default"]
 ```
 
@@ -487,7 +494,7 @@ Response HTTP Code: 204
 Cool, now if we double-check the declaration items for this enrollment we should see now:
 
 ```sh
-$ ./tools/ddm-declaration-items.sh 2FF3196C-CACE-4AFE-9918-01C38160006F | jq .
+$ ./tools/ddm-declaration-items.sh $ID | jq .
 {
   "Declarations": {
     "Activations": [
@@ -540,7 +547,7 @@ Finally it sends a status report back. And what do we see?
 The enrollment reports 2 declarations and 0 errors! Let's check our declaration status again, to see what's changed:
 
 ```sh
-$ ./tools/api-status-declaration-get.sh 2FF3196C-CACE-4AFE-9918-01C38160006F | jq . 
+$ ./tools/api-status-declaration-get.sh $ID | jq .
 {
   "2FF3196C-CACE-4AFE-9918-01C38160006F": [
     {
@@ -579,7 +586,8 @@ We're just met with a 304 which does nothing and notifies no enrollments. Let's 
 ```sh
 $ ./tools/ideclr.py -i com.example.test test -r Failed 'KMFDDM!' | ./tools/api-declaration-put.sh -
 Response HTTP Code: 204
-$ ./tools/api-declaration-get.sh com.example.test | jq .                                  
+
+$ ./tools/api-declaration-get.sh com.example.test | jq .
 {
   "Type": "com.apple.configuration.management.test",
   "Payload": {
@@ -594,7 +602,7 @@ $ ./tools/api-declaration-get.sh com.example.test | jq .
 We received a 204 which means it was a success and the declaration changed. KMFDDM figured out that it needed to notify our enrollment ID (because it was assigned to a set which contains that declaration). The logs show us that the enrollment fetched the updated declaration and that it reported back it status. What does that status look like?
 
 ```sh
-$ ./tools/api-status-declaration-get.sh 2FF3196C-CACE-4AFE-9918-01C38160006F | jq .
+$ ./tools/api-status-declaration-get.sh $ID | jq .
 {
   "2FF3196C-CACE-4AFE-9918-01C38160006F": [
     {
@@ -629,7 +637,7 @@ $ ./tools/api-status-declaration-get.sh 2FF3196C-CACE-4AFE-9918-01C38160006F | j
 This is an "artificial" error, of sorts, that the "com.example.test" declaration is able to generate for demonstration and testing purposes. We can change it back easily enough:
 
 ```sh
-$ ./tools/ideclr.py -i com.example.test test 'KMFDDM!' | ./tools/api-declaration-put.sh - 
+$ ./tools/ideclr.py -i com.example.test test 'KMFDDM!' | ./tools/api-declaration-put.sh -
 Response HTTP Code: 204
 ```
 
