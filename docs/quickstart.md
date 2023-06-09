@@ -58,7 +58,11 @@ To use the helper shell scripts you'll want to set some environment variables fi
 ```sh
 export BASE_URL='http://[::1]:9002'
 export API_KEY='kmfddm'
-export ID="2FF3196C-CACE-4AFE-9918-01C38160006F" # This will need to match your test machine's UUID
+
+# This will need to match your enrollment ID. 
+# For macOS device enrollments this is the same as the hardware UUID in System Preferences.
+# Note this is not required for the helper tools/scripts. This is just an aid for this QuickStart guide.
+export ID="2FF3196C-CACE-4AFE-9918-01C38160006F" 
 ```
 
 The base URL is where KMFDDM is running and the API key is what you gave to the `-api` switch when you started KMFDDM. The shell scripts are simple `curl` wrapprs that access KMFDDM's REST-ish API and need to know where it is running and how to authenticate.
