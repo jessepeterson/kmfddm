@@ -416,7 +416,17 @@ func (s *File) RetrieveStatusErrors(_ context.Context, enrollmentIDs []string, o
 
 func filterPathPrefix(values []ddm.StatusValue, pathPrefix string) (ret []ddm.StatusValue) {
 	for _, v := range values {
-		if strings.HasPrefix(v.Path, pathPrefix) {
+		var found bool
+		if hasPre, hasSuf := strings.HasPrefix(pathPrefix, "%"), strings.HasSuffix(pathPrefix, "%"); len(v.Path) >= 3 && hasPre && hasSuf {
+			found = strings.Contains(v.Path, pathPrefix[1:len(pathPrefix)-1])
+		} else if hasPre {
+			found = strings.HasSuffix(v.Path, pathPrefix[1:])
+		} else if hasSuf {
+			found = strings.HasPrefix(v.Path, pathPrefix[:len(pathPrefix)-1])
+		} else {
+			found = v.Path == pathPrefix
+		}
+		if found {
 			ret = append(ret, v)
 		}
 	}
