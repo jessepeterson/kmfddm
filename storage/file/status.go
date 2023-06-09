@@ -258,12 +258,23 @@ func (s *File) RetrieveDeclarationStatus(_ context.Context, enrollmentIDs []stri
 			continue
 		}
 
-		// deconstruct the declaration items into just a list of configured declarations
+		// deconstruct the declaration items into a slice of configured declarations
 		var manifestDeclarations []ddm.ManifestDeclaration
 		manifestDeclarations = append(manifestDeclarations, di.Declarations.Activations...)
 		manifestDeclarations = append(manifestDeclarations, di.Declarations.Assets...)
 		manifestDeclarations = append(manifestDeclarations, di.Declarations.Configurations...)
 		manifestDeclarations = append(manifestDeclarations, di.Declarations.Management...)
+
+		// generate the "placeholder" output for all of our declaration items
+		manifestMap := make(map[string]ddm.DeclarationQueryStatus)
+		for _, manifestDeclaration := range manifestDeclarations {
+			manifestMap[manifestDeclaration.Identifier] = ddm.DeclarationQueryStatus{
+				DeclarationStatus: ddm.DeclarationStatus{
+					Identifier:  manifestDeclaration.Identifier,
+					ServerToken: manifestDeclaration.ServerToken,
+				},
+			}
+		}
 
 		csvFile, err := os.Open(s.csvFilename(csvFilenameDeclarations, enrollmentID))
 		if err != nil && !errors.Is(err, os.ErrNotExist) {
@@ -272,7 +283,6 @@ func (s *File) RetrieveDeclarationStatus(_ context.Context, enrollmentIDs []stri
 		defer csvFile.Close()
 		reader := csv.NewReader(csvFile)
 
-		var ddmStatuses []ddm.DeclarationQueryStatus
 		for {
 			// read a record
 			record, err := reader.Read()
@@ -310,8 +320,15 @@ func (s *File) RetrieveDeclarationStatus(_ context.Context, enrollmentIDs []stri
 				return nil, fmt.Errorf("parse bool: %w", err)
 			}
 
-			// assemble and append the record
-			ddmStatusRecord := ddm.DeclarationQueryStatus{
+			_, ok := manifestMap[record[1]]
+			if !ok {
+				// we only want to report on those declarations that are configured
+				// i.e. set in our declartion-items
+				continue
+			}
+
+			// replace placeholder with a "full" declaration query status
+			manifestMap[record[1]] = ddm.DeclarationQueryStatus{
 				DeclarationStatus: ddm.DeclarationStatus{
 					Identifier:   record[1],
 					Active:       active,
@@ -322,15 +339,11 @@ func (s *File) RetrieveDeclarationStatus(_ context.Context, enrollmentIDs []stri
 				Reasons:        ddmError,
 				StatusReceived: ts,
 			}
-
-			// go through our configured declaration items to see if this status is one of them
-			for _, manifestDeclaration := range manifestDeclarations {
-				if manifestDeclaration.Identifier == ddmStatusRecord.Identifier {
-					ddmStatusRecord.Current = manifestDeclaration.ServerToken == ddmStatusRecord.ServerToken
-					ddmStatuses = append(ddmStatuses, ddmStatusRecord)
-					break
-				}
-			}
+		}
+		// turn back into a list
+		ddmStatuses := make([]ddm.DeclarationQueryStatus, 0, len(manifestMap))
+		for k := range manifestMap {
+			ddmStatuses = append(ddmStatuses, manifestMap[k])
 		}
 		ret[enrollmentID] = ddmStatuses
 	}
