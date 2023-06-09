@@ -14,8 +14,14 @@ type setAndDeclStorage interface {
 }
 
 func testSet(t *testing.T, storage setAndDeclStorage, ctx context.Context, decl *ddm.Declaration, setName string) {
+	// associate (wrong)
+	_, err := storage.StoreSetDeclaration(ctx, setName, decl.Identifier+"_invalid")
+	if err == nil {
+		t.Fatal("should be an error")
+	}
+
 	// associate
-	_, err := storage.StoreSetDeclaration(ctx, setName, decl.Identifier)
+	_, err = storage.StoreSetDeclaration(ctx, setName, decl.Identifier)
 	if err != nil {
 		t.Fatal(err)
 	}

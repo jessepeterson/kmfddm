@@ -3,6 +3,7 @@ package file
 import (
 	"context"
 	"fmt"
+	"os"
 	"path"
 	"path/filepath"
 )
@@ -18,6 +19,10 @@ func (s *File) RetrieveSetDeclarations(_ context.Context, setName string) ([]str
 func (s *File) StoreSetDeclaration(_ context.Context, setName, declarationID string) (bool, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	_, err := os.Stat(s.declarationFilename(declarationID))
+	if err != nil {
+		return false, fmt.Errorf("checking declaration: %w", err)
+	}
 	// set the forward reference
 	changed, err := setOrRemoveIn(s.setFilename(setName), declarationID, true)
 	if err != nil {
