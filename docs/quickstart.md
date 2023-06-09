@@ -67,7 +67,7 @@ export ID="2FF3196C-CACE-4AFE-9918-01C38160006F"
 
 The base URL is where KMFDDM is running and the API key is what you gave to the `-api` switch when you started KMFDDM. The shell scripts are simple `curl` wrapprs that access KMFDDM's REST-ish API and need to know where it is running and how to authenticate.
 
-ID is the HardwareUUID of the client which is enrolled to the mdm.
+ID is the enrollment ID of the MDM client. Often this will be the UDID of the device. For example in macOS this is the same as the hardware UUID in System Preferences.
 
 ## Basic setup
 
