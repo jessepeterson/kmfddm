@@ -47,8 +47,7 @@ type DIBuilder struct {
 }
 
 func NewDIBuilder(newHash func() hash.Hash) *DIBuilder {
-	return &DIBuilder{
-		Hash: newHash(),
+	b := &DIBuilder{
 		DeclarationItems: DeclarationItems{
 			Declarations: ManifestDeclarationItems{
 				// init slices so they're non-nil for the JSON encoder.
@@ -60,6 +59,10 @@ func NewDIBuilder(newHash func() hash.Hash) *DIBuilder {
 			},
 		},
 	}
+	if newHash != nil {
+		b.Hash = newHash()
+	}
+	return b
 }
 
 func tokenHashWrite(h hash.Hash, d *Declaration) {

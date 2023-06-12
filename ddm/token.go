@@ -23,7 +23,11 @@ type TokensBuilder struct {
 }
 
 func NewTokensBuilder(newHash func() hash.Hash) *TokensBuilder {
-	return &TokensBuilder{Hash: newHash()}
+	t := &TokensBuilder{}
+	if newHash != nil {
+		t.Hash = newHash()
+	}
+	return t
 }
 
 func (b *TokensBuilder) AddDeclarationData(d *Declaration) {

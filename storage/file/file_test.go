@@ -2,23 +2,25 @@ package file
 
 import (
 	"context"
+	"hash"
 	"os"
 	"reflect"
 	"testing"
 
-	"github.com/jessepeterson/kmfddm/storage/internal/test"
+	"github.com/cespare/xxhash"
+	"github.com/jessepeterson/kmfddm/storage/test"
 )
 
 const testPath = "teststor"
 
 func TestFile(t *testing.T) {
-	s, err := New(testPath)
+	s, err := New(testPath, func() hash.Hash { return xxhash.New() })
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	test.TestBasic(t, s, context.Background())
-	test.TestBasicStatus(t, "../internal/test", s, context.Background())
+	test.TestBasicStatus(t, "../test", s, context.Background())
 
 	os.RemoveAll(testPath)
 }

@@ -6,9 +6,11 @@ package mysql
 import (
 	"context"
 	"flag"
+	"hash"
 	"testing"
 
-	"github.com/jessepeterson/kmfddm/storage/internal/test"
+	"github.com/cespare/xxhash"
+	"github.com/jessepeterson/kmfddm/storage/test"
 
 	_ "github.com/go-sql-driver/mysql"
 )
@@ -20,7 +22,7 @@ func TestMySQL(t *testing.T) {
 		t.Fatal("MySQL DSN flag not provided to test")
 	}
 
-	storage, err := New(WithDSN(*flDSN))
+	storage, err := New(func() hash.Hash { return xxhash.New() }, WithDSN(*flDSN))
 	if err != nil {
 		t.Fatal(err)
 	}

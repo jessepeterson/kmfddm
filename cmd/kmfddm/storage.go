@@ -25,18 +25,20 @@ type allStorage interface {
 	api.StatusAPIStorage
 }
 
+var hasher func() hash.Hash = func() hash.Hash { return xxhash.New() }
+
 func storage(name, dsn string) (allStorage, error) {
 	switch name {
 	case "mysql":
 		return mysql.New(
+			hasher,
 			mysql.WithDSN(dsn),
-			mysql.WithNewHash(func() hash.Hash { return xxhash.New() }),
 		)
 	case "file":
 		if dsn == "" {
 			dsn = "db"
 		}
-		return file.New(dsn)
+		return file.New(dsn, hasher)
 	default:
 		return nil, fmt.Errorf("unknown storage name: %s", name)
 	}

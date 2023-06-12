@@ -9,8 +9,6 @@ import (
 	"path"
 	"strings"
 	"sync"
-
-	"github.com/cespare/xxhash"
 )
 
 // File is a filesystem-based storage backend.
@@ -20,13 +18,16 @@ type File struct {
 	newHash func() hash.Hash
 }
 
-func New(path string) (*File, error) {
+func New(path string, newHash func() hash.Hash) (*File, error) {
 	if err := os.Mkdir(path, 0755); err != nil && !errors.Is(err, os.ErrExist) {
 		return nil, err
 	}
+	if newHash == nil {
+		panic("newHash must not be nil")
+	}
 	return &File{
 		path:    path,
-		newHash: func() hash.Hash { return xxhash.New() },
+		newHash: newHash,
 	}, nil
 }
 

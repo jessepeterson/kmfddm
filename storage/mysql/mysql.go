@@ -15,10 +15,9 @@ type MySQLStorage struct {
 }
 
 type config struct {
-	driver  string
-	dsn     string
-	db      *sql.DB
-	newHash func() hash.Hash
+	driver string
+	dsn    string
+	db     *sql.DB
 }
 
 type Option func(*config)
@@ -41,13 +40,7 @@ func WithDB(db *sql.DB) Option {
 	}
 }
 
-func WithNewHash(newHash func() hash.Hash) Option {
-	return func(c *config) {
-		c.newHash = newHash
-	}
-}
-
-func New(opts ...Option) (*MySQLStorage, error) {
+func New(newHash func() hash.Hash, opts ...Option) (*MySQLStorage, error) {
 	cfg := &config{driver: "mysql"}
 	for _, opt := range opts {
 		opt(cfg)
@@ -62,7 +55,7 @@ func New(opts ...Option) (*MySQLStorage, error) {
 	if err = cfg.db.Ping(); err != nil {
 		return nil, err
 	}
-	return &MySQLStorage{db: cfg.db, newHash: cfg.newHash}, nil
+	return &MySQLStorage{db: cfg.db, newHash: newHash}, nil
 }
 
 var ErrNotImplemented = errors.New("not implemented")
