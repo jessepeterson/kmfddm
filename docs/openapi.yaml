@@ -1,0 +1,92 @@
+openapi: 3.0.0
+info:
+  version: 0.1.0
+  title: KMFDDM server API
+servers:
+  - url: http://[::1]:9002/
+paths:
+  /version:
+    get:
+      description: Returns the running KMFDDM server version
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties: 
+                  version:
+                    type: string
+                    example: "v0.1.0"
+  /v1/declarations/{id}/touch:
+    post:
+      description: Updates a declaration's `ServerToken` only.
+      security:
+        - basicAuth: []
+      responses:
+        '204':
+          description: Declaration server token successfully updated.
+        '401':
+           $ref: '#/components/responses/UnauthorizedError'
+        '400':
+           $ref: '#/components/responses/JSONBadRequest'
+        '500':
+           $ref: '#/components/responses/JSONError'
+    parameters:
+      - $ref: '#/components/parameters/declarationID'
+components:
+  parameters:
+    declarationID:
+      name: id
+      in: path
+      description: Identifier of the declaration.
+      required: true
+      style: simple
+      schema:
+        type: string
+        example: 'com.example.test'
+  securitySchemes:
+    basicAuth:
+      type: http
+      scheme: basic
+  responses:
+    UnauthorizedError:
+      description: API key is missing or invalid.
+      headers:
+        WWW-Authenticate:
+          schema:
+            type: string
+    BadRequest:
+      description: There was a problem with the supplied request. The request was in an incorrect format or other request data error. See server logs for more information.
+      content:
+        text/plain:
+          schema:
+            type: string
+            example: Bad Request
+    Error:
+      description: An internal server error occured on this endpoint. See server logs for more information.
+      content:
+        text/plain:
+          schema:
+            type: string
+            example: Internal Server Error
+    JSONBadRequest:
+      description: There was a problem with the supplied request. The request was in an incorrect format or other request data error.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/JSONError'  
+    JSONError:
+      description: An internal server error occured on this endpoint.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/JSONError'
+  schemas:
+    JSONError:
+      type: object
+      properties:
+        error:
+          type: string
+          example: "it was sunny outside"

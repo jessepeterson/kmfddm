@@ -2,11 +2,14 @@ package mysql
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
 	"github.com/jessepeterson/kmfddm/ddm"
 )
+
+var ErrDeclarationNotChanged = errors.New("declaration not changed (may not exist)")
 
 func (s *MySQLStorage) StoreDeclaration(ctx context.Context, d *ddm.Declaration) (bool, error) {
 	tx, err := s.db.BeginTx(ctx, nil)
@@ -122,10 +125,11 @@ WHERE
 	return
 }
 
-func (s *MySQLStorage) DeleteDeclaration(ctx context.Context, identifier string) (bool, error) {
+func (s *MySQLStorage) DeleteDeclaration(ctx context.Context, declarationID string) (bool, error) {
 	result, err := s.db.ExecContext(
-		ctx, `DELETE FROM declarations WHERE identifier = ?;`,
-		identifier,
+		ctx,
+		`DELETE FROM declarations WHERE identifier = ?;`,
+		declarationID,
 	)
 	if err != nil {
 		return false, err
@@ -146,4 +150,24 @@ func (s *MySQLStorage) RetrieveDeclarations(ctx context.Context) ([]string, erro
 		ctx,
 		`SELECT identifier FROM declarations;`,
 	)
+}
+
+// TouchDeclaration updates a declaration's "touch count" which makes a new server token.
+func (s *MySQLStorage) TouchDeclaration(ctx context.Context, declarationID string) error {
+	result, err := s.db.ExecContext(
+		ctx,
+		`UPDATE declarations SET touched_ct = touched_ct + 1 WHERE identifier = ?;`,
+		declarationID,
+	)
+	if err != nil {
+		return err
+	}
+	changed, err := resultChangedRows(result)
+	if err != nil {
+		return err
+	}
+	if !changed {
+		return ErrDeclarationNotChanged
+	}
+	return nil
 }

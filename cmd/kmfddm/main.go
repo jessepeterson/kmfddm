@@ -54,7 +54,7 @@ func main() {
 		logger.Info("msg", "empty API key; API disabled")
 	}
 
-	storage, err := storage(*flStorage, *flDSN)
+	storage, err := setupStorage(*flStorage, *flDSN)
 	if err != nil {
 		logger.Info("msg", "init storage", "name", *flStorage, "err", err)
 		os.Exit(1)
@@ -148,6 +148,12 @@ func main() {
 				"/v1/declarations/:id",
 				apihttp.DeleteDeclarationHandler(storage, logger.With("handler", "delete-declaration")),
 				"DELETE",
+			)
+
+			mux.Handle(
+				"/v1/declarations/:id/touch",
+				apihttp.TouchDeclarationHandler(storage, nanoNotif, logger.With("handler", "touch-declaration")),
+				"POST",
 			)
 
 			// sets

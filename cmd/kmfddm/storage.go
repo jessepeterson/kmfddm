@@ -8,6 +8,7 @@ import (
 	"github.com/jessepeterson/kmfddm/http/api"
 	"github.com/jessepeterson/kmfddm/http/ddm"
 	"github.com/jessepeterson/kmfddm/notifier"
+	"github.com/jessepeterson/kmfddm/storage"
 	"github.com/jessepeterson/kmfddm/storage/file"
 	"github.com/jessepeterson/kmfddm/storage/mysql"
 
@@ -23,11 +24,12 @@ type allStorage interface {
 	ddm.StatusStorage
 	api.EnrollmentAPIStorage
 	api.StatusAPIStorage
+	storage.Toucher
 }
 
 var hasher func() hash.Hash = func() hash.Hash { return xxhash.New() }
 
-func storage(name, dsn string) (allStorage, error) {
+func setupStorage(name, dsn string) (allStorage, error) {
 	switch name {
 	case "mysql":
 		return mysql.New(

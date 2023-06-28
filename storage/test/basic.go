@@ -8,6 +8,7 @@ import (
 	"github.com/jessepeterson/kmfddm/http/api"
 	httpddm "github.com/jessepeterson/kmfddm/http/ddm"
 	"github.com/jessepeterson/kmfddm/notifier"
+	"github.com/jessepeterson/kmfddm/storage"
 )
 
 const testDecl = `{
@@ -23,6 +24,7 @@ type allTestStorage interface {
 	api.EnrollmentAPIStorage
 	notifier.EnrollmentIDFinder
 	httpddm.TokensDeclarationItemsRetriever
+	storage.Toucher
 }
 
 func TestBasic(t *testing.T, storage allTestStorage, ctx context.Context) {

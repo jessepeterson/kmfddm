@@ -23,6 +23,10 @@ func (s *File) StoreDeclaration(_ context.Context, d *ddm.Declaration) (bool, er
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
+	return s.writeDeclarationFiles(d, false)
+}
+
+func (s *File) writeDeclarationFiles(d *ddm.Declaration, forceNewSalt bool) (bool, error) {
 	var err error
 	var token string
 	var creationSalt []byte
@@ -34,21 +38,25 @@ func (s *File) StoreDeclaration(_ context.Context, d *ddm.Declaration) (bool, er
 	// try to read token and cache our existing token if it exists
 	if tokenBytes, err := os.ReadFile(tokenFilename); errors.Is(err, os.ErrNotExist) {
 		tokenMissing = true
-		// token is missing, lets make a new salt
-		if creationSalt, err = newSalt(); err != nil {
-			return false, fmt.Errorf("creating new salt: %w", err)
-		}
 	} else if err != nil {
 		return false, fmt.Errorf("reading server token: %w", err)
 	} else {
 		// found the token, lets convert it (and read our salt)
 		token = string(tokenBytes)
-		if creationSalt, err = os.ReadFile(saltFilename); err != nil {
-			return false, fmt.Errorf("reading creation salt: %w", err)
+		if !forceNewSalt {
+			if creationSalt, err = os.ReadFile(saltFilename); err != nil {
+				return false, fmt.Errorf("reading creation salt: %w", err)
+			}
 		}
 	}
 
-	// unmarshal the uploaded declaration
+	if tokenMissing || forceNewSalt {
+		if creationSalt, err = newSalt(); err != nil {
+			return false, fmt.Errorf("creating new salt: %w", err)
+		}
+	}
+
+	// unmarshal the raw declaration
 	var declaration map[string]interface{}
 	if err = json.Unmarshal(d.Raw, &declaration); err != nil {
 		return false, err
@@ -63,7 +71,7 @@ func (s *File) StoreDeclaration(_ context.Context, d *ddm.Declaration) (bool, er
 		return false, fmt.Errorf("marshaling no-token declaration: %w", err)
 	}
 
-	// hash the marshaled declaration (without token and with creation salt)
+	// hash the marshaled declaration (again without token but with creation salt)
 	hasher := s.newHash()
 	_, err = hasher.Write(append(dBytes, creationSalt...))
 	if err != nil {
@@ -95,8 +103,9 @@ func (s *File) StoreDeclaration(_ context.Context, d *ddm.Declaration) (bool, er
 		return false, fmt.Errorf("writing declaration token: %w", err)
 	}
 
-	if tokenMissing {
-		// we only want to change the salt if we're making a "new" declaration
+	if tokenMissing || forceNewSalt {
+		// we only want to change the salt if we're either touching or
+		// making a "new" declaration.
 		if err = os.WriteFile(saltFilename, creationSalt, 0644); err != nil {
 			return false, fmt.Errorf("writing creation salt: %w", err)
 		}
@@ -114,6 +123,11 @@ func (s *File) StoreDeclaration(_ context.Context, d *ddm.Declaration) (bool, er
 func (s *File) RetrieveDeclaration(_ context.Context, declarationID string) (*ddm.Declaration, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
+
+	return s.readDeclarationFile(declarationID)
+}
+
+func (s *File) readDeclarationFile(declarationID string) (*ddm.Declaration, error) {
 	dBytes, err := os.ReadFile(s.declarationFilename(declarationID))
 	if err != nil {
 		return nil, fmt.Errorf("reading declaration: %w", err)
@@ -170,4 +184,17 @@ func (s *File) RetrieveDeclarations(_ context.Context) ([]string, error) {
 		truncated[i] = match[len(pathPrefix) : len(match)-len(suffixJSON)]
 	}
 	return truncated, nil
+}
+
+// TouchDeclaration rewrites a declaration with a new ServerToken.
+func (s *File) TouchDeclaration(ctx context.Context, declarationID string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	d, err := s.readDeclarationFile(declarationID)
+	if err != nil {
+		return err
+	}
+	_, err = s.writeDeclarationFiles(d, true)
+	return err
 }

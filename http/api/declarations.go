@@ -11,6 +11,7 @@ import (
 	"github.com/jessepeterson/kmfddm/ddm"
 	"github.com/jessepeterson/kmfddm/log"
 	"github.com/jessepeterson/kmfddm/log/ctxlog"
+	"github.com/jessepeterson/kmfddm/storage"
 )
 
 type DeclarationAPIStorage interface {
@@ -145,6 +146,32 @@ func GetDeclarationsHandler(store DeclarationAPIStorage, logger log.Logger) http
 		err = json.NewEncoder(w).Encode(&ids)
 		if err != nil {
 			logger.Info("msg", "encoding response body", "err", err)
+			return
+		}
+	}
+}
+
+// TouchDeclarationHandler touches a declaration specified by ID.
+func TouchDeclarationHandler(store storage.Toucher, notifier Notifier, logger log.Logger) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		logger := ctxlog.Logger(r.Context(), logger)
+		var err error
+		declarationID := getResourceID(r)
+		if declarationID == "" {
+			err = errors.New("empty declaration identifier")
+			jsonErrorAndLog(w, http.StatusBadRequest, err, "validating input", logger)
+			return
+		}
+		logger = logger.With("declaration", declarationID)
+		err = store.TouchDeclaration(r.Context(), declarationID)
+		if err != nil {
+			jsonErrorAndLog(w, http.StatusInternalServerError, err, "touching declaration", logger)
+			return
+		}
+		http.Error(w, http.StatusText(http.StatusNoContent), http.StatusNoContent)
+		err = notifier.DeclarationChanged(r.Context(), declarationID)
+		if err != nil {
+			logger.Info("msg", "notifying", "err", err)
 			return
 		}
 	}
