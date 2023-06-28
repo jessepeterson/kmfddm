@@ -5,8 +5,9 @@ CREATE TABLE declarations (
 
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP NOT NULL,
+    touched_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
 
-    server_token VARCHAR(40) AS (SHA1(CONCAT(identifier, type, payload, created_at))) STORED NOT NULL,
+    server_token CHAR(40) AS (SHA1(CONCAT(identifier, type, payload, created_at, touched_at))) STORED NOT NULL,
 
     PRIMARY KEY (identifier),
 
