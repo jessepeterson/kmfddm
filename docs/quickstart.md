@@ -56,11 +56,13 @@ After this (and the above) steps are done NanoMDM should be "pointed" at KMFDDM 
 To use the helper shell scripts you'll want to set some environment variables first:
 
 ```sh
+# port 9002 is the default KMFDDM port
 export BASE_URL='http://[::1]:9002'
-export API_KEY='kmfddm'
+# this key was specified when we started KMFDDM, above
+export API_KEY='supersecret'
 
-# This will need to match your enrollment ID. 
-# For macOS device enrollments this is the same as the hardware UUID in System Preferences.
+# This will need to match *your* enrollment ID.
+# For macOS device enrollments this is the same as the hardware UUID in System Information.
 # Note this is not required for the helper tools/scripts. This is just an aid for this QuickStart guide.
 export ID="2FF3196C-CACE-4AFE-9918-01C38160006F" 
 ```
