@@ -338,6 +338,7 @@ func (s *File) RetrieveDeclarationStatus(_ context.Context, enrollmentIDs []stri
 				},
 				Reasons:        ddmError,
 				StatusReceived: ts,
+				Current:        record[4] == manifestMap[record[1]].ServerToken,
 			}
 		}
 		// turn back into a list
