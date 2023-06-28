@@ -13,6 +13,12 @@ import (
 	"github.com/jessepeterson/kmfddm/ddm"
 )
 
+func newSalt() (salt []byte, err error) {
+	salt = make([]byte, 32)
+	_, err = rand.Read(salt)
+	return
+}
+
 func (s *File) StoreDeclaration(_ context.Context, d *ddm.Declaration) (bool, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -29,9 +35,8 @@ func (s *File) StoreDeclaration(_ context.Context, d *ddm.Declaration) (bool, er
 	if tokenBytes, err := os.ReadFile(tokenFilename); errors.Is(err, os.ErrNotExist) {
 		tokenMissing = true
 		// token is missing, lets make a new salt
-		creationSalt = make([]byte, 32)
-		if _, err = rand.Read(creationSalt); err != nil {
-			return false, fmt.Errorf("reading random data for creation salt: %w", err)
+		if creationSalt, err = newSalt(); err != nil {
+			return false, fmt.Errorf("creating new salt: %w", err)
 		}
 	} else if err != nil {
 		return false, fmt.Errorf("reading server token: %w", err)
