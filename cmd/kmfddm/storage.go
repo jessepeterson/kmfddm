@@ -17,13 +17,13 @@ import (
 type allStorage interface {
 	api.SetAPIStorage
 	api.DeclarationAPIStorage
-	ddm.DeclarationRetriever
-	ddm.TokensDeclarationItemsRetriever
 	ddm.StatusStorage
 	api.EnrollmentAPIStorage
 	api.StatusAPIStorage
 	storage.Toucher
 	storage.EnrollmentIDRetriever
+	storage.DeclarationRetriever
+	storage.TokensDeclarationItemsRetriever
 }
 
 var hasher func() hash.Hash = func() hash.Hash { return xxhash.New() }
