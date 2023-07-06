@@ -44,7 +44,7 @@ func PutSetDeclarationHandler(store SetAPIStorage, notifier Notifier, logger log
 			}
 			changed, err := store.StoreSetDeclaration(ctx, resource, declarationID)
 			if err == nil && changed {
-				err = notifier.SetChanged(ctx, resource)
+				err = notifier.Changed(ctx, nil, []string{resource}, nil)
 				if err != nil {
 					err = fmt.Errorf("notify set: %w", err)
 				}
@@ -67,7 +67,7 @@ func DeleteSetDeclarationHandler(store SetAPIStorage, notifier Notifier, logger 
 			}
 			changed, err := store.RemoveSetDeclaration(ctx, resource, declarationID)
 			if err == nil && changed {
-				err = notifier.SetChanged(ctx, resource)
+				err = notifier.Changed(ctx, nil, []string{resource}, nil)
 			}
 			return changed, err
 		},

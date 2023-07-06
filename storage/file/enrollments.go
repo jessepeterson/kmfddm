@@ -70,41 +70,74 @@ func (s *File) RemoveEnrollmentSet(_ context.Context, enrollmentID, setName stri
 	return changed, nil
 }
 
-// declarationEnrollmentIDs finds all the enrollment IDs that are associated with a declaration.
-func (s *File) declarationEnrollmentIDs(declarationID string) ([]string, error) {
-	// find all sets for a declaration
-	declSets, err := getSlice(s.declarationSetsFilename(declarationID))
-	if err != nil {
-		return nil, fmt.Errorf("getting sets for declaration %s: %w", declarationID, err)
-	}
-	ids := make(map[string]struct{})
-	for _, declSet := range declSets {
-		// find all ids associated with these sets
-		setIDs, err := getSlice(s.setEnrollmentsFilename(declSet))
+// RetrieveEnrollmentIDs retrieves MDM enrollment IDs from storage.
+// If a set, declaration, or enrollment ID doesn't exist it is ignored.
+func (s *File) RetrieveEnrollmentIDs(_ context.Context, declarations []string, sets []string, ids []string) ([]string, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.retrieveEnrollmentIDs(declarations, sets, ids)
+}
+
+func (s *File) retrieveEnrollmentIDs(declarations []string, sets []string, ids []string) ([]string, error) {
+	retIDs := make(map[string]struct{})
+	setMemoize := make(map[string]struct{})
+
+	for _, declarationID := range declarations {
+		setNames, err := getSlice(s.declarationSetsFilename(declarationID))
 		if err != nil {
-			return nil, fmt.Errorf("getting enrollments for set %s: %w", declSet, err)
+			return nil, fmt.Errorf("getting sets for declaration %s: %w", declarationID, err)
+		}
+		for _, setName := range setNames {
+			if _, ok := setMemoize[setName]; ok {
+				continue
+			}
+			// find all ids associated with these sets
+			setIDs, err := getSlice(s.setEnrollmentsFilename(setName))
+			if err != nil {
+				return nil, fmt.Errorf("getting enrollments for set %s: %w", setName, err)
+			}
+			for _, id := range setIDs {
+				retIDs[id] = struct{}{}
+			}
+			setMemoize[setName] = struct{}{}
+		}
+	}
+
+	for _, setName := range sets {
+		if _, ok := setMemoize[setName]; ok {
+			continue
+		}
+		// find all ids associated with these sets
+		setIDs, err := getSlice(s.setEnrollmentsFilename(setName))
+		if err != nil {
+			return nil, fmt.Errorf("getting enrollments for set %s: %w", setName, err)
 		}
 		for _, id := range setIDs {
-			ids[id] = struct{}{}
+			retIDs[id] = struct{}{}
+		}
+		setMemoize[setName] = struct{}{}
+	}
+
+	// retrieve any enrollment IDs (if they're valid)
+	for _, id := range ids {
+		if _, ok := retIDs[id]; ok {
+			continue
+		}
+		// TODO: need to check read whole slice? or just check exists or empty?
+		setNames, err := getSlice(s.enrollmentSetsFilename(id))
+		if err != nil {
+			return nil, fmt.Errorf("getting enrollments sets for id %s: %w", id, err)
+		}
+		if len(setNames) > 0 {
+			retIDs[id] = struct{}{}
 		}
 	}
-	idSlice := make([]string, 0, len(ids))
-	for id := range ids {
-		idSlice = append(idSlice, id)
+
+	// s.enrollmentDeclarationFilename()
+
+	retIDSlice := make([]string, 0, len(retIDs))
+	for k := range retIDs {
+		retIDSlice = append(retIDSlice, k)
 	}
-	return idSlice, nil
-}
-
-// RetrieveDeclarationEnrollmentIDs retrieves a list of enrollment IDs that are transitively associated with a declaration.
-func (s *File) RetrieveDeclarationEnrollmentIDs(_ context.Context, declarationID string) ([]string, error) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	return s.declarationEnrollmentIDs(declarationID)
-}
-
-// RetrieveSetEnrollmentIDs retrieves a list of enrollment IDs that are associated with a set.
-func (s *File) RetrieveSetEnrollmentIDs(_ context.Context, setName string) ([]string, error) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	return getSlice(s.setEnrollmentsFilename(setName))
+	return retIDSlice, nil
 }

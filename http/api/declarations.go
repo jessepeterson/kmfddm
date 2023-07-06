@@ -55,7 +55,7 @@ func PutDeclarationHandler(store DeclarationAPIStorage, notifier Notifier, logge
 		}
 		http.Error(w, http.StatusText(status), status)
 		if changed {
-			err = notifier.DeclarationChanged(r.Context(), d.Identifier)
+			err = notifier.Changed(r.Context(), []string{d.Identifier}, nil, nil)
 			if err != nil {
 				logger.Info("msg", "notifying", "err", err)
 				return
@@ -169,7 +169,7 @@ func TouchDeclarationHandler(store storage.Toucher, notifier Notifier, logger lo
 			return
 		}
 		http.Error(w, http.StatusText(http.StatusNoContent), http.StatusNoContent)
-		err = notifier.DeclarationChanged(r.Context(), declarationID)
+		err = notifier.Changed(r.Context(), []string{declarationID}, nil, nil)
 		if err != nil {
 			logger.Info("msg", "notifying", "err", err)
 			return

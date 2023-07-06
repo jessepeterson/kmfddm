@@ -41,7 +41,7 @@ func PutEnrollmentSetHandler(store EnrollmentAPIStorage, notifier Notifier, logg
 			}
 			changed, err := store.StoreEnrollmentSet(ctx, resource, setName)
 			if err == nil && changed {
-				err = notifier.EnrollmentChanged(ctx, resource)
+				err = notifier.Changed(ctx, nil, nil, []string{resource})
 				if err != nil {
 					err = fmt.Errorf("notify enrollment: %w", err)
 				}
@@ -64,7 +64,7 @@ func DeleteEnrollmentSetHandler(store EnrollmentAPIStorage, notifier Notifier, l
 			}
 			changed, err := store.RemoveEnrollmentSet(ctx, resource, setName)
 			if err == nil && changed {
-				err = notifier.EnrollmentChanged(ctx, resource)
+				err = notifier.Changed(ctx, nil, nil, []string{resource})
 			}
 			return changed, err
 		},

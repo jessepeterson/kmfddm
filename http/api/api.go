@@ -113,7 +113,5 @@ func getResourceID(r *http.Request) string {
 }
 
 type Notifier interface {
-	DeclarationChanged(ctx context.Context, identifier string) error
-	EnrollmentChanged(ctx context.Context, enrollID string) error
-	SetChanged(ctx context.Context, setName string) error
+	Changed(ctx context.Context, declarations []string, sets []string, ids []string) error
 }
