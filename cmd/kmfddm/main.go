@@ -226,6 +226,13 @@ func main() {
 				apihttp.GetStatusValuesHandler(storage, logger.With("handler", "get-status-values")),
 				"GET",
 			)
+
+			// notifier
+			mux.Handle(
+				"/v1/notify",
+				apihttp.NotifyHandler(nanoNotif, logger.With("handler", "notify")),
+				"POST",
+			)
 		})
 	}
 
