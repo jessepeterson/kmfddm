@@ -2,7 +2,9 @@ package file
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"os"
 )
 
 // RetrieveEnrollmentSets returns the slice of sets associated with an enrollment ID.
@@ -123,13 +125,13 @@ func (s *File) retrieveEnrollmentIDs(declarations []string, sets []string, ids [
 		if _, ok := retIDs[id]; ok {
 			continue
 		}
-		// TODO: need to check read whole slice? or just check exists or empty?
-		setNames, err := getSlice(s.enrollmentSetsFilename(id))
-		if err != nil {
-			return nil, fmt.Errorf("getting enrollments sets for id %s: %w", id, err)
-		}
-		if len(setNames) > 0 {
+		// check if we've previously seen this id before
+		// (by checking if we've written a tokens file for it before)
+		_, err := os.Stat(s.tokensFilename(id))
+		if err == nil {
 			retIDs[id] = struct{}{}
+		} else if !errors.Is(err, os.ErrNotExist) {
+			return nil, fmt.Errorf("getting enrollments sets for id %s: %w", id, err)
 		}
 	}
 
