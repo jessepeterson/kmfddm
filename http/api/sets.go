@@ -37,19 +37,19 @@ func GetSetDeclarationsHandler(store SetAPIStorage, logger log.Logger) http.Hand
 func PutSetDeclarationHandler(store SetAPIStorage, notifier Notifier, logger log.Logger) http.HandlerFunc {
 	return simpleChangeResourceHandler(
 		logger,
-		func(ctx context.Context, resource string, u *url.URL) (bool, error) {
+		func(ctx context.Context, resource string, u *url.URL, notify bool) (bool, string, error) {
 			declarationID := u.Query().Get("declaration")
 			if declarationID == "" {
-				return false, errors.New("empty declaration")
+				return false, "", errors.New("empty declaration")
 			}
 			changed, err := store.StoreSetDeclaration(ctx, resource, declarationID)
-			if err == nil && changed {
+			if err == nil && changed && notify {
 				err = notifier.Changed(ctx, nil, []string{resource}, nil)
 				if err != nil {
 					err = fmt.Errorf("notify set: %w", err)
 				}
 			}
-			return changed, err
+			return changed, "store set declaration", err
 		},
 	)
 }
@@ -60,16 +60,19 @@ func PutSetDeclarationHandler(store SetAPIStorage, notifier Notifier, logger log
 func DeleteSetDeclarationHandler(store SetAPIStorage, notifier Notifier, logger log.Logger) http.HandlerFunc {
 	return simpleChangeResourceHandler(
 		logger,
-		func(ctx context.Context, resource string, u *url.URL) (bool, error) {
+		func(ctx context.Context, resource string, u *url.URL, notify bool) (bool, string, error) {
 			declarationID := u.Query().Get("declaration")
 			if declarationID == "" {
-				return false, errors.New("empty declaration")
+				return false, "", errors.New("empty declaration")
 			}
 			changed, err := store.RemoveSetDeclaration(ctx, resource, declarationID)
-			if err == nil && changed {
+			if err == nil && changed && notify {
 				err = notifier.Changed(ctx, nil, []string{resource}, nil)
+				if err != nil {
+					err = fmt.Errorf("notify set: %w", err)
+				}
 			}
-			return changed, err
+			return changed, "remove set declaration", err
 		},
 	)
 }
