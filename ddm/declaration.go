@@ -1,3 +1,4 @@
+// Package ddm supports the core Apple Declarative Device Management protocol.
 package ddm
 
 import (
@@ -30,38 +31,6 @@ func (d *Declaration) Valid() bool {
 		return false
 	}
 	return true
-}
-
-// IDRefs is a map of declaration type to payload key paths.
-// These key paths contain the identifiers of dependent declarations.
-var IdentifierRefs = map[string][][]string{
-	"com.apple.activation.simple": {
-		{"StandardConfigurations"},
-	},
-	"com.apple.configuration.account.caldav": {
-		{"AuthenticationCredentialsAssetReference"},
-	},
-	"com.apple.configuration.account.carddav": {
-		{"AuthenticationCredentialsAssetReference"},
-	},
-	"com.apple.configuration.account.exchange": {
-		{"UserIdentityAssetReference"},
-		{"AuthenticationCredentialsAssetReference"},
-	},
-	"com.apple.configuration.account.google": {
-		{"UserIdentityAssetReference"},
-	},
-	"com.apple.configuration.account.ldap": {
-		{"AuthenticationCredentialsAssetReference"},
-	},
-	"com.apple.configuration.account.mail": {
-		{"UserIdentityAssetReference"},
-		{"IncomingServer", "AuthenticationCredentialsAssetReference"},
-		{"OutgoingServer", "AuthenticationCredentialsAssetReference"},
-	},
-	"com.apple.configuration.account.subscribed-calendar": {
-		{"AuthenticationCredentialsAssetReference"},
-	},
 }
 
 // findIDRefs traverses the payload using IDRefs to find any dependent declarations.
