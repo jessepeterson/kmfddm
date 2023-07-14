@@ -1,6 +1,10 @@
 package mysql
 
-import "context"
+import (
+	"context"
+	"errors"
+	"strings"
+)
 
 func (s *MySQLStorage) RetrieveEnrollmentSets(ctx context.Context, enrollmentID string) ([]string, error) {
 	return s.singleStringColumn(
@@ -47,8 +51,41 @@ WHERE
 	return resultChangedRows(result)
 }
 
-// RetrieveDeclarationEnrollmentIDs retrieves a list of enrollment IDs that are transitively associated with a declaration.
-func (s *MySQLStorage) RetrieveDeclarationEnrollmentIDs(ctx context.Context, declarationID string) ([]string, error) {
+func qAndP(params []string) (r string, p []interface{}) {
+	if len(params) < 1 {
+		return
+	}
+	r = strings.Repeat(", ?", len(params))[2:]
+	for _, j := range params {
+		p = append(p, j)
+	}
+	return
+}
+
+func (s *MySQLStorage) RetrieveEnrollmentIDs(ctx context.Context, declarations []string, sets []string, ids []string) ([]string, error) {
+	var where []string
+	var params []interface{}
+	if len(declarations) > 0 {
+		r, p := qAndP(declarations)
+		q := "d.identifier IN (" + r + ")"
+		params = append(params, p...)
+		where = append(where, q)
+	}
+	if len(sets) > 0 {
+		r, p := qAndP(sets)
+		q := "sd.set_name IN (" + r + ")"
+		params = append(params, p...)
+		where = append(where, q)
+	}
+	if len(ids) > 0 {
+		r, p := qAndP(ids)
+		q := "es.enrollment_id IN (" + r + ")"
+		params = append(params, p...)
+		where = append(where, q)
+	}
+	if len(params) < 1 {
+		return nil, errors.New("no parameters provided")
+	}
 	rows, err := s.db.QueryContext(
 		ctx, `
 SELECT DISTINCT
@@ -59,34 +96,24 @@ FROM
         ON d.identifier = sd.declaration_identifier
     INNER JOIN enrollment_sets es
         ON sd.set_name = es.set_name
-WHERE
-    d.identifier = ?;`,
-		declarationID,
+    WHERE `+strings.Join(where, " OR "),
+		params...,
 	)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var id string
-	var ids []string
+	var retIDs []string
+	var retID string
 	for rows.Next() {
-		err = rows.Scan(&id)
+		err = rows.Scan(&retID)
 		if err != nil {
 			break
 		}
-		ids = append(ids, id)
+		retIDs = append(retIDs, retID)
 	}
 	if err == nil {
 		err = rows.Err()
 	}
-	return ids, err
-}
-
-// RetrieveSetEnrollmentIDs retrieves a list of enrollment IDs that are associated with a set.
-func (s *MySQLStorage) RetrieveSetEnrollmentIDs(ctx context.Context, setName string) ([]string, error) {
-	return s.singleStringColumn(
-		ctx,
-		`SELECT enrollment_id FROM enrollment_sets WHERE set_name = ?;`,
-		setName,
-	)
+	return retIDs, err
 }

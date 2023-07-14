@@ -10,7 +10,7 @@ KMFDDM=\
 
 SUPPLEMENTAL=\
 	tools/*.sh \
-	tools/ideclr.py
+	tools/*.py
 
 my: kmfddm-$(OSARCH)
 

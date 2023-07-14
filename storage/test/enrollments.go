@@ -7,26 +7,25 @@ import (
 
 	"github.com/jessepeterson/kmfddm/ddm"
 	"github.com/jessepeterson/kmfddm/http/api"
-	httpddm "github.com/jessepeterson/kmfddm/http/ddm"
-	"github.com/jessepeterson/kmfddm/notifier"
+	"github.com/jessepeterson/kmfddm/storage"
 )
 
 type myStorage interface {
 	api.EnrollmentAPIStorage
 	api.DeclarationAPIStorage
-	notifier.EnrollmentIDFinder
-	httpddm.TokensDeclarationItemsRetriever
+	storage.TokensDeclarationItemsRetriever
+	storage.EnrollmentIDRetriever
 }
 
-func testEnrollments(t *testing.T, storage myStorage, ctx context.Context, d *ddm.Declaration, enrollmentID, setName string) {
+func testEnrollments(t *testing.T, store myStorage, ctx context.Context, d *ddm.Declaration, enrollmentID, setName string) {
 	// associate
-	_, err := storage.StoreEnrollmentSet(ctx, enrollmentID, setName)
+	_, err := store.StoreEnrollmentSet(ctx, enrollmentID, setName)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// find ref
-	setNames, err := storage.RetrieveEnrollmentSets(ctx, enrollmentID)
+	setNames, err := store.RetrieveEnrollmentSets(ctx, enrollmentID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -42,7 +41,7 @@ func testEnrollments(t *testing.T, storage myStorage, ctx context.Context, d *dd
 	}
 
 	// find ref
-	ids, err := storage.RetrieveSetEnrollmentIDs(ctx, setName)
+	ids, err := store.RetrieveEnrollmentIDs(ctx, nil, []string{setName}, []string{enrollmentID})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -57,7 +56,7 @@ func testEnrollments(t *testing.T, storage myStorage, ctx context.Context, d *dd
 		t.Error("did not find ID in set list of IDs")
 	}
 
-	ids, err = storage.RetrieveDeclarationEnrollmentIDs(ctx, d.Identifier)
+	ids, err = store.RetrieveEnrollmentIDs(ctx, []string{d.Identifier}, nil, []string{enrollmentID})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -72,7 +71,7 @@ func testEnrollments(t *testing.T, storage myStorage, ctx context.Context, d *dd
 		t.Error("did not find ID in transitive list")
 	}
 
-	b, err := storage.RetrieveDeclarationItemsJSON(ctx, enrollmentID)
+	b, err := store.RetrieveDeclarationItemsJSON(ctx, enrollmentID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -91,7 +90,7 @@ func testEnrollments(t *testing.T, storage myStorage, ctx context.Context, d *dd
 		}
 
 		// re-retrieve declaration to make sure we have the storage-written token
-		d2, err := storage.RetrieveDeclaration(ctx, d.Identifier)
+		d2, err := store.RetrieveDeclaration(ctx, d.Identifier)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -102,13 +101,13 @@ func testEnrollments(t *testing.T, storage myStorage, ctx context.Context, d *dd
 	}
 
 	// dissociate
-	_, err = storage.RemoveEnrollmentSet(ctx, enrollmentID, setName)
+	_, err = store.RemoveEnrollmentSet(ctx, enrollmentID, setName)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// verify no ref
-	setNames, err = storage.RetrieveEnrollmentSets(ctx, enrollmentID)
+	setNames, err = store.RetrieveEnrollmentSets(ctx, enrollmentID)
 	if err != nil {
 		t.Fatal(err)
 	}

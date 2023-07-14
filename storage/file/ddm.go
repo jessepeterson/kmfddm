@@ -35,7 +35,7 @@ func (s *File) RetrieveTokensJSON(_ context.Context, enrollmentID string) ([]byt
 // writeDeclarationDDM looks up the enrollments associated with a declaration and writes the DDM files for each.
 func (s *File) writeDeclarationDDM(declarationID string) error {
 	// first find all enrollment IDs mapped to this declaration.
-	declarationIDs, err := s.declarationEnrollmentIDs(declarationID)
+	declarationIDs, err := s.retrieveEnrollmentIDs([]string{declarationID}, nil, nil)
 	if err != nil {
 		return err
 	}

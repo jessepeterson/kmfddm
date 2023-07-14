@@ -48,14 +48,15 @@ func PutDeclarationHandler(store DeclarationAPIStorage, notifier Notifier, logge
 			jsonErrorAndLog(w, 0, err, "storing declaration", logger)
 			return
 		}
-		logger.Debug("msg", "stored declaration", "changed", changed)
+		notify := shouldNotify(r.URL)
+		logger.Debug("msg", "stored declaration", "changed", changed, "notify", changed && notify)
 		status := http.StatusNotModified
 		if changed {
 			status = http.StatusNoContent
 		}
 		http.Error(w, http.StatusText(status), status)
-		if changed {
-			err = notifier.DeclarationChanged(r.Context(), d.Identifier)
+		if changed && notify {
+			err = notifier.Changed(r.Context(), []string{d.Identifier}, nil, nil)
 			if err != nil {
 				logger.Info("msg", "notifying", "err", err)
 				return
@@ -169,10 +170,14 @@ func TouchDeclarationHandler(store storage.Toucher, notifier Notifier, logger lo
 			return
 		}
 		http.Error(w, http.StatusText(http.StatusNoContent), http.StatusNoContent)
-		err = notifier.DeclarationChanged(r.Context(), declarationID)
-		if err != nil {
-			logger.Info("msg", "notifying", "err", err)
-			return
+		notify := shouldNotify(r.URL)
+		logger.Debug("msg", "touched declaration", "notify", notify)
+		if notify {
+			err = notifier.Changed(r.Context(), []string{declarationID}, nil, nil)
+			if err != nil {
+				logger.Info("msg", "notifying", "err", err)
+				return
+			}
 		}
 	}
 }

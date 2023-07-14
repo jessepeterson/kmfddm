@@ -35,6 +35,43 @@ paths:
            $ref: '#/components/responses/JSONError'
     parameters:
       - $ref: '#/components/parameters/declarationID'
+  /v1/notify:
+    post:
+      description: Notify enrollment IDs by their ID or the sets they belong to, or, transitively, the declaration those sets are assigned.
+      security:
+        - basicAuth: []
+      responses:
+        '204':
+          description: Notification request received. See server logs for result (notification may be async).
+        '401':
+           $ref: '#/components/responses/UnauthorizedError'
+        '500':
+           $ref: '#/components/responses/JSONError'
+      parameters:
+        - in: query
+          name: declaration
+          schema:
+            type: array
+            items:
+              type: string
+          example: ['com.example.test']
+          explode: true
+        - in: query
+          name: set
+          schema:
+            type: array
+            items:
+              type: string
+          example: ['default']
+          explode: true
+        - in: query
+          name: id
+          schema:
+            type: array
+            items:
+              type: string
+          example: ['4A80F3DA-2738-434D-B95C-856811130F3B']
+          explode: true
 components:
   parameters:
     declarationID:

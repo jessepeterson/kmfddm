@@ -9,13 +9,13 @@ import (
 	"strings"
 
 	"github.com/jessepeterson/kmfddm/log"
+	"github.com/jessepeterson/kmfddm/storage"
 )
 
 // EnrollmentIDFinder is the interface we use to fetch enrollment IDs.
 type EnrollmentIDFinder interface {
-	RetrieveDeclarationEnrollmentIDs(ctx context.Context, declarationID string) ([]string, error)
-	RetrieveSetEnrollmentIDs(ctx context.Context, setName string) ([]string, error)
-	RetrieveTokensJSON(ctx context.Context, enrollmentID string) ([]byte, error)
+	storage.TokensJSONRetriever
+	storage.EnrollmentIDRetriever
 }
 
 type Notifier struct {
@@ -71,30 +71,14 @@ func New(store EnrollmentIDFinder, urlBase, key string, opts ...Option) (*Notifi
 	return n, nil
 }
 
-func (n *Notifier) DeclarationChanged(ctx context.Context, declarationID string) error {
-	ids, err := n.store.RetrieveDeclarationEnrollmentIDs(ctx, declarationID)
+func (n *Notifier) Changed(ctx context.Context, declarations []string, sets []string, ids []string) error {
+	idsOut, err := n.store.RetrieveEnrollmentIDs(ctx, declarations, sets, ids)
 	if err != nil {
 		return err
 	}
-	if len(ids) < 1 {
+	if len(idsOut) < 1 {
 		n.logger.Debug("msg", "no enrollments to notify")
 		return nil
 	}
-	return n.sendCommand(ctx, ids)
-}
-
-func (n *Notifier) EnrollmentChanged(ctx context.Context, enrollID string) error {
-	return n.sendCommand(ctx, []string{enrollID})
-}
-
-func (n *Notifier) SetChanged(ctx context.Context, setName string) error {
-	ids, err := n.store.RetrieveSetEnrollmentIDs(ctx, setName)
-	if err != nil {
-		return err
-	}
-	if len(ids) < 1 {
-		n.logger.Debug("msg", "no enrollments to notify")
-		return nil
-	}
-	return n.sendCommand(ctx, ids)
+	return n.sendCommand(ctx, idsOut)
 }

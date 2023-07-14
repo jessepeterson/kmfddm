@@ -11,6 +11,7 @@ import (
 	"github.com/jessepeterson/kmfddm/ddm"
 	"github.com/jessepeterson/kmfddm/log"
 	"github.com/jessepeterson/kmfddm/log/ctxlog"
+	"github.com/jessepeterson/kmfddm/storage"
 )
 
 const (
@@ -30,10 +31,6 @@ func parseDeclPath(r *http.Request) (string, string, error) {
 	return split[0], split[1], nil
 }
 
-type DeclarationRetriever interface {
-	RetrieveEnrollmentDeclarationJSON(ctx context.Context, declarationID, declarationType, enrollmentID string) ([]byte, error)
-}
-
 func ErrorAndLog(w http.ResponseWriter, status int, logger log.Logger, msg string, err error) {
 	logger.Info("msg", msg, "err", err)
 	http.Error(w, http.StatusText(status), status)
@@ -42,7 +39,7 @@ func ErrorAndLog(w http.ResponseWriter, status int, logger log.Logger, msg strin
 // DeclarationHandler creates a handler that fetches and returns a single declaration.
 // The request URL path is assumed to contain the declaration type and identifier.
 // This probably requires the handler to have the path prefix stripped before use.
-func DeclarationHandler(store DeclarationRetriever, logger log.Logger) http.HandlerFunc {
+func DeclarationHandler(store storage.DeclarationRetriever, logger log.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		logger := ctxlog.Logger(r.Context(), logger)
 		declarationType, declarationID, err := parseDeclPath(r)
@@ -74,14 +71,9 @@ func DeclarationHandler(store DeclarationRetriever, logger log.Logger) http.Hand
 	}
 }
 
-type TokensDeclarationItemsRetriever interface {
-	RetrieveDeclarationItemsJSON(ctx context.Context, enrollmentID string) ([]byte, error)
-	RetrieveTokensJSON(ctx context.Context, enrollmentID string) ([]byte, error)
-}
-
 // TokensDeclarationItemsHandler creates a handler that fetchs and returns either
 // the tokens or declaration items JSON for an erollment ID depending on tokens.
-func TokensDeclarationItemsHandler(store TokensDeclarationItemsRetriever, tokens bool, logger log.Logger) http.HandlerFunc {
+func TokensDeclarationItemsHandler(store storage.TokensDeclarationItemsRetriever, tokens bool, logger log.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		logger := ctxlog.Logger(r.Context(), logger)
 		var err error

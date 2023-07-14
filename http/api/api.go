@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net/http"
 	"net/url"
+	"strings"
 
 	"github.com/alexedwards/flow"
 	"github.com/jessepeterson/kmfddm/log"
@@ -43,6 +44,18 @@ func jsonErrorAndLog(w http.ResponseWriter, status int, err error, msg string, l
 	}
 }
 
+func boolish(s string) bool {
+	switch strings.ToLower(s) {
+	case "", "0", "false", "no", "off":
+		return false
+	}
+	return true
+}
+
+func shouldNotify(u *url.URL) bool {
+	return !boolish(u.Query().Get("nonotify"))
+}
+
 func simpleJSONResourceHandler(logger log.Logger, dataFn func(context.Context, string, *url.URL) (interface{}, error)) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		logger := ctxlog.Logger(r.Context(), logger)
@@ -78,7 +91,7 @@ func simpleJSONResourceHandler(logger log.Logger, dataFn func(context.Context, s
 	}
 }
 
-func simpleChangeResourceHandler(logger log.Logger, chgFn func(context.Context, string, *url.URL) (bool, error)) http.HandlerFunc {
+func simpleChangeResourceHandler(logger log.Logger, chgFn func(context.Context, string, *url.URL, bool) (bool, string, error)) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		logger := ctxlog.Logger(r.Context(), logger)
 		var err error
@@ -94,10 +107,18 @@ func simpleChangeResourceHandler(logger log.Logger, chgFn func(context.Context, 
 			jsonErrorAndLog(w, http.StatusInternalServerError, err, "validating input", logger)
 			return
 		}
-		changed, err := chgFn(r.Context(), resource, r.URL)
+		notify := shouldNotify(r.URL)
+		changed, dataName, err := chgFn(r.Context(), resource, r.URL, notify)
+		chFnLogger := logger.With("msg", dataName, "changed", changed, "notify", changed && notify)
 		if err != nil {
-			jsonErrorAndLog(w, http.StatusInternalServerError, err, "retrieving data", logger)
+			chFnLogger.Info("err", err)
+			err = jsonError(w, http.StatusInternalServerError, err)
+			if err != nil {
+				logger.Info("msg", "writing response json", "err", err)
+			}
 			return
+		} else {
+			chFnLogger.Debug()
 		}
 		status := http.StatusNotModified
 		if changed {
@@ -113,7 +134,5 @@ func getResourceID(r *http.Request) string {
 }
 
 type Notifier interface {
-	DeclarationChanged(ctx context.Context, identifier string) error
-	EnrollmentChanged(ctx context.Context, enrollID string) error
-	SetChanged(ctx context.Context, setName string) error
+	Changed(ctx context.Context, declarations []string, sets []string, ids []string) error
 }

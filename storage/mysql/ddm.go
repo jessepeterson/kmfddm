@@ -53,7 +53,7 @@ SELECT DISTINCT
     d.identifier,
     d.type,
     d.server_token
-	FROM
+FROM
     declarations d
     INNER JOIN set_declarations sd
         ON d.identifier = sd.declaration_identifier

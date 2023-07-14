@@ -7,7 +7,6 @@ import (
 	"github.com/cespare/xxhash"
 	"github.com/jessepeterson/kmfddm/http/api"
 	"github.com/jessepeterson/kmfddm/http/ddm"
-	"github.com/jessepeterson/kmfddm/notifier"
 	"github.com/jessepeterson/kmfddm/storage"
 	"github.com/jessepeterson/kmfddm/storage/file"
 	"github.com/jessepeterson/kmfddm/storage/mysql"
@@ -16,15 +15,15 @@ import (
 )
 
 type allStorage interface {
-	notifier.EnrollmentIDFinder
 	api.SetAPIStorage
 	api.DeclarationAPIStorage
-	ddm.DeclarationRetriever
-	ddm.TokensDeclarationItemsRetriever
 	ddm.StatusStorage
 	api.EnrollmentAPIStorage
 	api.StatusAPIStorage
 	storage.Toucher
+	storage.EnrollmentIDRetriever
+	storage.DeclarationRetriever
+	storage.TokensDeclarationItemsRetriever
 }
 
 var hasher func() hash.Hash = func() hash.Hash { return xxhash.New() }

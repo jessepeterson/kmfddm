@@ -34,19 +34,19 @@ func GetEnrollmentSetsHandler(store EnrollmentAPIStorage, logger log.Logger) htt
 func PutEnrollmentSetHandler(store EnrollmentAPIStorage, notifier Notifier, logger log.Logger) http.HandlerFunc {
 	return simpleChangeResourceHandler(
 		logger,
-		func(ctx context.Context, resource string, u *url.URL) (bool, error) {
+		func(ctx context.Context, resource string, u *url.URL, notify bool) (bool, string, error) {
 			setName := u.Query().Get("set")
 			if setName == "" {
-				return false, errors.New("empty set name")
+				return false, "", errors.New("empty set name")
 			}
 			changed, err := store.StoreEnrollmentSet(ctx, resource, setName)
-			if err == nil && changed {
-				err = notifier.EnrollmentChanged(ctx, resource)
+			if err == nil && changed && notify {
+				err = notifier.Changed(ctx, nil, nil, []string{resource})
 				if err != nil {
 					err = fmt.Errorf("notify enrollment: %w", err)
 				}
 			}
-			return changed, err
+			return changed, "store enrollment set", err
 		},
 	)
 }
@@ -57,16 +57,19 @@ func PutEnrollmentSetHandler(store EnrollmentAPIStorage, notifier Notifier, logg
 func DeleteEnrollmentSetHandler(store EnrollmentAPIStorage, notifier Notifier, logger log.Logger) http.HandlerFunc {
 	return simpleChangeResourceHandler(
 		logger,
-		func(ctx context.Context, resource string, u *url.URL) (bool, error) {
+		func(ctx context.Context, resource string, u *url.URL, notify bool) (bool, string, error) {
 			setName := u.Query().Get("set")
 			if setName == "" {
-				return false, errors.New("empty set name")
+				return false, "", errors.New("empty set name")
 			}
 			changed, err := store.RemoveEnrollmentSet(ctx, resource, setName)
-			if err == nil && changed {
-				err = notifier.EnrollmentChanged(ctx, resource)
+			if err == nil && changed && notify {
+				err = notifier.Changed(ctx, nil, nil, []string{resource})
+				if err != nil {
+					err = fmt.Errorf("notify enrollment: %w", err)
+				}
 			}
-			return changed, err
+			return changed, "remove enrollment set", err
 		},
 	)
 }
