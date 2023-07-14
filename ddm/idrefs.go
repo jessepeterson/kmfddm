@@ -16,6 +16,9 @@ var IdentifierRefs = map[string][][]string{
 	"com.apple.configuration.account.exchange": {
 		{"UserIdentityAssetReference"},
 		{"AuthenticationCredentialsAssetReference"},
+		{"AuthenticationIdentityAssetReference"},
+		{"SMIME", "Signing", "IdentityAssetReference"},
+		{"SMIME", "Encryption", "IdentityAssetReference"},
 	},
 	"com.apple.configuration.account.google": {
 		{"UserIdentityAssetReference"},
@@ -27,8 +30,28 @@ var IdentifierRefs = map[string][][]string{
 		{"UserIdentityAssetReference"},
 		{"IncomingServer", "AuthenticationCredentialsAssetReference"},
 		{"OutgoingServer", "AuthenticationCredentialsAssetReference"},
+		{"SMIME", "Signing", "IdentityAssetReference"},
+		{"SMIME", "Encryption", "IdentityAssetReference"},
 	},
 	"com.apple.configuration.account.subscribed-calendar": {
 		{"AuthenticationCredentialsAssetReference"},
+	},
+	"com.apple.configuration.management.test": {
+		{"EchoDataAssetReference"},
+	},
+	"com.apple.configuration.screensharing.connection": {
+		{"AuthenticationCredentialsAssetReference"},
+	},
+	"com.apple.configuration.security.certificate": {
+		{"CredentialAssetReference"},
+	},
+	"com.apple.configuration.security.identity": {
+		{"CredentialAssetReference"},
+	},
+	"com.apple.configuration.security.passkey.attestation": {
+		{"AttestationIdentityAssetReference"},
+	},
+	"com.apple.configuration.services.configuration-files": {
+		{"DataAssetReference"},
 	},
 }
