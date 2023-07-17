@@ -3,11 +3,27 @@ package storage
 
 import (
 	"context"
+
+	"github.com/jessepeterson/kmfddm/ddm"
 )
 
 type Toucher interface {
-	// TouchDeclaration forces a change only to a declaration's ServerToken.
+	// TouchDeclaration forces a change to a declaration's ServerToken only.
 	TouchDeclaration(ctx context.Context, declarationID string) error
+}
+
+type DeclarationStorer interface {
+	// StoreDeclaration stores a declaration.
+	//
+	// Note that a storage backend may tried to creation relations
+	// based on the the ddm.IdentifierRefs field.
+	StoreDeclaration(ctx context.Context, d *ddm.Declaration) (bool, error)
+}
+
+// DeclarationAPIStorage are storage interfaces relating to declaration APIs.
+type DeclarationAPIStorage interface {
+	Toucher
+	DeclarationStorer
 }
 
 type EnrollmentIDRetriever interface {
@@ -22,10 +38,12 @@ type EnrollmentIDRetriever interface {
 }
 
 type TokensJSONRetriever interface {
+	// RetrieveTokensJSON returns the token JSON for an enrollment ID.
 	RetrieveTokensJSON(ctx context.Context, enrollmentID string) ([]byte, error)
 }
 
 type TokensDeclarationItemsRetriever interface {
+	// RetrieveDeclarationItemsJSON returns the declaration items JSON for an enrollment ID.
 	RetrieveDeclarationItemsJSON(ctx context.Context, enrollmentID string) ([]byte, error)
 	TokensJSONRetriever
 }
@@ -33,4 +51,10 @@ type TokensDeclarationItemsRetriever interface {
 type DeclarationRetriever interface {
 	// RetrieveEnrollmentDeclarationJSON fetches the JSON for a declaration for an enrollment ID.
 	RetrieveEnrollmentDeclarationJSON(ctx context.Context, declarationID, declarationType, enrollmentID string) ([]byte, error)
+}
+
+// EnrollmentDeclarationStorage is the storage required to support declarations in the DDM protocol.
+type EnrollmentDeclarationStorage interface {
+	TokensDeclarationItemsRetriever
+	DeclarationRetriever
 }

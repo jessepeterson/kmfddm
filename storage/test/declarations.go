@@ -11,7 +11,7 @@ import (
 
 type declStorage interface {
 	api.DeclarationAPIStorage
-	storage.Toucher
+	storage.DeclarationAPIStorage
 }
 
 func testStoreDeclaration(t *testing.T, storage declStorage, ctx context.Context, decl *ddm.Declaration) {

@@ -20,10 +20,9 @@ type allStorage interface {
 	ddm.StatusStorage
 	api.EnrollmentAPIStorage
 	api.StatusAPIStorage
-	storage.Toucher
+	storage.DeclarationAPIStorage
 	storage.EnrollmentIDRetriever
-	storage.DeclarationRetriever
-	storage.TokensDeclarationItemsRetriever
+	storage.EnrollmentDeclarationStorage
 }
 
 var hasher func() hash.Hash = func() hash.Hash { return xxhash.New() }

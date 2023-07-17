@@ -15,7 +15,7 @@ import (
 type statusStorage interface {
 	httpddm.StatusStorage
 	api.StatusAPIStorage
-	api.DeclarationAPIStorage
+	storage.DeclarationStorer
 	api.EnrollmentAPIStorage
 	api.SetAPIStorage
 }

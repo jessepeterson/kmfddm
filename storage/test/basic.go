@@ -21,8 +21,8 @@ type allTestStorage interface {
 	setAndDeclStorage
 	api.EnrollmentAPIStorage
 	storage.TokensDeclarationItemsRetriever
-	storage.Toucher
 	storage.EnrollmentIDRetriever
+	storage.DeclarationAPIStorage
 }
 
 func TestBasic(t *testing.T, storage allTestStorage, ctx context.Context) {

@@ -18,12 +18,11 @@ type DeclarationAPIStorage interface {
 	RetrieveDeclaration(ctx context.Context, declarationID string) (*ddm.Declaration, error)
 	DeleteDeclaration(ctx context.Context, declarationID string) (bool, error)
 	RetrieveDeclarationSets(ctx context.Context, declarationID string) (setNames []string, err error)
-	StoreDeclaration(ctx context.Context, d *ddm.Declaration) (bool, error)
 	RetrieveDeclarations(ctx context.Context) ([]string, error)
 }
 
 // PutDeclarationHandler stores a new or overwrites an existing declaration.
-func PutDeclarationHandler(store DeclarationAPIStorage, notifier Notifier, logger log.Logger) http.HandlerFunc {
+func PutDeclarationHandler(store storage.DeclarationStorer, notifier Notifier, logger log.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		logger := ctxlog.Logger(r.Context(), logger)
 		bodyBytes, err := io.ReadAll(r.Body)
