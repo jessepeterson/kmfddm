@@ -1,5 +1,4 @@
-// Package notifier notifies devices of changed declarations or declaration
-// items by sending them Declaration
+// Package notifier notifies enrollments of changed declarations.
 package notifier
 
 import (
@@ -9,6 +8,8 @@ import (
 	"strings"
 
 	"github.com/jessepeterson/kmfddm/log"
+	"github.com/jessepeterson/kmfddm/log/ctxlog"
+	"github.com/jessepeterson/kmfddm/log/logkeys"
 	"github.com/jessepeterson/kmfddm/storage"
 )
 
@@ -77,7 +78,7 @@ func (n *Notifier) Changed(ctx context.Context, declarations []string, sets []st
 		return err
 	}
 	if len(idsOut) < 1 {
-		n.logger.Debug("msg", "no enrollments to notify")
+		ctxlog.Logger(ctx, n.logger).Debug(logkeys.Message, "no enrollments to notify")
 		return nil
 	}
 	return n.sendCommand(ctx, idsOut)

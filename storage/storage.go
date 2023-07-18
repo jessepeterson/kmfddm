@@ -20,10 +20,24 @@ type DeclarationStorer interface {
 	StoreDeclaration(ctx context.Context, d *ddm.Declaration) (bool, error)
 }
 
+type DeclarationDeleter interface {
+	// DeleteDeclaration deletes a declaration.
+	//
+	// Implementations should return an error if there are declarations
+	// that depend on it or if it is in a set.
+	DeleteDeclaration(ctx context.Context, declarationID string) (bool, error)
+}
+
+type DeclarationAPIRetriever interface {
+	RetrieveDeclaration(ctx context.Context, declarationID string) (*ddm.Declaration, error)
+}
+
 // DeclarationAPIStorage are storage interfaces relating to declaration APIs.
 type DeclarationAPIStorage interface {
 	Toucher
 	DeclarationStorer
+	DeclarationDeleter
+	DeclarationAPIRetriever
 }
 
 type EnrollmentIDRetriever interface {
@@ -57,4 +71,8 @@ type DeclarationRetriever interface {
 type EnrollmentDeclarationStorage interface {
 	TokensDeclarationItemsRetriever
 	DeclarationRetriever
+}
+
+type StatusStorage interface {
+	StoreDeclarationStatus(ctx context.Context, enrollmentID string, status *ddm.StatusReport) error
 }

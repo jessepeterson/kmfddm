@@ -12,6 +12,8 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/groob/plist"
+	"github.com/jessepeterson/kmfddm/log/ctxlog"
+	"github.com/jessepeterson/kmfddm/log/logkeys"
 )
 
 const agent = "kmfddm/0"
@@ -32,14 +34,16 @@ func (n *Notifier) sendCommand(ctx context.Context, ids []string) error {
 		}
 	}
 
+	logger := ctxlog.Logger(ctx, n.logger)
+
 	for _, ids := range cmdIDs {
 		if len(ids) < 1 {
 			continue
 		}
 		logs := []interface{}{
-			"msg", "sending command",
-			"count", len(ids),
-			"id_first", ids[0],
+			logkeys.Message, "sending command",
+			logkeys.GenericCount, len(ids),
+			logkeys.FirstEnrollmentID, ids[0],
 		}
 
 		var err error
@@ -49,10 +53,10 @@ func (n *Notifier) sendCommand(ctx context.Context, ids []string) error {
 			tokens, err = n.store.RetrieveTokensJSON(ctx, ids[0])
 			if err != nil {
 				errLogs := append(logs,
-					"err",
+					logkeys.Error,
 					fmt.Errorf("retrieving tokens json: %w", err),
 				)
-				n.logger.Info(errLogs...)
+				logger.Info(errLogs...)
 				continue
 			}
 		}
@@ -62,15 +66,15 @@ func (n *Notifier) sendCommand(ctx context.Context, ids []string) error {
 			c.Command.Data = &tokens
 		}
 
-		logs = append(logs, "command_uuid", c.CommandUUID)
+		logs = append(logs, logkeys.CommandUUID, c.CommandUUID)
 
 		cmdBytes, err := plist.Marshal(c)
 		if err != nil {
 			errLogs := append(logs,
-				"err",
+				logkeys.Error,
 				fmt.Errorf("marshal command plist: %w", err),
 			)
-			n.logger.Info(errLogs...)
+			logger.Info(errLogs...)
 			continue
 		}
 
@@ -84,17 +88,17 @@ func (n *Notifier) sendCommand(ctx context.Context, ids []string) error {
 		// to 50-ish IDs in a single enqueuing.
 		urlFramgent, err := url.Parse(strings.Join(ids, ","))
 		if err != nil {
-			n.logger.Info("msg", "parsing url ids", "err", err)
+			logger.Info(logkeys.Message, "parsing url ids", logkeys.Error, err)
 			continue
 		}
 		url := n.url.ResolveReference(urlFramgent)
 		req, err := http.NewRequestWithContext(ctx, http.MethodPut, url.String(), cmd)
 		if err != nil {
 			errLogs := append(logs,
-				"err",
+				logkeys.Error,
 				fmt.Errorf("new request: %w", err),
 			)
-			n.logger.Info(errLogs...)
+			logger.Info(errLogs...)
 			continue
 		}
 		req.SetBasicAuth(n.user, n.key)
@@ -103,15 +107,15 @@ func (n *Notifier) sendCommand(ctx context.Context, ids []string) error {
 		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
 			errLogs := append(logs,
-				"err",
+				logkeys.Error,
 				fmt.Errorf("http reqeust: %w", err),
 			)
-			n.logger.Info(errLogs...)
+			logger.Info(errLogs...)
 			continue
 		}
 		err = resp.Body.Close()
 		if err != nil {
-			n.logger.Info("msg", "closing body", "err", err)
+			logger.Info(logkeys.Message, "closing body", logkeys.Error, err)
 		}
 
 		logs = append(logs, "http_status", resp.StatusCode)
@@ -119,14 +123,14 @@ func (n *Notifier) sendCommand(ctx context.Context, ids []string) error {
 		// TODO: read the success or failure of the command enqueing/pushing and report/error on it.
 		if resp.StatusCode != 200 && resp.StatusCode != 201 {
 			errLogs := append(logs,
-				"err",
+				logkeys.Error,
 				fmt.Errorf("HTTP status: %s", resp.Status),
 			)
-			n.logger.Info(errLogs...)
+			logger.Info(errLogs...)
 			continue
 		}
 
-		n.logger.Debug(logs...)
+		logger.Debug(logs...)
 	}
 
 	return nil

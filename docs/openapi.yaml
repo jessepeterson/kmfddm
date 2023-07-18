@@ -19,6 +19,43 @@ paths:
                   version:
                     type: string
                     example: "v0.1.0"
+  /v1/declarations:
+    get:
+      security:
+        - basicAuth: []
+      responses:
+        '200':
+          $ref: '#/components/responses/Declaration'
+        '401':
+           $ref: '#/components/responses/UnauthorizedError'
+        '400':
+           $ref: '#/components/responses/JSONBadRequest'
+        '500':
+           $ref: '#/components/responses/JSONError'
+    put:
+      description: Store declaration. Adds new or overwrites an existing declaration. A declaration does not need to include the `ServerToken` field — KMFDDM generates one for you based on the content (it is ignored and overwritten if included).
+      security:
+        - basicAuth: []
+      requestBody:
+        $ref: '#/components/requestBodies/Declaration'
+      responses:
+        '204':
+          description: Declaration already exists and is unchanged.
+        '304':
+          description: Declaration is either new or has changed.
+        '401':
+           $ref: '#/components/responses/UnauthorizedError'
+        '400':
+           $ref: '#/components/responses/JSONBadRequest'
+        '500':
+           $ref: '#/components/responses/JSONError'
+  /v1/declarations/{id}:
+    get:
+      security:
+        - basicAuth: []
+    delete:
+      security:
+        - basicAuth: []
   /v1/declarations/{id}/touch:
     post:
       description: Updates a declaration's `ServerToken` only.
@@ -87,7 +124,19 @@ components:
     basicAuth:
       type: http
       scheme: basic
+  requestBodies:
+    Declaration:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Declaration'
   responses:
+    Declaration:
+      description: Declaration.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Declaration'
     UnauthorizedError:
       description: API key is missing or invalid.
       headers:
@@ -127,3 +176,17 @@ components:
         error:
           type: string
           example: "it was sunny outside"
+    Declaration:
+      type: object
+      properties:
+        Identifier:
+          type: string
+          example: "E3ADE6E6-0CF5-4C3B-BD4F-92AD2EB0500A"
+        ServerToken:
+          type: string
+          example: d41d8cd98f00b204e9800998ecf8427e
+        Payload:
+          type: object
+        Type:
+          type: string
+          example: "com.apple.configuration.management.test"

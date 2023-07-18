@@ -11,17 +11,16 @@ import (
 	"github.com/jessepeterson/kmfddm/ddm"
 	"github.com/jessepeterson/kmfddm/log"
 	"github.com/jessepeterson/kmfddm/log/ctxlog"
+	"github.com/jessepeterson/kmfddm/log/logkeys"
 	"github.com/jessepeterson/kmfddm/storage"
 )
 
 type DeclarationAPIStorage interface {
-	RetrieveDeclaration(ctx context.Context, declarationID string) (*ddm.Declaration, error)
-	DeleteDeclaration(ctx context.Context, declarationID string) (bool, error)
 	RetrieveDeclarationSets(ctx context.Context, declarationID string) (setNames []string, err error)
 	RetrieveDeclarations(ctx context.Context) ([]string, error)
 }
 
-// PutDeclarationHandler stores a new or overwrites an existing declaration.
+// PutDeclarationHandler returns a handler that stores a declaration.
 func PutDeclarationHandler(store storage.DeclarationStorer, notifier Notifier, logger log.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		logger := ctxlog.Logger(r.Context(), logger)
@@ -30,34 +29,40 @@ func PutDeclarationHandler(store storage.DeclarationStorer, notifier Notifier, l
 			jsonErrorAndLog(w, 0, err, "reading body", logger)
 			return
 		}
-		defer r.Body.Close()
 		d, err := ddm.ParseDeclaration(bodyBytes)
 		if err != nil {
 			jsonErrorAndLog(w, http.StatusBadRequest, err, "parsing declaration", logger)
 			return
 		}
 		if !d.Valid() {
-			err = errors.New("invalid declaration")
-			jsonErrorAndLog(w, http.StatusBadRequest, err, "parsing declaration", logger)
+			jsonErrorAndLog(w, http.StatusBadRequest, ddm.ErrInvalidDeclaration, "parsing declaration", logger)
 			return
 		}
-		logger = logger.With("decl_id", d.Identifier, "decl_type", d.Type)
+		logger = logger.With(
+			logkeys.DeclarationID, d.Identifier,
+			logkeys.DeclarationType, d.Type,
+		)
 		changed, err := store.StoreDeclaration(r.Context(), d)
 		if err != nil {
 			jsonErrorAndLog(w, 0, err, "storing declaration", logger)
 			return
 		}
-		notify := shouldNotify(r.URL)
-		logger.Debug("msg", "stored declaration", "changed", changed, "notify", changed && notify)
+		// only notify if we have a change
+		notify := changed && shouldNotify(r.URL)
+		logger.Debug(
+			logkeys.Message, "stored declaration",
+			logkeys.Changed, changed,
+			logkeys.Notify, notify,
+		)
 		status := http.StatusNotModified
 		if changed {
 			status = http.StatusNoContent
 		}
 		http.Error(w, http.StatusText(status), status)
-		if changed && notify {
+		if notify {
 			err = notifier.Changed(r.Context(), []string{d.Identifier}, nil, nil)
 			if err != nil {
-				logger.Info("msg", "notifying", "err", err)
+				logger.Info(logkeys.Message, "notifying", logkeys.Error, err)
 				return
 			}
 		}
@@ -67,52 +72,50 @@ func PutDeclarationHandler(store storage.DeclarationStorer, notifier Notifier, l
 // GetDeclarationHandler retrieves a declaration by its identifier.
 // The entire request URL path is assumed to contain the declaration identifier.
 // This implies the handler should have the path prefix stripped before use.
-func GetDeclarationHandler(store DeclarationAPIStorage, logger log.Logger) http.HandlerFunc {
+func GetDeclarationHandler(store storage.DeclarationAPIRetriever, logger log.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		logger := ctxlog.Logger(r.Context(), logger)
-		var err error
 		declarationID := getResourceID(r)
 		if declarationID == "" {
-			err = errors.New("empty declaration identifier")
-			jsonErrorAndLog(w, http.StatusBadRequest, err, "validating input", logger)
+			jsonErrorAndLog(w, http.StatusBadRequest, ErrEmptyResourceID, "validating input", logger)
 			return
 		}
-		logger = logger.With("declaration", declarationID)
+		logger = logger.With(logkeys.DeclarationID, declarationID)
 		d, err := store.RetrieveDeclaration(r.Context(), declarationID)
 		if err != nil {
 			jsonErrorAndLog(w, 0, err, "retrieving declaration", logger)
 			return
 		}
-		logger.Debug("msg", "retrieved declaration")
+		logger.Debug(logkeys.Message, "retrieved declaration")
 		w.Header().Set("Content-Type", jsonContentType)
 		_, err = w.Write(d.Raw)
 		if err != nil {
-			logger.Info("msg", "writing response body", "err", err)
+			logger.Info(logkeys.Message, "writing response body", logkeys.Error, err)
 			return
 		}
 	}
 }
 
 // DeleteDeclarationHandler deletes a declaration by its identifier.
+// We assume that any declaration deleted has no dependant delcarations
+// and is not in any other sets (and so we perform no notifications).
 // The entire request URL path is assumed to contain the declaration identifier.
 // This implies the handler should have the path prefix stripped before use.
-func DeleteDeclarationHandler(store DeclarationAPIStorage, logger log.Logger) http.HandlerFunc {
+func DeleteDeclarationHandler(store storage.DeclarationDeleter, logger log.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		logger := ctxlog.Logger(r.Context(), logger)
-		var err error
 		declarationID := getResourceID(r)
 		if declarationID == "" {
-			err = errors.New("empty declaration identifier")
-			jsonErrorAndLog(w, http.StatusBadRequest, err, "validating input", logger)
+			jsonErrorAndLog(w, http.StatusBadRequest, ErrEmptyResourceID, "validating input", logger)
 			return
 		}
-		logger = logger.With("declaration", declarationID)
+		logger = logger.With(logkeys.DeclarationID, declarationID)
 		changed, err := store.DeleteDeclaration(r.Context(), declarationID)
 		if err != nil {
 			jsonErrorAndLog(w, 0, err, "deleting declaration", logger)
 			return
 		}
-		logger.Debug("msg", "deleted declaration")
+		logger.Debug(logkeys.Message, "deleted declaration")
 		status := http.StatusNoContent
 		if !changed {
 			status = http.StatusNotModified

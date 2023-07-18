@@ -6,7 +6,6 @@ import (
 
 	"github.com/cespare/xxhash"
 	"github.com/jessepeterson/kmfddm/http/api"
-	"github.com/jessepeterson/kmfddm/http/ddm"
 	"github.com/jessepeterson/kmfddm/storage"
 	"github.com/jessepeterson/kmfddm/storage/file"
 	"github.com/jessepeterson/kmfddm/storage/mysql"
@@ -17,12 +16,12 @@ import (
 type allStorage interface {
 	api.SetAPIStorage
 	api.DeclarationAPIStorage
-	ddm.StatusStorage
 	api.EnrollmentAPIStorage
 	api.StatusAPIStorage
 	storage.DeclarationAPIStorage
 	storage.EnrollmentIDRetriever
 	storage.EnrollmentDeclarationStorage
+	storage.StatusStorage
 }
 
 var hasher func() hash.Hash = func() hash.Hash { return xxhash.New() }

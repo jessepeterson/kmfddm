@@ -9,12 +9,12 @@ import (
 	"github.com/jessepeterson/kmfddm/storage"
 )
 
-type declStorage interface {
+type declAPIStorage interface {
 	api.DeclarationAPIStorage
 	storage.DeclarationAPIStorage
 }
 
-func testStoreDeclaration(t *testing.T, storage declStorage, ctx context.Context, decl *ddm.Declaration) {
+func testStoreDeclaration(t *testing.T, storage declAPIStorage, ctx context.Context, decl *ddm.Declaration) {
 	_, err := storage.StoreDeclaration(ctx, decl)
 	if err != nil {
 		t.Fatal(err)
@@ -71,7 +71,7 @@ func testStoreDeclaration(t *testing.T, storage declStorage, ctx context.Context
 	// TODO: compare PayloadJSON
 }
 
-func testDeleteDeclaration(t *testing.T, storage api.DeclarationAPIStorage, ctx context.Context, id string) {
+func testDeleteDeclaration(t *testing.T, storage declAPIStorage, ctx context.Context, id string) {
 	_, err := storage.DeleteDeclaration(ctx, id)
 	if err != nil {
 		t.Fatal(err)

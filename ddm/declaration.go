@@ -8,6 +8,8 @@ import (
 	"github.com/valyala/fastjson"
 )
 
+var ErrInvalidDeclaration = errors.New("invalid declaration")
+
 type Declaration struct {
 	Identifier  string
 	Type        string

@@ -15,6 +15,7 @@ type myStorage interface {
 	api.DeclarationAPIStorage
 	storage.TokensDeclarationItemsRetriever
 	storage.EnrollmentIDRetriever
+	storage.DeclarationAPIStorage
 }
 
 func testEnrollments(t *testing.T, store myStorage, ctx context.Context, d *ddm.Declaration, enrollmentID, setName string) {
