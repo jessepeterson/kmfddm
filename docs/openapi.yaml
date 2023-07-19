@@ -167,10 +167,12 @@ paths:
       - $ref: '#/components/parameters/setName'
   /v1/enrollment-sets/{id}:
     get:
-      description: tbd
+      description: Retrieve the list of sets for an enrollment ID.
       security:
         - basicAuth: []
       responses:
+        '200':
+          $ref: '#/components/responses/SetNameList'
         '401':
            $ref: '#/components/responses/UnauthorizedError'
         '400':
@@ -178,27 +180,43 @@ paths:
         '500':
            $ref: '#/components/responses/JSONError'
     put:
-      description: tbd
+      description: Associate enrollment IDs and sets.
       security:
         - basicAuth: []
       responses:
+        '204':
+          $ref: '#/components/responses/AssociationChanged'
+        '304':
+          $ref: '#/components/responses/AssociationUnchanged'
         '401':
            $ref: '#/components/responses/UnauthorizedError'
         '400':
            $ref: '#/components/responses/JSONBadRequest'
         '500':
            $ref: '#/components/responses/JSONError'
+      parameters:
+        - $ref: '#/components/parameters/noNotify'
+        - $ref: '#/components/parameters/setNameInQuery'
     delete:
-      description: tbd
+      description: Dissociate enrollment IDs and sets.
       security:
         - basicAuth: []
       responses:
+        '204':
+          $ref: '#/components/responses/DissociationChanged'
+        '304':
+          $ref: '#/components/responses/DissociationUnchanged'
         '401':
            $ref: '#/components/responses/UnauthorizedError'
         '400':
            $ref: '#/components/responses/JSONBadRequest'
         '500':
            $ref: '#/components/responses/JSONError'
+      parameters:
+        - $ref: '#/components/parameters/noNotify'
+        - $ref: '#/components/parameters/setNameInQuery'
+    parameters:
+      - $ref: '#/components/parameters/enrollmentID'
   /v1/declaration-sets/{id}:
     get:
       description: Retrieve the list of sets that a declaration is associated with.
@@ -308,6 +326,15 @@ components:
       schema:
         type: string
         example: 'procurement-team'
+    enrollmentID:
+      name: id
+      in: path
+      description: Enrollment identifier. Typically a device UDID.
+      required: true
+      style: simple
+      schema:
+        type: string
+        example: '4C491E9F-64C4-4B9E-A994-C42458F07A6C'
     declarationIDInQuery:
       name: declaration
       in: query
@@ -316,6 +343,14 @@ components:
       schema:
         type: string
         example: 'com.example.test'
+    setNameInQuery:
+      name: set
+      in: query
+      description: Set name.
+      required: true
+      schema:
+        type: string
+        example: 'procurement-team'
     noNotify:
       name: nonotify
       in: query

@@ -15,8 +15,8 @@ type statusStorage interface {
 	storage.StatusStorage
 	api.StatusAPIStorage
 	storage.DeclarationStorer
-	api.EnrollmentAPIStorage
 	storage.SetDeclarationStorage
+	storage.EnrollmentSetStorer
 }
 
 const statusFile1 = "testdata/status.1st.json"

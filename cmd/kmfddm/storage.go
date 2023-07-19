@@ -14,7 +14,6 @@ import (
 )
 
 type allStorage interface {
-	api.EnrollmentAPIStorage
 	api.StatusAPIStorage
 	storage.DeclarationAPIStorage
 	storage.EnrollmentIDRetriever
@@ -22,6 +21,7 @@ type allStorage interface {
 	storage.StatusStorage
 	storage.SetDeclarationStorage
 	storage.SetRetreiver
+	storage.EnrollmentSetStorage
 }
 
 var hasher func() hash.Hash = func() hash.Hash { return xxhash.New() }

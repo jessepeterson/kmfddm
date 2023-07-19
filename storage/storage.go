@@ -114,3 +114,24 @@ type SetRetreiver interface {
 	// RetrieveSets returns the list of all sets.
 	RetrieveSets(ctx context.Context) ([]string, error)
 }
+
+type EnrollmentSetsRetriever interface {
+	// RetrieveEnrollmentSets retrieves the sets that are associated with enrollmentID.
+	RetrieveEnrollmentSets(ctx context.Context, enrollmentID string) (setNames []string, err error)
+}
+
+type EnrollmentSetStorer interface {
+	// StoreEnrollmentSet associates enrollmentID and setName.
+	StoreEnrollmentSet(ctx context.Context, enrollmentID, setName string) (bool, error)
+}
+
+type EnrollmentSetRemover interface {
+	// StoreEnrollmentSet dissociates enrollmentID and setName.
+	RemoveEnrollmentSet(ctx context.Context, enrollmentID, setName string) (bool, error)
+}
+
+type EnrollmentSetStorage interface {
+	EnrollmentSetsRetriever
+	EnrollmentSetStorer
+	EnrollmentSetRemover
+}

@@ -8,18 +8,11 @@ import (
 	"net/url"
 
 	"github.com/jessepeterson/kmfddm/log"
+	"github.com/jessepeterson/kmfddm/storage"
 )
 
-type EnrollmentAPIStorage interface {
-	RetrieveEnrollmentSets(ctx context.Context, enrollmentID string) (setNames []string, err error)
-	StoreEnrollmentSet(ctx context.Context, enrollmentID, setName string) (bool, error)
-	RemoveEnrollmentSet(ctx context.Context, enrollmentID, setName string) (bool, error)
-}
-
-// GetEnrollmentSetsHandler retrieves the list of sets for an enrollment ID.
-// The entire request URL path is assumed to contain the set name.
-// This implies the handler should have the path prefix stripped before use.
-func GetEnrollmentSetsHandler(store EnrollmentAPIStorage, logger log.Logger) http.HandlerFunc {
+// GetEnrollmentSetsHandler returns a handle that retrieves the list of sets for an enrollment ID.
+func GetEnrollmentSetsHandler(store storage.EnrollmentSetsRetriever, logger log.Logger) http.HandlerFunc {
 	return simpleJSONResourceHandler(
 		logger,
 		func(ctx context.Context, resource string, _ *url.URL) (interface{}, error) {
@@ -28,10 +21,8 @@ func GetEnrollmentSetsHandler(store EnrollmentAPIStorage, logger log.Logger) htt
 	)
 }
 
-// PutEnrollmentSetHandler associates a set to an enrollment.
-// The entire request URL path is assumed to contain the set name.
-// This implies the handler should have the path prefix stripped before use.
-func PutEnrollmentSetHandler(store EnrollmentAPIStorage, notifier Notifier, logger log.Logger) http.HandlerFunc {
+// PutEnrollmentSetHandler returns a handle that associates a set to an enrollment.
+func PutEnrollmentSetHandler(store storage.EnrollmentSetStorer, notifier Notifier, logger log.Logger) http.HandlerFunc {
 	return simpleChangeResourceHandler(
 		logger,
 		func(ctx context.Context, resource string, u *url.URL, notify bool) (bool, string, error) {
@@ -51,10 +42,8 @@ func PutEnrollmentSetHandler(store EnrollmentAPIStorage, notifier Notifier, logg
 	)
 }
 
-// DeleteEnrollmentSetHandler dissociates a set from an enrollment.
-// The entire request URL path is assumed to contain the set name.
-// This implies the handler should have the path prefix stripped before use.
-func DeleteEnrollmentSetHandler(store EnrollmentAPIStorage, notifier Notifier, logger log.Logger) http.HandlerFunc {
+// DeleteEnrollmentSetHandler returns a handle that dissociates a set from an enrollment.
+func DeleteEnrollmentSetHandler(store storage.EnrollmentSetRemover, notifier Notifier, logger log.Logger) http.HandlerFunc {
 	return simpleChangeResourceHandler(
 		logger,
 		func(ctx context.Context, resource string, u *url.URL, notify bool) (bool, string, error) {
