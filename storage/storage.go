@@ -32,14 +32,6 @@ type DeclarationAPIRetriever interface {
 	RetrieveDeclaration(ctx context.Context, declarationID string) (*ddm.Declaration, error)
 }
 
-// DeclarationAPIStorage are storage interfaces relating to declaration APIs.
-type DeclarationAPIStorage interface {
-	Toucher
-	DeclarationStorer
-	DeclarationDeleter
-	DeclarationAPIRetriever
-}
-
 type EnrollmentIDRetriever interface {
 	// RetrieveEnrollmentIDs retrieves MDM enrollment IDs from storage.
 	// In the case of sets and declarations the transitive associations
@@ -75,4 +67,50 @@ type EnrollmentDeclarationStorage interface {
 
 type StatusStorage interface {
 	StoreDeclarationStatus(ctx context.Context, enrollmentID string, status *ddm.StatusReport) error
+}
+
+type DeclarationsRetriever interface {
+	RetrieveDeclarations(ctx context.Context) ([]string, error)
+}
+
+// DeclarationAPIStorage are storage interfaces relating to declarations.
+type DeclarationAPIStorage interface {
+	Toucher
+	DeclarationStorer
+	DeclarationDeleter
+	DeclarationAPIRetriever
+	DeclarationsRetriever
+}
+
+type DeclarationSetRetriever interface {
+	// RetrieveDeclarationSets retrieves the list of set names for declarationID.
+	RetrieveDeclarationSets(ctx context.Context, declarationID string) (setNames []string, err error)
+}
+
+type SetDeclarationsRetriever interface {
+	// RetrieveSetDeclarations retreives the list of declarations IDs for setName.
+	RetrieveSetDeclarations(ctx context.Context, setName string) (declarationIDs []string, err error)
+}
+
+type SetDeclarationStorer interface {
+	// StoreSetDeclaration associates setName and declarationID.
+	StoreSetDeclaration(ctx context.Context, setName, declarationID string) (bool, error)
+}
+
+type SetDeclarationRemover interface {
+	// StoreSetDeclaration dissociates setName and declarationID.
+	RemoveSetDeclaration(ctx context.Context, setName, declarationID string) (bool, error)
+}
+
+// SetStorage are storage interfaces relation to sets.
+type SetDeclarationStorage interface {
+	DeclarationSetRetriever
+	SetDeclarationsRetriever
+	SetDeclarationStorer
+	SetDeclarationRemover
+}
+
+type SetRetreiver interface {
+	// RetrieveSets returns the list of all sets.
+	RetrieveSets(ctx context.Context) ([]string, error)
 }

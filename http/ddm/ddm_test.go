@@ -31,7 +31,7 @@ func TestPathSplit(t *testing.T) {
 		},
 	} {
 		t.Run("parse-"+v.path, func(t *testing.T) {
-			rType, rDecl, err := parseDeclPath(v.path)
+			rType, rDecl, err := parseDeclarationPath(v.path)
 			if err != nil && !v.expectedErr {
 				t.Errorf("expected no error, but go one: %v", err)
 			}

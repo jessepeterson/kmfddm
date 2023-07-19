@@ -1,12 +1,10 @@
 package api
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
-	"net/url"
 
 	"github.com/jessepeterson/kmfddm/ddm"
 	"github.com/jessepeterson/kmfddm/log"
@@ -14,11 +12,6 @@ import (
 	"github.com/jessepeterson/kmfddm/log/logkeys"
 	"github.com/jessepeterson/kmfddm/storage"
 )
-
-type DeclarationAPIStorage interface {
-	RetrieveDeclarationSets(ctx context.Context, declarationID string) (setNames []string, err error)
-	RetrieveDeclarations(ctx context.Context) ([]string, error)
-}
 
 // PutDeclarationHandler returns a handler that stores a declaration.
 func PutDeclarationHandler(store storage.DeclarationStorer, notifier Notifier, logger log.Logger) http.HandlerFunc {
@@ -126,19 +119,8 @@ func DeleteDeclarationHandler(store storage.DeclarationDeleter, logger log.Logge
 	}
 }
 
-// GetDeclarationSetsHandler retrieves the list of sets for an declaration ID.
-// The entire request URL path is assumed to contain the set name.
-// This implies the handler should have the path prefix stripped before use.
-func GetDeclarationSetsHandler(store DeclarationAPIStorage, logger log.Logger) http.HandlerFunc {
-	return simpleJSONResourceHandler(
-		logger,
-		func(ctx context.Context, resource string, _ *url.URL) (interface{}, error) {
-			return store.RetrieveDeclarationSets(ctx, resource)
-		},
-	)
-}
-
-func GetDeclarationsHandler(store DeclarationAPIStorage, logger log.Logger) http.HandlerFunc {
+// GetDeclarationsHandler returns a handler that lists declarations.
+func GetDeclarationsHandler(store storage.DeclarationsRetriever, logger log.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		logger := ctxlog.Logger(r.Context(), logger)
 		ids, err := store.RetrieveDeclarations(r.Context())
@@ -154,7 +136,7 @@ func GetDeclarationsHandler(store DeclarationAPIStorage, logger log.Logger) http
 	}
 }
 
-// TouchDeclarationHandler touches a declaration specified by ID.
+// TouchDeclarationHandler modifies a declaration ServerToken specified by ID.
 func TouchDeclarationHandler(store storage.Toucher, notifier Notifier, logger log.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		logger := ctxlog.Logger(r.Context(), logger)

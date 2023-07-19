@@ -21,11 +21,12 @@ paths:
                     example: "v0.1.0"
   /v1/declarations:
     get:
+      description: Retrieve a list of declarations.
       security:
         - basicAuth: []
       responses:
         '200':
-          $ref: '#/components/responses/Declaration'
+          $ref: '#/components/responses/DeclarationIDList'
         '401':
            $ref: '#/components/responses/UnauthorizedError'
         '400':
@@ -42,23 +43,49 @@ paths:
         '204':
           description: Declaration already exists and is unchanged.
         '304':
-          description: Declaration is either new or has changed.
+          description: Declaration is either new or has changed. Notification will take place unless disabled with parameter.
         '401':
            $ref: '#/components/responses/UnauthorizedError'
         '400':
            $ref: '#/components/responses/JSONBadRequest'
         '500':
            $ref: '#/components/responses/JSONError'
+      parameters:
+        - $ref: '#/components/parameters/noNotify'
   /v1/declarations/{id}:
     get:
+      description: Retrieve a declaration.
       security:
         - basicAuth: []
+      responses:
+        '200':
+          $ref: '#/components/responses/Declaration'
+        '401':
+           $ref: '#/components/responses/UnauthorizedError'
+        '400':
+           $ref: '#/components/responses/JSONBadRequest'
+        '500':
+           $ref: '#/components/responses/JSONError'
     delete:
+      description: Delete a declaration. It is assumed that any declaration deleted has no dependant delcarations and is not in any sets (and so no notifications are performed). Some storage backends may try to enforce these assumptions through e.g. database constraints.
       security:
         - basicAuth: []
+      responses:
+        '204':
+          description: Declaration was deleted.
+        '304':
+          description: Declaration did not exist for deletion (effectively no change).
+        '401':
+           $ref: '#/components/responses/UnauthorizedError'
+        '400':
+           $ref: '#/components/responses/JSONBadRequest'
+        '500':
+           $ref: '#/components/responses/JSONError'
+    parameters:
+      - $ref: '#/components/parameters/declarationID'
   /v1/declarations/{id}/touch:
     post:
-      description: Updates a declaration's `ServerToken` only.
+      description: Updates a declaration's `ServerToken` (only).
       security:
         - basicAuth: []
       responses:
@@ -72,6 +99,158 @@ paths:
            $ref: '#/components/responses/JSONError'
     parameters:
       - $ref: '#/components/parameters/declarationID'
+  /v1/sets:
+    get:
+      description: Retrieve the list of sets.
+      security:
+        - basicAuth: []
+      responses:
+        '200':
+          $ref: '#/components/responses/SetNameList'
+        '401':
+           $ref: '#/components/responses/UnauthorizedError'
+        '400':
+           $ref: '#/components/responses/JSONBadRequest'
+        '500':
+           $ref: '#/components/responses/JSONError'
+  /v1/set-declarations/{id}:
+    get:
+      description: Retreive the list of declarations in a set.
+      security:
+        - basicAuth: []
+      responses:
+        '200':
+          $ref: '#/components/responses/DeclarationIDList'
+        '401':
+           $ref: '#/components/responses/UnauthorizedError'
+        '400':
+           $ref: '#/components/responses/JSONBadRequest'
+        '500':
+           $ref: '#/components/responses/JSONError'
+    put:
+      description: Associate set and declaration.
+      security:
+        - basicAuth: []
+      responses:
+        '204':
+          $ref: '#/components/responses/AssociationChanged'
+        '304':
+          $ref: '#/components/responses/AssociationUnchanged'
+        '401':
+           $ref: '#/components/responses/UnauthorizedError'
+        '400':
+           $ref: '#/components/responses/JSONBadRequest'
+        '500':
+           $ref: '#/components/responses/JSONError'
+      parameters:
+        - $ref: '#/components/parameters/noNotify'
+        - $ref: '#/components/parameters/declarationIDInQuery'
+    delete:
+      description: Dissociate set and declaration.
+      security:
+        - basicAuth: []
+      responses:
+        '204':
+          $ref: '#/components/responses/DissociationChanged'
+        '304':
+          $ref: '#/components/responses/DissociationUnchanged'
+        '401':
+           $ref: '#/components/responses/UnauthorizedError'
+        '400':
+           $ref: '#/components/responses/JSONBadRequest'
+        '500':
+           $ref: '#/components/responses/JSONError'
+      parameters:
+        - $ref: '#/components/parameters/noNotify'
+        - $ref: '#/components/parameters/declarationIDInQuery'
+    parameters:
+      - $ref: '#/components/parameters/setName'
+  /v1/enrollment-sets/{id}:
+    get:
+      description: tbd
+      security:
+        - basicAuth: []
+      responses:
+        '401':
+           $ref: '#/components/responses/UnauthorizedError'
+        '400':
+           $ref: '#/components/responses/JSONBadRequest'
+        '500':
+           $ref: '#/components/responses/JSONError'
+    put:
+      description: tbd
+      security:
+        - basicAuth: []
+      responses:
+        '401':
+           $ref: '#/components/responses/UnauthorizedError'
+        '400':
+           $ref: '#/components/responses/JSONBadRequest'
+        '500':
+           $ref: '#/components/responses/JSONError'
+    delete:
+      description: tbd
+      security:
+        - basicAuth: []
+      responses:
+        '401':
+           $ref: '#/components/responses/UnauthorizedError'
+        '400':
+           $ref: '#/components/responses/JSONBadRequest'
+        '500':
+           $ref: '#/components/responses/JSONError'
+  /v1/declaration-sets/{id}:
+    get:
+      description: Retrieve the list of sets that a declaration is associated with.
+      security:
+        - basicAuth: []
+      responses:
+        '200':
+          $ref: '#/components/responses/SetNameList'
+        '401':
+           $ref: '#/components/responses/UnauthorizedError'
+        '400':
+           $ref: '#/components/responses/JSONBadRequest'
+        '500':
+           $ref: '#/components/responses/JSONError'
+    parameters:
+      - $ref: '#/components/parameters/declarationID'
+  /v1/declaration-status/{id}:
+    get:
+      description: tbd
+      security:
+        - basicAuth: []
+      responses:
+        '401':
+           $ref: '#/components/responses/UnauthorizedError'
+        '400':
+           $ref: '#/components/responses/JSONBadRequest'
+        '500':
+           $ref: '#/components/responses/JSONError'
+  /v1/status-errors/{id}:
+    get:
+      description: tbd
+      security:
+        - basicAuth: []
+      responses:
+        '401':
+           $ref: '#/components/responses/UnauthorizedError'
+        '400':
+           $ref: '#/components/responses/JSONBadRequest'
+        '500':
+           $ref: '#/components/responses/JSONError'
+  /v1/status-values/{id}:
+    get:
+      description: tbd
+      security:
+        - basicAuth: []
+      responses:
+        '401':
+           $ref: '#/components/responses/UnauthorizedError'
+        '400':
+           $ref: '#/components/responses/JSONBadRequest'
+        '500':
+           $ref: '#/components/responses/JSONError'
   /v1/notify:
     post:
       description: Notify enrollment IDs by their ID or the sets they belong to, or, transitively, the declaration those sets are assigned.
@@ -120,6 +299,31 @@ components:
       schema:
         type: string
         example: 'com.example.test'
+    setName:
+      name: id
+      in: path
+      description: Name of set.
+      required: true
+      style: simple
+      schema:
+        type: string
+        example: 'procurement-team'
+    declarationIDInQuery:
+      name: declaration
+      in: query
+      description: Declaration identifier.
+      required: true
+      schema:
+        type: string
+        example: 'com.example.test'
+    noNotify:
+      name: nonotify
+      in: query
+      description: If true then do not notify any enrollments (i.e. send `DeclarativeManagement` commands) if there was a change.
+      required: false
+      schema:
+        type: boolean
+        example: true
   securitySchemes:
     basicAuth:
       type: http
@@ -131,6 +335,38 @@ components:
           schema:
             $ref: '#/components/schemas/Declaration'
   responses:
+    AssociationChanged:
+      description: Association completed. Enrollments will be notified unless disabled with parameter.
+    AssociationUnchanged:
+      description: Association did not change (i.e. already associated). Enrollments will not be notified.
+    DissociationChanged:
+      description: Dissociation completed. Enrollments will be notified unless disabled with parameter.
+    DissociationUnchanged:
+      description: Dissociation did not change (i.e. already dissociated). Enrollments will not be notified.
+    SetNameList:
+      description: Array of set names.
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              type: string
+            example:
+              - default
+              - accounting
+              - procurement-team
+              - enroll.9AFDC638-0D78-41F1-BD42-1B9F770EABF7
+    DeclarationIDList:
+      description: Array of declaration IDs.
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              type: string
+            example:
+              - com.example.act
+              - com.example.test
     Declaration:
       description: Declaration.
       content:

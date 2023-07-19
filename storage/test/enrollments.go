@@ -12,7 +12,6 @@ import (
 
 type myStorage interface {
 	api.EnrollmentAPIStorage
-	api.DeclarationAPIStorage
 	storage.TokensDeclarationItemsRetriever
 	storage.EnrollmentIDRetriever
 	storage.DeclarationAPIStorage

@@ -14,14 +14,14 @@ import (
 )
 
 type allStorage interface {
-	api.SetAPIStorage
-	api.DeclarationAPIStorage
 	api.EnrollmentAPIStorage
 	api.StatusAPIStorage
 	storage.DeclarationAPIStorage
 	storage.EnrollmentIDRetriever
 	storage.EnrollmentDeclarationStorage
 	storage.StatusStorage
+	storage.SetDeclarationStorage
+	storage.SetRetreiver
 }
 
 var hasher func() hash.Hash = func() hash.Hash { return xxhash.New() }

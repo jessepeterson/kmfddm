@@ -5,12 +5,12 @@ import (
 	"testing"
 
 	"github.com/jessepeterson/kmfddm/ddm"
-	"github.com/jessepeterson/kmfddm/http/api"
+	"github.com/jessepeterson/kmfddm/storage"
 )
 
 type setAndDeclStorage interface {
-	api.SetAPIStorage
-	api.DeclarationAPIStorage
+	storage.SetDeclarationStorage
+	storage.SetRetreiver
 }
 
 func testSet(t *testing.T, storage setAndDeclStorage, ctx context.Context, decl *ddm.Declaration, setName string) {

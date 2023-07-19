@@ -25,8 +25,8 @@ const (
 
 var ErrEmptyEnrollmentID = errors.New("empty enrollment ID")
 
-// parseDeclPath parses path to separate out the declaration type and identifier.
-func parseDeclPath(path string) (string, string, error) {
+// parseDeclarationPath parses path to separate out the declaration type and identifier.
+func parseDeclarationPath(path string) (string, string, error) {
 	split := strings.SplitN(path, "/", 2)
 	if len(split) != 2 {
 		return "", "", fmt.Errorf("invalid path element count: %d", len(split))
@@ -70,7 +70,7 @@ func DeclarationHandler(store storage.DeclarationRetriever, hLogger log.Logger) 
 		if err != nil {
 			ErrorAndLog(w, http.StatusBadRequest, logger, "getting enrollment id", err)
 		}
-		declarationType, declarationID, err := parseDeclPath(r.URL.Path)
+		declarationType, declarationID, err := parseDeclarationPath(r.URL.Path)
 		if err != nil {
 			ErrorAndLog(w, http.StatusBadRequest, logger, "parsing path", err)
 			return
