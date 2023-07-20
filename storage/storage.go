@@ -102,7 +102,7 @@ type SetDeclarationRemover interface {
 	RemoveSetDeclaration(ctx context.Context, setName, declarationID string) (bool, error)
 }
 
-// SetStorage are storage interfaces relation to sets.
+// SetStorage are storage interfaces related to sets.
 type SetDeclarationStorage interface {
 	DeclarationSetRetriever
 	SetDeclarationsRetriever
@@ -130,8 +130,19 @@ type EnrollmentSetRemover interface {
 	RemoveEnrollmentSet(ctx context.Context, enrollmentID, setName string) (bool, error)
 }
 
+// EnrollmentSetStorage are storage interfaces related to MDM enrollment IDs.
 type EnrollmentSetStorage interface {
 	EnrollmentSetsRetriever
 	EnrollmentSetStorer
 	EnrollmentSetRemover
+}
+
+type StatusDeclarationsRetriever interface {
+	// RetrieveDeclarationStatus retrieves the status of the declarations for enrollmentIDs.
+	RetrieveDeclarationStatus(ctx context.Context, enrollmentIDs []string) (map[string][]ddm.DeclarationQueryStatus, error)
+}
+
+// StatusAPIStorage are storage interfaces related to retrieving status channel data.
+type StatusAPIStorage interface {
+	StatusDeclarationsRetriever
 }

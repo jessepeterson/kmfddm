@@ -22,6 +22,8 @@ paths:
   /v1/declarations:
     get:
       description: Retrieve a list of declarations.
+      tags:
+        - declarations
       security:
         - basicAuth: []
       responses:
@@ -35,6 +37,8 @@ paths:
            $ref: '#/components/responses/JSONError'
     put:
       description: Store declaration. Adds new or overwrites an existing declaration. A declaration does not need to include the `ServerToken` field — KMFDDM generates one for you based on the content (it is ignored and overwritten if included).
+      tags:
+        - declarations
       security:
         - basicAuth: []
       requestBody:
@@ -55,6 +59,8 @@ paths:
   /v1/declarations/{id}:
     get:
       description: Retrieve a declaration.
+      tags:
+        - declarations
       security:
         - basicAuth: []
       responses:
@@ -68,6 +74,8 @@ paths:
            $ref: '#/components/responses/JSONError'
     delete:
       description: Delete a declaration. It is assumed that any declaration deleted has no dependant delcarations and is not in any sets (and so no notifications are performed). Some storage backends may try to enforce these assumptions through e.g. database constraints.
+      tags:
+        - declarations
       security:
         - basicAuth: []
       responses:
@@ -86,6 +94,8 @@ paths:
   /v1/declarations/{id}/touch:
     post:
       description: Updates a declaration's `ServerToken` (only).
+      tags:
+        - declarations
       security:
         - basicAuth: []
       responses:
@@ -102,6 +112,8 @@ paths:
   /v1/sets:
     get:
       description: Retrieve the list of sets.
+      tags:
+        - sets
       security:
         - basicAuth: []
       responses:
@@ -116,6 +128,8 @@ paths:
   /v1/set-declarations/{id}:
     get:
       description: Retreive the list of declarations in a set.
+      tags:
+        - sets
       security:
         - basicAuth: []
       responses:
@@ -129,6 +143,8 @@ paths:
            $ref: '#/components/responses/JSONError'
     put:
       description: Associate set and declaration.
+      tags:
+        - sets
       security:
         - basicAuth: []
       responses:
@@ -147,6 +163,8 @@ paths:
         - $ref: '#/components/parameters/declarationIDInQuery'
     delete:
       description: Dissociate set and declaration.
+      tags:
+        - sets
       security:
         - basicAuth: []
       responses:
@@ -168,6 +186,8 @@ paths:
   /v1/enrollment-sets/{id}:
     get:
       description: Retrieve the list of sets for an enrollment ID.
+      tags:
+        - enrollments
       security:
         - basicAuth: []
       responses:
@@ -181,6 +201,8 @@ paths:
            $ref: '#/components/responses/JSONError'
     put:
       description: Associate enrollment IDs and sets.
+      tags:
+        - enrollments
       security:
         - basicAuth: []
       responses:
@@ -199,6 +221,8 @@ paths:
         - $ref: '#/components/parameters/setNameInQuery'
     delete:
       description: Dissociate enrollment IDs and sets.
+      tags:
+        - enrollments
       security:
         - basicAuth: []
       responses:
@@ -220,6 +244,8 @@ paths:
   /v1/declaration-sets/{id}:
     get:
       description: Retrieve the list of sets that a declaration is associated with.
+      tags:
+        - sets
       security:
         - basicAuth: []
       responses:
@@ -235,19 +261,55 @@ paths:
       - $ref: '#/components/parameters/declarationID'
   /v1/declaration-status/{id}:
     get:
-      description: tbd
+      description: Retrieves the status of the declarations for enrollment IDs.
+      tags:
+        - status
       security:
         - basicAuth: []
       responses:
+        '200':
+          description: Declaration status.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties: 
+                  $id:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        identifier:
+                          type: string
+                        active:
+                          type: boolean
+                        valid:
+                          type: string
+                          example: 'valid'
+                        server-token:
+                          type: string
+                          example: '9b6abc93f9773261'
+                        current:
+                          type: boolean
+                          description: This field reports on if the enrollment's `ServerToken` matches the *currently configured* token. In other words has the enrollment received the latest declaration and reported that fact back to us.
+                        status_received:
+                          type: string
+                          description: Timestamp of when this declaration's status was last received.
+                        reasons:
+                          type: object
         '401':
            $ref: '#/components/responses/UnauthorizedError'
         '400':
            $ref: '#/components/responses/JSONBadRequest'
         '500':
            $ref: '#/components/responses/JSONError'
+    parameters:
+      - $ref: '#/components/parameters/enrollmentIDs'
   /v1/status-errors/{id}:
     get:
       description: tbd
+      tags:
+        - status
       security:
         - basicAuth: []
       responses:
@@ -257,9 +319,13 @@ paths:
            $ref: '#/components/responses/JSONBadRequest'
         '500':
            $ref: '#/components/responses/JSONError'
+    parameters:
+      - $ref: '#/components/parameters/enrollmentID'
   /v1/status-values/{id}:
     get:
       description: tbd
+      tags:
+        - status
       security:
         - basicAuth: []
       responses:
@@ -269,6 +335,8 @@ paths:
            $ref: '#/components/responses/JSONBadRequest'
         '500':
            $ref: '#/components/responses/JSONError'
+    parameters:
+      - $ref: '#/components/parameters/enrollmentID'
   /v1/notify:
     post:
       description: Notify enrollment IDs by their ID or the sets they belong to, or, transitively, the declaration those sets are assigned.
@@ -329,12 +397,25 @@ components:
     enrollmentID:
       name: id
       in: path
-      description: Enrollment identifier. Typically a device UDID.
+      description: Enrollment identifier. Typically a device UDID (which looks like a UUID).
       required: true
       style: simple
       schema:
         type: string
         example: '4C491E9F-64C4-4B9E-A994-C42458F07A6C'
+    enrollmentIDs:
+      name: id
+      in: path
+      description: Enrollment identifiers. Typically a device UDIDs (which looks like UUIDs).
+      required: true
+      explode: true
+      style: simple
+      schema:
+        type: array
+        items:
+          type: string
+        minItems: 1
+        example: ['EB9DE86C-2E95-4F73-80A3-34F1D8111FA2', '4C491E9F-64C4-4B9E-A994-C42458F07A6C']
     declarationIDInQuery:
       name: declaration
       in: query
