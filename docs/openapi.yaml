@@ -2,6 +2,9 @@ openapi: 3.0.0
 info:
   version: 0.1.0
   title: KMFDDM server API
+externalDocs:
+  description: KMFDDM on GitHub
+  url: https://github.com/jessepeterson/kmfddm
 servers:
   - url: http://[::1]:9002/
 paths:
@@ -307,12 +310,34 @@ paths:
       - $ref: '#/components/parameters/enrollmentIDs'
   /v1/status-errors/{id}:
     get:
-      description: tbd
+      description: Retrieve errors for an enrollment ID as reported on the status channel. Both the "root" level Errors are reported as well as any declarations that are reported as non-active and non-valid.
       tags:
         - status
       security:
         - basicAuth: []
       responses:
+        '200':
+          description: Status errors.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties: 
+                  $id:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        path:
+                          type: string
+                          description: Path in the status report of where the error occured.
+                          example: '.StatusItems.management.declarations.configurations'
+                        error:
+                          type: object
+                          description: Error object from status report.
+                        timestamp:
+                          type: string
+                          description: Timestamp of when the the status report that repoted this error was received.
         '401':
            $ref: '#/components/responses/UnauthorizedError'
         '400':
@@ -320,15 +345,34 @@ paths:
         '500':
            $ref: '#/components/responses/JSONError'
     parameters:
-      - $ref: '#/components/parameters/enrollmentID'
+      - $ref: '#/components/parameters/enrollmentIDs'
   /v1/status-values/{id}:
     get:
-      description: tbd
+      description: Retrieve status values saved from status reports.
       tags:
         - status
       security:
         - basicAuth: []
       responses:
+        '200':
+          description: Status errors.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties: 
+                  $id:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        path:
+                          type: string
+                          description: Path in the status report of where the error occured.
+                          example: '.StatusItems.device.identifier.serial-number'
+                        value:
+                          type: string
+                          example: 'ZMX24NJ671'
         '401':
            $ref: '#/components/responses/UnauthorizedError'
         '400':
@@ -336,7 +380,15 @@ paths:
         '500':
            $ref: '#/components/responses/JSONError'
     parameters:
-      - $ref: '#/components/parameters/enrollmentID'
+      - $ref: '#/components/parameters/enrollmentIDs'
+      - name: prefix
+        in: query
+        description: The prefix to limit the status values to. Syntax is SQL `LIKE`-like (i.e. include `%` as wildcards); see example. Note this parameter can be passed as either a query or a form value.
+        required: false
+        style: form
+        schema:
+          type: string
+          example: '.StatusItems.device.%'
   /v1/notify:
     post:
       description: Notify enrollment IDs by their ID or the sets they belong to, or, transitively, the declaration those sets are assigned.

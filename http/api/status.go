@@ -11,11 +11,6 @@ import (
 	"github.com/jessepeterson/kmfddm/storage"
 )
 
-type StatusAPIStorage interface {
-	RetrieveStatusErrors(ctx context.Context, enrollmentIDs []string, offset, limit int) (map[string][]storage.StatusError, error)
-	RetrieveStatusValues(ctx context.Context, enrollmentIDs []string, pathPrefix string) (map[string][]storage.StatusValue, error)
-}
-
 // GetDeclarationStatusHandler returns a handler that retrives that last declaration status for an enrollment ID.
 func GetDeclarationStatusHandler(store storage.StatusDeclarationsRetriever, logger log.Logger) http.HandlerFunc {
 	return simpleJSONResourceHandler(
@@ -26,7 +21,8 @@ func GetDeclarationStatusHandler(store storage.StatusDeclarationsRetriever, logg
 	)
 }
 
-func GetStatusErrorsHandler(store StatusAPIStorage, logger log.Logger) http.HandlerFunc {
+// GetStatusErrorsHandler returns a handler that retrieves the collected errors for an enrollment.
+func GetStatusErrorsHandler(store storage.StatusErrorsRetriever, logger log.Logger) http.HandlerFunc {
 	return simpleJSONResourceHandler(
 		logger,
 		func(ctx context.Context, resource string, _ *url.URL) (interface{}, error) {
@@ -38,7 +34,8 @@ func GetStatusErrorsHandler(store StatusAPIStorage, logger log.Logger) http.Hand
 	)
 }
 
-func GetStatusValuesHandler(store StatusAPIStorage, logger log.Logger) http.HandlerFunc {
+// GetStatusValuesHandler returns a handler that retrieves the collected values for an enrollment.
+func GetStatusValuesHandler(store storage.StatusValuesRetriever, logger log.Logger) http.HandlerFunc {
 	return simpleJSONResourceHandler(
 		logger,
 		func(ctx context.Context, resource string, u *url.URL) (interface{}, error) {

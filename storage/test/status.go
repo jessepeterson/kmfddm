@@ -7,13 +7,11 @@ import (
 	"testing"
 
 	"github.com/jessepeterson/kmfddm/ddm"
-	"github.com/jessepeterson/kmfddm/http/api"
 	"github.com/jessepeterson/kmfddm/storage"
 )
 
 type statusStorage interface {
 	storage.StatusStorage
-	api.StatusAPIStorage
 	storage.DeclarationStorer
 	storage.SetDeclarationStorage
 	storage.EnrollmentSetStorer

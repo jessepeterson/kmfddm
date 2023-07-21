@@ -142,7 +142,19 @@ type StatusDeclarationsRetriever interface {
 	RetrieveDeclarationStatus(ctx context.Context, enrollmentIDs []string) (map[string][]ddm.DeclarationQueryStatus, error)
 }
 
+type StatusErrorsRetriever interface {
+	// RetrieveStatusErrors retrieves the collected errors for enrollmentIDs.
+	RetrieveStatusErrors(ctx context.Context, enrollmentIDs []string, offset, limit int) (map[string][]StatusError, error)
+}
+
+type StatusValuesRetriever interface {
+	// RetrieveStatusErrors retrieves the collected errors for enrollmentIDs.
+	RetrieveStatusValues(ctx context.Context, enrollmentIDs []string, pathPrefix string) (map[string][]StatusValue, error)
+}
+
 // StatusAPIStorage are storage interfaces related to retrieving status channel data.
 type StatusAPIStorage interface {
 	StatusDeclarationsRetriever
+	StatusErrorsRetriever
+	StatusValuesRetriever
 }
