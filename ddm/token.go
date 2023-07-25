@@ -1,40 +1,53 @@
 package ddm
 
 import (
-	"fmt"
 	"hash"
 	"time"
 )
 
+// SynchronizationTokens contains the sync token for the set of declarations for a DDM client.
 // See https://developer.apple.com/documentation/devicemanagement/synchronizationtokens
 type SynchronizationTokens struct {
 	DeclarationsToken string
 	Timestamp         time.Time
 }
 
+// TokensResponse is the container for the sync tokens for serializing.
 // See https://developer.apple.com/documentation/devicemanagement/tokensresponse
 type TokensResponse struct {
 	SyncTokens SynchronizationTokens
 }
 
+// TokensBuilder incrementally builds the DDM Sync Tokens structure for later serializing.
 type TokensBuilder struct {
+	hash         hash.Hash
+	newTimestamp func() time.Time
 	TokensResponse
-	hash.Hash
 }
 
+// NewTokensBuilder constructs a new Sync Tokens builder.
+// It will panic if provided with a nil hasher.
 func NewTokensBuilder(newHash func() hash.Hash) *TokensBuilder {
-	t := &TokensBuilder{}
-	if newHash != nil {
-		t.Hash = newHash()
+	if newHash == nil {
+		panic("nil hasher")
 	}
-	return t
+	hash := newHash()
+	if hash == nil {
+		panic("nil hash")
+	}
+	return &TokensBuilder{
+		hash:         hash,
+		newTimestamp: func() time.Time { return time.Now().UTC() },
+	}
 }
 
-func (b *TokensBuilder) AddDeclarationData(d *Declaration) {
-	tokenHashWrite(b.Hash, d)
+// Add adds a declaration d to the Sync Tokens builder.
+func (b *TokensBuilder) Add(d *Declaration) {
+	tokenHashWrite(b.hash, d)
 }
 
+// Finalize finishes building the Sync Tokens by computing the final Declarations Token and timestamp.
 func (b *TokensBuilder) Finalize() {
-	b.TokensResponse.SyncTokens.DeclarationsToken = fmt.Sprintf("%x", b.Hash.Sum(nil))
-	b.SyncTokens.Timestamp = time.Now().UTC().Truncate(time.Second)
+	b.TokensResponse.SyncTokens.DeclarationsToken = tokenHashFinalize(b.hash)
+	b.SyncTokens.Timestamp = b.newTimestamp().Truncate(time.Second)
 }

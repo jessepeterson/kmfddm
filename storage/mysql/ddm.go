@@ -42,7 +42,7 @@ WHERE
 }
 
 type Builder interface {
-	AddDeclarationData(*ddm.Declaration)
+	Add(*ddm.Declaration)
 	Finalize()
 }
 
@@ -81,7 +81,7 @@ WHERE
 		if err != nil {
 			break
 		}
-		b.AddDeclarationData(d)
+		b.Add(d)
 	}
 	if err != nil {
 		return err

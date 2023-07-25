@@ -35,7 +35,7 @@ func (d *Declaration) Valid() bool {
 	return true
 }
 
-// findIDRefs traverses the payload using IDRefs to find any dependent declarations.
+// findIDRefs traverses the payload using IdentifierRefs to find any dependent declarations.
 func findIDRefs(v *fastjson.Value, declarationType string) []string {
 	if _, ok := IdentifierRefs[declarationType]; !ok {
 		return nil
@@ -98,6 +98,7 @@ func parseDeclarationValue(v *fastjson.Value, d *Declaration) error {
 	return nil
 }
 
+// ParseDeclaration parses raw into a Declaration structure.
 func ParseDeclaration(raw []byte) (*Declaration, error) {
 	v, err := fastjson.ParseBytes(raw)
 	if err != nil {
