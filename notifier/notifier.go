@@ -3,9 +3,6 @@ package notifier
 
 import (
 	"context"
-	"net/http"
-	"net/url"
-	"strings"
 
 	"github.com/jessepeterson/kmfddm/log"
 	"github.com/jessepeterson/kmfddm/log/ctxlog"
@@ -20,26 +17,14 @@ type EnrollmentIDFinder interface {
 }
 
 type Notifier struct {
-	store  EnrollmentIDFinder
-	url    *url.URL
-	user   string
-	method string
-	key    string
-	logger log.Logger
+	enqueuer Enqueuer
+	store    EnrollmentIDFinder
+	logger   log.Logger
 
-	multi                 bool
 	sendTokensForSingleID bool
 }
 
 type Option func(n *Notifier)
-
-func WithMicroMDM() Option {
-	return func(n *Notifier) {
-		n.user = "micromdm"
-		n.multi = false
-		n.method = http.MethodPost
-	}
-}
 
 func WithLogger(logger log.Logger) Option {
 	return func(n *Notifier) {
@@ -47,24 +32,12 @@ func WithLogger(logger log.Logger) Option {
 	}
 }
 
-func New(store EnrollmentIDFinder, urlBase, key string, opts ...Option) (*Notifier, error) {
+func New(enqueuer Enqueuer, store EnrollmentIDFinder, opts ...Option) (*Notifier, error) {
 	n := &Notifier{
+		enqueuer:              enqueuer,
 		store:                 store,
-		key:                   key,
 		logger:                log.NopLogger,
 		sendTokensForSingleID: true,
-
-		user:   "nanomdm",
-		method: http.MethodPut,
-		multi:  true,
-	}
-	var err error
-	if !strings.HasSuffix(urlBase, "/") {
-		urlBase += "/"
-	}
-	n.url, err = url.Parse(urlBase)
-	if err != nil {
-		return n, err
 	}
 	for _, opt := range opts {
 		opt(n)

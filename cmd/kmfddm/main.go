@@ -16,6 +16,7 @@ import (
 	"github.com/jessepeterson/kmfddm/log/logkeys"
 	"github.com/jessepeterson/kmfddm/log/stdlogfmt"
 	"github.com/jessepeterson/kmfddm/notifier"
+	"github.com/jessepeterson/kmfddm/notifier/foss"
 )
 
 // overridden by -ldflags -X
@@ -61,13 +62,18 @@ func main() {
 		os.Exit(1)
 	}
 
-	nOpts := []notifier.Option{
-		notifier.WithLogger(logger.With("service", "notifier")),
+	nOpts := []foss.Option{
+		foss.WithLogger(logger.With("service", "notifier-foss")),
 	}
 	if *flMicro {
-		nOpts = append(nOpts, notifier.WithMicroMDM())
+		nOpts = append(nOpts, foss.WithMicroMDM())
 	}
-	nanoNotif, err := notifier.New(storage, *flEnqueueURL, *flEnqueueKey, nOpts...)
+	fossNotif, err := foss.NewFossMDM(*flEnqueueURL, *flEnqueueKey, nOpts...)
+	if err != nil {
+		logger.Info(logkeys.Message, "creating notifier", logkeys.Error, err)
+		os.Exit(1)
+	}
+	nanoNotif, err := notifier.New(fossNotif, storage, notifier.WithLogger(logger.With("service", "notifier")))
 	if err != nil {
 		logger.Info(logkeys.Message, "creating notifier", logkeys.Error, err)
 		os.Exit(1)
