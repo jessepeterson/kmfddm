@@ -27,7 +27,7 @@ type TokensBuilder struct {
 
 // NewTokensBuilder constructs a new Sync Tokens builder.
 // It will panic if provided with a nil hasher.
-func NewTokensBuilder(newHash func() hash.Hash) *TokensBuilder {
+func NewTokensBuilder(newHash NewHash) *TokensBuilder {
 	if newHash == nil {
 		panic("nil hasher")
 	}
