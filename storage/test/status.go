@@ -11,7 +11,7 @@ import (
 )
 
 type statusStorage interface {
-	storage.StatusStorage
+	storage.StatusStorer
 	storage.DeclarationStorer
 	storage.SetDeclarationStorage
 	storage.EnrollmentSetStorer

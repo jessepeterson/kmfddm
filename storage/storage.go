@@ -65,11 +65,14 @@ type EnrollmentDeclarationStorage interface {
 	DeclarationRetriever
 }
 
-type StatusStorage interface {
+type StatusStorer interface {
+	// StoreDeclarationStatus stores the status report details.
+	// For later retrieval by the StatusAPIStorage interface(s).
 	StoreDeclarationStatus(ctx context.Context, enrollmentID string, status *ddm.StatusReport) error
 }
 
 type DeclarationsRetriever interface {
+	// RetrieveDeclarations retrieves a list of all declarations.
 	RetrieveDeclarations(ctx context.Context) ([]string, error)
 }
 

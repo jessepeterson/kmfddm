@@ -121,7 +121,7 @@ func TokensOrDeclarationItemsHandler(store storage.TokensDeclarationItemsRetriev
 }
 
 // StatusReportHandler creates a handler that stores the DDM status report.
-func StatusReportHandler(store storage.StatusStorage, hLogger log.Logger) http.HandlerFunc {
+func StatusReportHandler(store storage.StatusStorer, hLogger log.Logger) http.HandlerFunc {
 	if store == nil || hLogger == nil {
 		panic("nil store or logger")
 	}

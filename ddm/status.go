@@ -12,6 +12,8 @@ const (
 	pathErrors       = ".Errors"
 )
 
+// DeclarationStatus is a representation of the status of declarations.
+// See https://developer.apple.com/documentation/devicemanagement/statusmanagementdeclarationsdeclarationobject
 type DeclarationStatus struct {
 	Identifier   string `json:"identifier"`
 	Active       bool   `json:"active"`
@@ -21,6 +23,9 @@ type DeclarationStatus struct {
 	ReasonsJSON  []byte `json:",omitempty"`
 }
 
+// DeclarationQueryStatus is additional detail given to the as-reported DeclarationStatus.
+// This is populated from the storage backend's knowledge the last status update
+// and current declarations.
 type DeclarationQueryStatus struct {
 	DeclarationStatus
 	Current        bool        `json:"current"`
@@ -28,6 +33,8 @@ type DeclarationQueryStatus struct {
 	Reasons        interface{} `json:"reasons,omitempty"`
 }
 
+// StatusValue contains parsed status values. These are, essentially,
+// just key-value pairs with the path.
 type StatusValue struct {
 	Path          string
 	ContainerType string
@@ -35,11 +42,13 @@ type StatusValue struct {
 	Value         []byte
 }
 
+// StatusError contains parsed status errors.
 type StatusError struct {
 	Path      string
 	ErrorJSON []byte
 }
 
+// StatusReport is the combined parsed and raw status report.
 type StatusReport struct {
 	Declarations []DeclarationStatus
 
@@ -173,6 +182,7 @@ func parseStatusReportValue(v *fastjson.Value, s *StatusReport, path, container 
 	return nil
 }
 
+// ParseStatus parses the status report from a DDM client.
 func ParseStatus(raw []byte) (*StatusReport, error) {
 	v, err := fastjson.ParseBytes(raw)
 	if err != nil {

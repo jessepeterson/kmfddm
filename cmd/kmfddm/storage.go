@@ -16,7 +16,7 @@ type allStorage interface {
 	storage.DeclarationAPIStorage
 	storage.EnrollmentIDRetriever
 	storage.EnrollmentDeclarationStorage
-	storage.StatusStorage
+	storage.StatusStorer
 	storage.SetDeclarationStorage
 	storage.SetRetreiver
 	storage.EnrollmentSetStorage
