@@ -6,6 +6,8 @@ import (
 	"strings"
 )
 
+// RetrieveEnrollmentSets retrieves the list of sets an enrollment is assigned to.
+// See also the storage package for documentation on the storage interfaces.
 func (s *MySQLStorage) RetrieveEnrollmentSets(ctx context.Context, enrollmentID string) ([]string, error) {
 	return s.singleStringColumn(
 		ctx,
@@ -15,6 +17,7 @@ func (s *MySQLStorage) RetrieveEnrollmentSets(ctx context.Context, enrollmentID 
 }
 
 // StoreEnrollmentSet creates the association between an enrollment and a set.
+// See also the storage package for documentation on the storage interfaces.
 func (s *MySQLStorage) StoreEnrollmentSet(ctx context.Context, enrollmentID, setName string) (bool, error) {
 	result, err := s.db.ExecContext(
 		ctx, `
@@ -35,6 +38,7 @@ UPDATE
 }
 
 // RemoveEnrollmentSet removes the association between an enrollment and a set.
+// See also the storage package for documentation on the storage interfaces.
 func (s *MySQLStorage) RemoveEnrollmentSet(ctx context.Context, enrollmentID, setName string) (bool, error) {
 	result, err := s.db.ExecContext(
 		ctx, `
@@ -62,6 +66,8 @@ func qAndP(params []string) (r string, p []interface{}) {
 	return
 }
 
+// RetrieveEnrollmentIDs retrieves enrollment IDs.
+// See also the storage package for documentation on the storage interfaces.
 func (s *MySQLStorage) RetrieveEnrollmentIDs(ctx context.Context, declarations []string, sets []string, ids []string) ([]string, error) {
 	var where []string
 	var params []interface{}

@@ -117,6 +117,8 @@ VALUES
 
 }
 
+// StoreDeclarationStatus stores the status report from enrollmentID.
+// See also the storage package for documentation on the storage interfaces.
 func (s *MySQLStorage) StoreDeclarationStatus(ctx context.Context, enrollmentID string, status *ddm.StatusReport) error {
 	err := s.storeStatusDeclarations(ctx, enrollmentID, status.Declarations)
 	if err != nil {
@@ -133,6 +135,8 @@ func (s *MySQLStorage) StoreDeclarationStatus(ctx context.Context, enrollmentID 
 	return nil
 }
 
+// RetrieveDeclarationStatus retrieves the status of declarations for enrollmentIDs.
+// See also the storage package for documentation on the storage interfaces.
 func (s *MySQLStorage) RetrieveDeclarationStatus(ctx context.Context, enrollmentIDs []string) (map[string][]ddm.DeclarationQueryStatus, error) {
 	if len(enrollmentIDs) < 1 {
 		return nil, errors.New("no enrollment IDs provided")
@@ -211,6 +215,8 @@ ORDER BY
 	return resp, err
 }
 
+// RetrieveStatusErrors retrieves the reported status errors for enrollmentIDs.
+// See also the storage package for documentation on the storage interfaces.
 func (s *MySQLStorage) RetrieveStatusErrors(ctx context.Context, enrollmentIDs []string, offset, limit int) (map[string][]storage.StatusError, error) {
 	idSQL := strings.Repeat(", ?", len(enrollmentIDs))[2:]
 	args := make([]interface{}, len(enrollmentIDs), len(enrollmentIDs)+2)
@@ -257,6 +263,9 @@ LIMIT ?, ?;`,
 	return resp, err
 }
 
+// RetrieveStatusValues retrieves the status values for enrollmentIDs.
+// The search can be filtered with pathPrefix by using SQL LIKE syntax.
+// See also the storage package for documentation on the storage interfaces.
 func (s *MySQLStorage) RetrieveStatusValues(ctx context.Context, enrollmentIDs []string, pathPrefix string) (map[string][]storage.StatusValue, error) {
 	idSQL := strings.Repeat(", ?", len(enrollmentIDs))[2:]
 	args := make([]interface{}, len(enrollmentIDs))

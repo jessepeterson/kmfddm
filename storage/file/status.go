@@ -205,6 +205,8 @@ func (s *File) storeStatusErrors(enrollmentID string, ddmErrors []ddm.StatusErro
 	return nil
 }
 
+// StoreDeclarationStatus stores a status report from enrollmentID.
+// See also the storage package for documentation on the storage interfaces.
 func (s *File) StoreDeclarationStatus(_ context.Context, enrollmentID string, status *ddm.StatusReport) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -233,6 +235,8 @@ func (s *File) StoreDeclarationStatus(_ context.Context, enrollmentID string, st
 	return nil
 }
 
+// RetrieveDeclarationStatus retrieves the current status of declarations for the enrollment IDs.
+// See also the storage package for documentation on the storage interfaces.
 func (s *File) RetrieveDeclarationStatus(_ context.Context, enrollmentIDs []string) (map[string][]ddm.DeclarationQueryStatus, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -351,7 +355,8 @@ func (s *File) RetrieveDeclarationStatus(_ context.Context, enrollmentIDs []stri
 	return ret, nil
 }
 
-// RetrieveStatusErrors reads DDM errors from CSV.
+// RetrieveStatusErrors reads DDM errors from CSV file.
+// See also the storage package for documentation on the storage interfaces.
 func (s *File) RetrieveStatusErrors(_ context.Context, enrollmentIDs []string, offset, limit int) (map[string][]storage.StatusError, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -434,6 +439,9 @@ func filterPathPrefix(values []ddm.StatusValue, pathPrefix string) (ret []ddm.St
 	return
 }
 
+// RetrieveStatusValues returns the status values for the enrollment IDs.
+// The search can be filtered with pathPrefix by using an SQL LIKE-like syntax.
+// See also the storage package for documentation on the storage interfaces.
 func (s *File) RetrieveStatusValues(_ context.Context, enrollmentIDs []string, pathPrefix string) (map[string][]storage.StatusValue, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()

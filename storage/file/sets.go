@@ -68,6 +68,7 @@ func (s *File) RemoveSetDeclaration(_ context.Context, setName, declarationID st
 }
 
 // RetrieveSets retrieves the list of all sets.
+// See also the storage package for documentation on the storage interfaces.
 func (s *File) RetrieveSets(_ context.Context) ([]string, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -84,6 +85,7 @@ func (s *File) RetrieveSets(_ context.Context) ([]string, error) {
 }
 
 // RetrieveDeclarationSets returns the list of sets associated with a declaration.
+// See also the storage package for documentation on the storage interfaces.
 func (s *File) RetrieveDeclarationSets(_ context.Context, declarationID string) ([]string, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()

@@ -4,6 +4,8 @@ import (
 	"context"
 )
 
+// RetrieveSetDeclarations retrieves the list of declarations a set is associated with.
+// See also the storage package for documentation on the storage interfaces.
 func (s *MySQLStorage) RetrieveSetDeclarations(ctx context.Context, setName string) ([]string, error) {
 	return s.singleStringColumn(
 		ctx,
@@ -13,6 +15,7 @@ func (s *MySQLStorage) RetrieveSetDeclarations(ctx context.Context, setName stri
 }
 
 // StoreSetDeclaration creates the association between a declaration and a set.
+// See also the storage package for documentation on the storage interfaces.
 func (s *MySQLStorage) StoreSetDeclaration(ctx context.Context, setName, declarationID string) (bool, error) {
 	result, err := s.db.ExecContext(
 		ctx, `
@@ -33,6 +36,7 @@ UPDATE
 }
 
 // RemoveSetDeclaration removes the association between a declaration and a set.
+// See also the storage package for documentation on the storage interfaces.
 func (s *MySQLStorage) RemoveSetDeclaration(ctx context.Context, setName, declarationID string) (bool, error) {
 	result, err := s.db.ExecContext(
 		ctx, `
@@ -49,6 +53,8 @@ WHERE
 	return resultChangedRows(result)
 }
 
+// RetrieveSets retrieves the list of sets.
+// See also the storage package for documentation on the storage interfaces.
 func (s *MySQLStorage) RetrieveSets(ctx context.Context) ([]string, error) {
 	return s.singleStringColumn(
 		ctx,

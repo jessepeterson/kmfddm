@@ -1,14 +1,15 @@
+// Package mysql is a MySQL storage backend for KMFDDM.
 package mysql
 
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"hash"
 )
 
 const mysqlTimeFormat = "2006-01-02 15:04:05"
 
+// MySQLStorage implements a MySQL storage backend.
 type MySQLStorage struct {
 	db      *sql.DB
 	newHash func() hash.Hash
@@ -22,28 +23,37 @@ type config struct {
 
 type Option func(*config)
 
+// WithDSN configures the Data Source Name (DSN) when opening the database.
 func WithDSN(dsn string) Option {
 	return func(c *config) {
 		c.dsn = dsn
 	}
 }
 
+// WithDriver configures the name of driver when opening the database.
 func WithDriver(driver string) Option {
 	return func(c *config) {
 		c.driver = driver
 	}
 }
 
+// WithDB configures the backend to use db. If configured the backend
+// will not attempt to open the database itself.
 func WithDB(db *sql.DB) Option {
 	return func(c *config) {
 		c.db = db
 	}
 }
 
+// New creates and initializes a new MySQL storage backend.
+// New attempts to Ping the database after opening to verify connectivity.
 func New(newHash func() hash.Hash, opts ...Option) (*MySQLStorage, error) {
-	cfg := &config{driver: "mysql"}
+	if newHash == nil {
+		panic("nil hasher")
+	}
+	cfg := config{driver: "mysql"}
 	for _, opt := range opts {
-		opt(cfg)
+		opt(&cfg)
 	}
 	var err error
 	if cfg.db == nil {
@@ -57,8 +67,6 @@ func New(newHash func() hash.Hash, opts ...Option) (*MySQLStorage, error) {
 	}
 	return &MySQLStorage{db: cfg.db, newHash: newHash}, nil
 }
-
-var ErrNotImplemented = errors.New("not implemented")
 
 // resultChangedRows tries to tell us if if the record changed. Note that
 // MySQL has an odd special case for result rows when INSERT INTO ... ON

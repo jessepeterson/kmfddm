@@ -1,4 +1,4 @@
-// Package file implements a filesystem-based storage backend.
+// Package file is a filesystem-based storage backend for KMFDDM.
 package file
 
 import (
@@ -18,12 +18,13 @@ type File struct {
 	newHash func() hash.Hash
 }
 
+// New creates and initializes a new filesystem-based storage backend.
 func New(path string, newHash func() hash.Hash) (*File, error) {
-	if err := os.Mkdir(path, 0755); err != nil && !errors.Is(err, os.ErrExist) {
-		return nil, err
-	}
 	if newHash == nil {
 		panic("newHash must not be nil")
+	}
+	if err := os.Mkdir(path, 0755); err != nil && !errors.Is(err, os.ErrExist) {
+		return nil, err
 	}
 	return &File{
 		path:    path,

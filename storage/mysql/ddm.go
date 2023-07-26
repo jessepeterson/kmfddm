@@ -9,8 +9,9 @@ import (
 
 // RetrieveEnrollmentDeclarationJSON retreives a declaration intended for a
 // given enrollment. As it is intended to retrieve the declaration for
-// delivery to the enrollment it queries to make sure that enrollment should
-// have access and that it is of the correct type.
+// delivery to a specific enrollment it queries to make sure that enrollment
+// should have access and that it is of the correct type.
+// See also the storage package for documentation on the storage interfaces.
 func (s *MySQLStorage) RetrieveEnrollmentDeclarationJSON(ctx context.Context, declarationID, declarationType, enrollmentID string) (raw []byte, err error) {
 	// we JOIN against the enrollments table to make sure only those
 	// declarations that are transitively related are able to be
@@ -41,12 +42,12 @@ WHERE
 	return
 }
 
-type Builder interface {
+type builder interface {
 	Add(*ddm.Declaration)
 	Finalize()
 }
 
-func (s *MySQLStorage) build(ctx context.Context, b Builder, enrollmentID string) error {
+func (s *MySQLStorage) build(ctx context.Context, b builder, enrollmentID string) error {
 	rows, err := s.db.QueryContext(
 		ctx, `
 SELECT DISTINCT
@@ -69,8 +70,8 @@ WHERE
 	defer rows.Close()
 	for rows.Next() {
 		// note that we're selecting and assembling a very minimal Declaration
-		// here. just enough to work with the Builder interface. check the
-		// Builder implementation to make sure it doesn't need anything more
+		// here. just enough to work with the builder interface. check the
+		// builder implementation to make sure it doesn't need anything more
 		// than what we're giving it.
 		d := new(ddm.Declaration)
 		err = rows.Scan(
@@ -93,6 +94,8 @@ WHERE
 	return nil
 }
 
+// RetrieveDeclarationItemsJSON generates Declaration Items for enrollmentID.
+// See also the storage package for documentation on the storage interfaces.
 func (s *MySQLStorage) RetrieveDeclarationItemsJSON(ctx context.Context, enrollmentID string) ([]byte, error) {
 	di := ddm.NewDIBuilder(s.newHash)
 	err := s.build(ctx, di, enrollmentID)
@@ -102,6 +105,8 @@ func (s *MySQLStorage) RetrieveDeclarationItemsJSON(ctx context.Context, enrollm
 	return json.Marshal(&di.DeclarationItems)
 }
 
+// RetrieveTokensJSON generates Sync Tokens for enrollmentID.
+// See also the storage package for documentation on the storage interfaces.
 func (s *MySQLStorage) RetrieveTokensJSON(ctx context.Context, enrollmentID string) ([]byte, error) {
 	b := ddm.NewTokensBuilder(s.newHash)
 	err := s.build(ctx, b, enrollmentID)

@@ -8,6 +8,7 @@ import (
 )
 
 // RetrieveEnrollmentSets returns the slice of sets associated with an enrollment ID.
+// See also the storage package for documentation on the storage interfaces.
 func (s *File) RetrieveEnrollmentSets(_ context.Context, enrollmentID string) ([]string, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -15,6 +16,7 @@ func (s *File) RetrieveEnrollmentSets(_ context.Context, enrollmentID string) ([
 }
 
 // StoreEnrollmentSet creates the association between an enrollment and a set.
+// See also the storage package for documentation on the storage interfaces.
 func (s *File) StoreEnrollmentSet(_ context.Context, enrollmentID, setName string) (bool, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -44,6 +46,7 @@ func (s *File) StoreEnrollmentSet(_ context.Context, enrollmentID, setName strin
 }
 
 // RemoveEnrollmentSet removes the association between an enrollment and a set.
+// See also the storage package for documentation on the storage interfaces.
 func (s *File) RemoveEnrollmentSet(_ context.Context, enrollmentID, setName string) (bool, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -74,6 +77,7 @@ func (s *File) RemoveEnrollmentSet(_ context.Context, enrollmentID, setName stri
 
 // RetrieveEnrollmentIDs retrieves MDM enrollment IDs from storage.
 // If a set, declaration, or enrollment ID doesn't exist it is ignored.
+// See also the storage package for documentation on the storage interfaces.
 func (s *File) RetrieveEnrollmentIDs(_ context.Context, declarations []string, sets []string, ids []string) ([]string, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()

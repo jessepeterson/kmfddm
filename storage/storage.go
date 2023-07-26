@@ -14,21 +14,24 @@ type Toucher interface {
 
 type DeclarationStorer interface {
 	// StoreDeclaration stores a declaration.
+	// If the declaration is new or has changed true should be returned.
 	//
-	// Note that a storage backend may tried to creation relations
+	// Note that a storage backend may try to create relations
 	// based on the the ddm.IdentifierRefs field.
 	StoreDeclaration(ctx context.Context, d *ddm.Declaration) (bool, error)
 }
 
 type DeclarationDeleter interface {
 	// DeleteDeclaration deletes a declaration.
+	// If the declaration was deleted true should be returned.
 	//
 	// Implementations should return an error if there are declarations
-	// that depend on it or if it is in a set.
+	// that depend on it or if the declaration is associated with a set.
 	DeleteDeclaration(ctx context.Context, declarationID string) (bool, error)
 }
 
 type DeclarationAPIRetriever interface {
+	// RetrieveDeclaration retrieves a declaration from storage.
 	RetrieveDeclaration(ctx context.Context, declarationID string) (*ddm.Declaration, error)
 }
 
@@ -44,22 +47,26 @@ type EnrollmentIDRetriever interface {
 }
 
 type TokensJSONRetriever interface {
-	// RetrieveTokensJSON returns the token JSON for an enrollment ID.
+	// RetrieveTokensJSON returns the sync token JSON for enrollmentID.
+	// This is part of the core DDM protocol for handling declarations for enrollments.
 	RetrieveTokensJSON(ctx context.Context, enrollmentID string) ([]byte, error)
 }
 
 type TokensDeclarationItemsRetriever interface {
-	// RetrieveDeclarationItemsJSON returns the declaration items JSON for an enrollment ID.
+	// RetrieveDeclarationItemsJSON returns the declaration items JSON for enrollmentID.
+	// This is part of the core DDM protocol for handling declarations for enrollments.
 	RetrieveDeclarationItemsJSON(ctx context.Context, enrollmentID string) ([]byte, error)
 	TokensJSONRetriever
 }
 
 type DeclarationRetriever interface {
 	// RetrieveEnrollmentDeclarationJSON fetches the JSON for a declaration for an enrollment ID.
+	// This is part of the core DDM protocol for handling declarations for enrollments.
 	RetrieveEnrollmentDeclarationJSON(ctx context.Context, declarationID, declarationType, enrollmentID string) ([]byte, error)
 }
 
 // EnrollmentDeclarationStorage is the storage required to support declarations in the DDM protocol.
+// This is part of the core DDM protocol for handling declarations for enrollments.
 type EnrollmentDeclarationStorage interface {
 	TokensDeclarationItemsRetriever
 	DeclarationRetriever
@@ -97,11 +104,15 @@ type SetDeclarationsRetriever interface {
 
 type SetDeclarationStorer interface {
 	// StoreSetDeclaration associates setName and declarationID.
+	// If the association is created true should be returned.
+	// It should not be an error if the association does not exist.
 	StoreSetDeclaration(ctx context.Context, setName, declarationID string) (bool, error)
 }
 
 type SetDeclarationRemover interface {
 	// StoreSetDeclaration dissociates setName and declarationID.
+	// If the association is removed true should be returned.
+	// It should not be an error if the association does not exist.
 	RemoveSetDeclaration(ctx context.Context, setName, declarationID string) (bool, error)
 }
 
@@ -125,11 +136,15 @@ type EnrollmentSetsRetriever interface {
 
 type EnrollmentSetStorer interface {
 	// StoreEnrollmentSet associates enrollmentID and setName.
+	// If the association is created true is returned.
+	// It should not be an error if the association does not exist.
 	StoreEnrollmentSet(ctx context.Context, enrollmentID, setName string) (bool, error)
 }
 
 type EnrollmentSetRemover interface {
 	// StoreEnrollmentSet dissociates enrollmentID and setName.
+	// If the association is removed true is returned.
+	// It should not be an error if the association does not exist.
 	RemoveEnrollmentSet(ctx context.Context, enrollmentID, setName string) (bool, error)
 }
 
