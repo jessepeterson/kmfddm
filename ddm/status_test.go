@@ -14,7 +14,7 @@ func TestStatusParse(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	s, err := ParseStatus(jsonBytes)
+	_, s, err := ParseStatus(jsonBytes)
 	if err != nil {
 		t.Fatal(err)
 	}

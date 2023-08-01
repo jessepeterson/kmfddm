@@ -135,7 +135,7 @@ func StatusReportHandler(store storage.StatusStorer, hLogger log.Logger) http.Ha
 			ErrorAndLog(w, http.StatusInternalServerError, logger, "reading body", err)
 			return
 		}
-		status, err := ddm.ParseStatus(bodyBytes)
+		unhandled, status, err := ddm.ParseStatus(bodyBytes)
 		if err != nil {
 			ErrorAndLog(w, http.StatusInternalServerError, logger, "parsing status report", err)
 			return
@@ -145,6 +145,9 @@ func StatusReportHandler(store storage.StatusStorer, hLogger log.Logger) http.Ha
 			logkeys.ErrorCount, len(status.Errors),
 			logkeys.ValueCount, len(status.Values),
 		)
+		for _, u := range unhandled {
+			logger.Debug(logkeys.Message, "unhandled status path", "path", u)
+		}
 		err = store.StoreDeclarationStatus(ctx, enrollmentID, status)
 		if err != nil {
 			ErrorAndLog(w, http.StatusInternalServerError, logger, "storing declaration status", err)
