@@ -6,15 +6,14 @@ import (
 	"testing"
 
 	"github.com/jessepeterson/kmfddm/ddm"
-	"github.com/jessepeterson/kmfddm/http/api"
 	"github.com/jessepeterson/kmfddm/storage"
 )
 
 type myStorage interface {
-	api.EnrollmentAPIStorage
-	api.DeclarationAPIStorage
 	storage.TokensDeclarationItemsRetriever
 	storage.EnrollmentIDRetriever
+	storage.DeclarationAPIStorage
+	storage.EnrollmentSetStorage
 }
 
 func testEnrollments(t *testing.T, store myStorage, ctx context.Context, d *ddm.Declaration, enrollmentID, setName string) {

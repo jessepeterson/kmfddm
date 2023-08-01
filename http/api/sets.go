@@ -10,19 +10,25 @@ import (
 
 	"github.com/jessepeterson/kmfddm/log"
 	"github.com/jessepeterson/kmfddm/log/ctxlog"
+	"github.com/jessepeterson/kmfddm/storage"
 )
 
-type SetAPIStorage interface {
-	RetrieveSetDeclarations(ctx context.Context, setName string) (declarationIDs []string, err error)
-	StoreSetDeclaration(ctx context.Context, setName, declarationID string) (bool, error)
-	RemoveSetDeclaration(ctx context.Context, setName, declarationID string) (bool, error)
-	RetrieveSets(ctx context.Context) ([]string, error)
+// GetDeclarationSetsHandler retrieves the list of sets for an declaration ID.
+// The entire request URL path is assumed to contain the set name.
+// This implies the handler should have the path prefix stripped before use.
+func GetDeclarationSetsHandler(store storage.DeclarationSetRetriever, logger log.Logger) http.HandlerFunc {
+	return simpleJSONResourceHandler(
+		logger,
+		func(ctx context.Context, resource string, _ *url.URL) (interface{}, error) {
+			return store.RetrieveDeclarationSets(ctx, resource)
+		},
+	)
 }
 
 // GetSetDeclarationsHandler retrieves the list of declarations in a set.
 // The entire request URL path is assumed to contain the set name.
 // This implies the handler should have the path prefix stripped before use.
-func GetSetDeclarationsHandler(store SetAPIStorage, logger log.Logger) http.HandlerFunc {
+func GetSetDeclarationsHandler(store storage.SetDeclarationsRetriever, logger log.Logger) http.HandlerFunc {
 	return simpleJSONResourceHandler(
 		logger,
 		func(ctx context.Context, resource string, _ *url.URL) (interface{}, error) {
@@ -34,7 +40,7 @@ func GetSetDeclarationsHandler(store SetAPIStorage, logger log.Logger) http.Hand
 // PutSetDeclarationHandler associates declarations to a set.
 // The entire request URL path is assumed to contain the set name.
 // This implies the handler should have the path prefix stripped before use.
-func PutSetDeclarationHandler(store SetAPIStorage, notifier Notifier, logger log.Logger) http.HandlerFunc {
+func PutSetDeclarationHandler(store storage.SetDeclarationStorer, notifier Notifier, logger log.Logger) http.HandlerFunc {
 	return simpleChangeResourceHandler(
 		logger,
 		func(ctx context.Context, resource string, u *url.URL, notify bool) (bool, string, error) {
@@ -57,7 +63,7 @@ func PutSetDeclarationHandler(store SetAPIStorage, notifier Notifier, logger log
 // DeleteSetDeclarationHandler dissociates declarations from a set.
 // The entire request URL path is assumed to contain the set name.
 // This implies the handler should have the path prefix stripped before use.
-func DeleteSetDeclarationHandler(store SetAPIStorage, notifier Notifier, logger log.Logger) http.HandlerFunc {
+func DeleteSetDeclarationHandler(store storage.SetDeclarationRemover, notifier Notifier, logger log.Logger) http.HandlerFunc {
 	return simpleChangeResourceHandler(
 		logger,
 		func(ctx context.Context, resource string, u *url.URL, notify bool) (bool, string, error) {
@@ -77,7 +83,8 @@ func DeleteSetDeclarationHandler(store SetAPIStorage, notifier Notifier, logger 
 	)
 }
 
-func GetSetsHandler(store SetAPIStorage, logger log.Logger) http.HandlerFunc {
+// GetSetsHandler returns a handler that retrieves the list of sets.
+func GetSetsHandler(store storage.SetRetreiver, logger log.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		logger := ctxlog.Logger(r.Context(), logger)
 		ids, err := store.RetrieveSets(r.Context())

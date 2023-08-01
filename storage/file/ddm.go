@@ -111,8 +111,8 @@ func (s *File) writeEnrollmentDDM(enrollmentID string) error {
 		}
 
 		// add to our DI and tokens builders
-		di.AddDeclarationData(d)
-		ti.AddDeclarationData(d)
+		di.Add(d)
+		ti.Add(d)
 
 		// create declaration symlink if not exists
 		symlinkName := s.enrollmentDeclarationFilename(d.Identifier, ddm.ManifestType(d.Type), enrollmentID)

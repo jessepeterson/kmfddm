@@ -1,3 +1,6 @@
+// Pacakge api contains HTTP handlers for working with KMFDDM data.
+// This includes delcarations, sets, enrollments, status data,
+// notifications, etc.
 package api
 
 import (
@@ -11,12 +14,21 @@ import (
 	"github.com/alexedwards/flow"
 	"github.com/jessepeterson/kmfddm/log"
 	"github.com/jessepeterson/kmfddm/log/ctxlog"
+	"github.com/jessepeterson/kmfddm/log/logkeys"
 )
+
+type Notifier interface {
+	Changed(ctx context.Context, declarations []string, sets []string, ids []string) error
+}
 
 const (
 	jsonContentType = "application/json"
 )
 
+var ErrEmptyResourceID = errors.New("empty resource id")
+
+// jsonResponse encodes v to JSON and writes to w.
+// If a non-zero HTTP status is provided it is written it to w.
 func jsonResponse(w http.ResponseWriter, status int, v interface{}) error {
 	w.Header().Set("Content-type", jsonContentType)
 	if status > 0 {
@@ -25,10 +37,14 @@ func jsonResponse(w http.ResponseWriter, status int, v interface{}) error {
 	return json.NewEncoder(w).Encode(v)
 }
 
+// jsonErrorStruct is encoded and output for HTTP errors.
 type jsonErrorStruct struct {
 	Err string `json:"error"`
 }
 
+// jsonError encodes err to JSON and writes to w.
+// Status defaults to Internal Server Error if a positive HTTP status
+// is not provided.
 func jsonError(w http.ResponseWriter, status int, err error) error {
 	if status < 1 {
 		status = http.StatusInternalServerError
@@ -36,11 +52,11 @@ func jsonError(w http.ResponseWriter, status int, err error) error {
 	return jsonResponse(w, status, &jsonErrorStruct{Err: err.Error()})
 }
 
+// jsonErrorAndLog logs msg to logger then writes the JSON error to w.
 func jsonErrorAndLog(w http.ResponseWriter, status int, err error, msg string, logger log.Logger) {
-	logger.Info("msg", msg, "err", err)
-	err = jsonError(w, status, err)
-	if err != nil {
-		logger.Info("msg", "writing response json", "err", err)
+	logger.Info(logkeys.Message, msg, logkeys.Error, err)
+	if err = jsonError(w, status, err); err != nil {
+		logger.Info(logkeys.Message, "writing error json", logkeys.Message, err)
 	}
 }
 
@@ -56,14 +72,19 @@ func shouldNotify(u *url.URL) bool {
 	return !boolish(u.Query().Get("nonotify"))
 }
 
-func simpleJSONResourceHandler(logger log.Logger, dataFn func(context.Context, string, *url.URL) (interface{}, error)) http.HandlerFunc {
+func getResourceID(r *http.Request) string {
+	return flow.Param(r.Context(), "id")
+}
+
+type dataFunc func(context.Context, string, *url.URL) (interface{}, error)
+
+func simpleJSONResourceHandler(logger log.Logger, dataFn dataFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		logger := ctxlog.Logger(r.Context(), logger)
 		var err error
 		resource := getResourceID(r)
 		if resource == "" {
-			err = errors.New("empty resource ID")
-			jsonErrorAndLog(w, http.StatusBadRequest, err, "validating input", logger)
+			jsonErrorAndLog(w, http.StatusBadRequest, ErrEmptyResourceID, "validating input", logger)
 			return
 		}
 		logger = logger.With("resource", resource)
@@ -91,14 +112,15 @@ func simpleJSONResourceHandler(logger log.Logger, dataFn func(context.Context, s
 	}
 }
 
-func simpleChangeResourceHandler(logger log.Logger, chgFn func(context.Context, string, *url.URL, bool) (bool, string, error)) http.HandlerFunc {
+type changeFunc func(context.Context, string, *url.URL, bool) (bool, string, error)
+
+func simpleChangeResourceHandler(logger log.Logger, chgFn changeFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		logger := ctxlog.Logger(r.Context(), logger)
 		var err error
 		resource := getResourceID(r)
 		if resource == "" {
-			err = errors.New("empty resource ID")
-			jsonErrorAndLog(w, http.StatusBadRequest, err, "validating input", logger)
+			jsonErrorAndLog(w, http.StatusBadRequest, ErrEmptyResourceID, "validating input", logger)
 			return
 		}
 		logger = logger.With("resource", resource)
@@ -127,12 +149,4 @@ func simpleChangeResourceHandler(logger log.Logger, chgFn func(context.Context, 
 		// not actually an error, using as a helper
 		http.Error(w, http.StatusText(status), status)
 	}
-}
-
-func getResourceID(r *http.Request) string {
-	return flow.Param(r.Context(), "id")
-}
-
-type Notifier interface {
-	Changed(ctx context.Context, declarations []string, sets []string, ids []string) error
 }

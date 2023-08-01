@@ -14,16 +14,25 @@ type Toucher interface {
 
 type DeclarationStorer interface {
 	// StoreDeclaration stores a declaration.
+	// If the declaration is new or has changed true should be returned.
 	//
-	// Note that a storage backend may tried to creation relations
+	// Note that a storage backend may try to create relations
 	// based on the the ddm.IdentifierRefs field.
 	StoreDeclaration(ctx context.Context, d *ddm.Declaration) (bool, error)
 }
 
-// DeclarationAPIStorage are storage interfaces relating to declaration APIs.
-type DeclarationAPIStorage interface {
-	Toucher
-	DeclarationStorer
+type DeclarationDeleter interface {
+	// DeleteDeclaration deletes a declaration.
+	// If the declaration was deleted true should be returned.
+	//
+	// Implementations should return an error if there are declarations
+	// that depend on it or if the declaration is associated with a set.
+	DeleteDeclaration(ctx context.Context, declarationID string) (bool, error)
+}
+
+type DeclarationAPIRetriever interface {
+	// RetrieveDeclaration retrieves a declaration from storage.
+	RetrieveDeclaration(ctx context.Context, declarationID string) (*ddm.Declaration, error)
 }
 
 type EnrollmentIDRetriever interface {
@@ -38,23 +47,132 @@ type EnrollmentIDRetriever interface {
 }
 
 type TokensJSONRetriever interface {
-	// RetrieveTokensJSON returns the token JSON for an enrollment ID.
+	// RetrieveTokensJSON returns the sync token JSON for enrollmentID.
+	// This is part of the core DDM protocol for handling declarations for enrollments.
 	RetrieveTokensJSON(ctx context.Context, enrollmentID string) ([]byte, error)
 }
 
 type TokensDeclarationItemsRetriever interface {
-	// RetrieveDeclarationItemsJSON returns the declaration items JSON for an enrollment ID.
+	// RetrieveDeclarationItemsJSON returns the declaration items JSON for enrollmentID.
+	// This is part of the core DDM protocol for handling declarations for enrollments.
 	RetrieveDeclarationItemsJSON(ctx context.Context, enrollmentID string) ([]byte, error)
 	TokensJSONRetriever
 }
 
 type DeclarationRetriever interface {
 	// RetrieveEnrollmentDeclarationJSON fetches the JSON for a declaration for an enrollment ID.
+	// This is part of the core DDM protocol for handling declarations for enrollments.
 	RetrieveEnrollmentDeclarationJSON(ctx context.Context, declarationID, declarationType, enrollmentID string) ([]byte, error)
 }
 
 // EnrollmentDeclarationStorage is the storage required to support declarations in the DDM protocol.
+// This is part of the core DDM protocol for handling declarations for enrollments.
 type EnrollmentDeclarationStorage interface {
 	TokensDeclarationItemsRetriever
 	DeclarationRetriever
+}
+
+type StatusStorer interface {
+	// StoreDeclarationStatus stores the status report details.
+	// For later retrieval by the StatusAPIStorage interface(s).
+	StoreDeclarationStatus(ctx context.Context, enrollmentID string, status *ddm.StatusReport) error
+}
+
+type DeclarationsRetriever interface {
+	// RetrieveDeclarations retrieves a list of all declarations.
+	RetrieveDeclarations(ctx context.Context) ([]string, error)
+}
+
+// DeclarationAPIStorage are storage interfaces relating to declarations.
+type DeclarationAPIStorage interface {
+	Toucher
+	DeclarationStorer
+	DeclarationDeleter
+	DeclarationAPIRetriever
+	DeclarationsRetriever
+}
+
+type DeclarationSetRetriever interface {
+	// RetrieveDeclarationSets retrieves the list of set names for declarationID.
+	RetrieveDeclarationSets(ctx context.Context, declarationID string) (setNames []string, err error)
+}
+
+type SetDeclarationsRetriever interface {
+	// RetrieveSetDeclarations retreives the list of declarations IDs for setName.
+	RetrieveSetDeclarations(ctx context.Context, setName string) (declarationIDs []string, err error)
+}
+
+type SetDeclarationStorer interface {
+	// StoreSetDeclaration associates setName and declarationID.
+	// If the association is created true should be returned.
+	// It should not be an error if the association does not exist.
+	StoreSetDeclaration(ctx context.Context, setName, declarationID string) (bool, error)
+}
+
+type SetDeclarationRemover interface {
+	// StoreSetDeclaration dissociates setName and declarationID.
+	// If the association is removed true should be returned.
+	// It should not be an error if the association does not exist.
+	RemoveSetDeclaration(ctx context.Context, setName, declarationID string) (bool, error)
+}
+
+// SetStorage are storage interfaces related to sets.
+type SetDeclarationStorage interface {
+	DeclarationSetRetriever
+	SetDeclarationsRetriever
+	SetDeclarationStorer
+	SetDeclarationRemover
+}
+
+type SetRetreiver interface {
+	// RetrieveSets returns the list of all sets.
+	RetrieveSets(ctx context.Context) ([]string, error)
+}
+
+type EnrollmentSetsRetriever interface {
+	// RetrieveEnrollmentSets retrieves the sets that are associated with enrollmentID.
+	RetrieveEnrollmentSets(ctx context.Context, enrollmentID string) (setNames []string, err error)
+}
+
+type EnrollmentSetStorer interface {
+	// StoreEnrollmentSet associates enrollmentID and setName.
+	// If the association is created true is returned.
+	// It should not be an error if the association does not exist.
+	StoreEnrollmentSet(ctx context.Context, enrollmentID, setName string) (bool, error)
+}
+
+type EnrollmentSetRemover interface {
+	// StoreEnrollmentSet dissociates enrollmentID and setName.
+	// If the association is removed true is returned.
+	// It should not be an error if the association does not exist.
+	RemoveEnrollmentSet(ctx context.Context, enrollmentID, setName string) (bool, error)
+}
+
+// EnrollmentSetStorage are storage interfaces related to MDM enrollment IDs.
+type EnrollmentSetStorage interface {
+	EnrollmentSetsRetriever
+	EnrollmentSetStorer
+	EnrollmentSetRemover
+}
+
+type StatusDeclarationsRetriever interface {
+	// RetrieveDeclarationStatus retrieves the status of the declarations for enrollmentIDs.
+	RetrieveDeclarationStatus(ctx context.Context, enrollmentIDs []string) (map[string][]ddm.DeclarationQueryStatus, error)
+}
+
+type StatusErrorsRetriever interface {
+	// RetrieveStatusErrors retrieves the collected errors for enrollmentIDs.
+	RetrieveStatusErrors(ctx context.Context, enrollmentIDs []string, offset, limit int) (map[string][]StatusError, error)
+}
+
+type StatusValuesRetriever interface {
+	// RetrieveStatusErrors retrieves the collected errors for enrollmentIDs.
+	RetrieveStatusValues(ctx context.Context, enrollmentIDs []string, pathPrefix string) (map[string][]StatusValue, error)
+}
+
+// StatusAPIStorage are storage interfaces related to retrieving status channel data.
+type StatusAPIStorage interface {
+	StatusDeclarationsRetriever
+	StatusErrorsRetriever
+	StatusValuesRetriever
 }

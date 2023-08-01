@@ -7,17 +7,15 @@ import (
 	"testing"
 
 	"github.com/jessepeterson/kmfddm/ddm"
-	"github.com/jessepeterson/kmfddm/http/api"
-	httpddm "github.com/jessepeterson/kmfddm/http/ddm"
 	"github.com/jessepeterson/kmfddm/storage"
 )
 
 type statusStorage interface {
-	httpddm.StatusStorage
-	api.StatusAPIStorage
+	storage.StatusStorer
 	storage.DeclarationStorer
-	api.EnrollmentAPIStorage
-	api.SetAPIStorage
+	storage.SetDeclarationStorage
+	storage.EnrollmentSetStorer
+	storage.StatusAPIStorage
 }
 
 const statusFile1 = "testdata/status.1st.json"

@@ -2,6 +2,9 @@ openapi: 3.0.0
 info:
   version: 0.1.0
   title: KMFDDM server API
+externalDocs:
+  description: KMFDDM on GitHub
+  url: https://github.com/jessepeterson/kmfddm
 servers:
   - url: http://[::1]:9002/
 paths:
@@ -19,9 +22,83 @@ paths:
                   version:
                     type: string
                     example: "v0.1.0"
+  /v1/declarations:
+    get:
+      description: Retrieve a list of declarations.
+      tags:
+        - declarations
+      security:
+        - basicAuth: []
+      responses:
+        '200':
+          $ref: '#/components/responses/DeclarationIDList'
+        '401':
+           $ref: '#/components/responses/UnauthorizedError'
+        '400':
+           $ref: '#/components/responses/JSONBadRequest'
+        '500':
+           $ref: '#/components/responses/JSONError'
+    put:
+      description: Store declaration. Adds new or overwrites an existing declaration. A declaration does not need to include the `ServerToken` field — KMFDDM generates one for you based on the content (it is ignored and overwritten if included).
+      tags:
+        - declarations
+      security:
+        - basicAuth: []
+      requestBody:
+        $ref: '#/components/requestBodies/Declaration'
+      responses:
+        '204':
+          description: Declaration already exists and is unchanged.
+        '304':
+          description: Declaration is either new or has changed. Notification will take place unless disabled with parameter.
+        '401':
+           $ref: '#/components/responses/UnauthorizedError'
+        '400':
+           $ref: '#/components/responses/JSONBadRequest'
+        '500':
+           $ref: '#/components/responses/JSONError'
+      parameters:
+        - $ref: '#/components/parameters/noNotify'
+  /v1/declarations/{id}:
+    get:
+      description: Retrieve a declaration.
+      tags:
+        - declarations
+      security:
+        - basicAuth: []
+      responses:
+        '200':
+          $ref: '#/components/responses/Declaration'
+        '401':
+           $ref: '#/components/responses/UnauthorizedError'
+        '400':
+           $ref: '#/components/responses/JSONBadRequest'
+        '500':
+           $ref: '#/components/responses/JSONError'
+    delete:
+      description: Delete a declaration. It is assumed that any declaration deleted has no dependant delcarations and is not in any sets (and so no notifications are performed). Some storage backends may try to enforce these assumptions through e.g. database constraints.
+      tags:
+        - declarations
+      security:
+        - basicAuth: []
+      responses:
+        '204':
+          description: Declaration was deleted.
+        '304':
+          description: Declaration did not exist for deletion (effectively no change).
+        '401':
+           $ref: '#/components/responses/UnauthorizedError'
+        '400':
+           $ref: '#/components/responses/JSONBadRequest'
+        '500':
+           $ref: '#/components/responses/JSONError'
+    parameters:
+      - $ref: '#/components/parameters/declarationID'
   /v1/declarations/{id}/touch:
     post:
-      description: Updates a declaration's `ServerToken` only.
+      description: Updates a declaration's `ServerToken` (only).
+      tags:
+        - declarations
       security:
         - basicAuth: []
       responses:
@@ -35,6 +112,283 @@ paths:
            $ref: '#/components/responses/JSONError'
     parameters:
       - $ref: '#/components/parameters/declarationID'
+  /v1/sets:
+    get:
+      description: Retrieve the list of sets.
+      tags:
+        - sets
+      security:
+        - basicAuth: []
+      responses:
+        '200':
+          $ref: '#/components/responses/SetNameList'
+        '401':
+           $ref: '#/components/responses/UnauthorizedError'
+        '400':
+           $ref: '#/components/responses/JSONBadRequest'
+        '500':
+           $ref: '#/components/responses/JSONError'
+  /v1/set-declarations/{id}:
+    get:
+      description: Retreive the list of declarations in a set.
+      tags:
+        - sets
+      security:
+        - basicAuth: []
+      responses:
+        '200':
+          $ref: '#/components/responses/DeclarationIDList'
+        '401':
+           $ref: '#/components/responses/UnauthorizedError'
+        '400':
+           $ref: '#/components/responses/JSONBadRequest'
+        '500':
+           $ref: '#/components/responses/JSONError'
+    put:
+      description: Associate set and declaration.
+      tags:
+        - sets
+      security:
+        - basicAuth: []
+      responses:
+        '204':
+          $ref: '#/components/responses/AssociationChanged'
+        '304':
+          $ref: '#/components/responses/AssociationUnchanged'
+        '401':
+           $ref: '#/components/responses/UnauthorizedError'
+        '400':
+           $ref: '#/components/responses/JSONBadRequest'
+        '500':
+           $ref: '#/components/responses/JSONError'
+      parameters:
+        - $ref: '#/components/parameters/noNotify'
+        - $ref: '#/components/parameters/declarationIDInQuery'
+    delete:
+      description: Dissociate set and declaration.
+      tags:
+        - sets
+      security:
+        - basicAuth: []
+      responses:
+        '204':
+          $ref: '#/components/responses/DissociationChanged'
+        '304':
+          $ref: '#/components/responses/DissociationUnchanged'
+        '401':
+           $ref: '#/components/responses/UnauthorizedError'
+        '400':
+           $ref: '#/components/responses/JSONBadRequest'
+        '500':
+           $ref: '#/components/responses/JSONError'
+      parameters:
+        - $ref: '#/components/parameters/noNotify'
+        - $ref: '#/components/parameters/declarationIDInQuery'
+    parameters:
+      - $ref: '#/components/parameters/setName'
+  /v1/enrollment-sets/{id}:
+    get:
+      description: Retrieve the list of sets for an enrollment ID.
+      tags:
+        - enrollments
+      security:
+        - basicAuth: []
+      responses:
+        '200':
+          $ref: '#/components/responses/SetNameList'
+        '401':
+           $ref: '#/components/responses/UnauthorizedError'
+        '400':
+           $ref: '#/components/responses/JSONBadRequest'
+        '500':
+           $ref: '#/components/responses/JSONError'
+    put:
+      description: Associate enrollment IDs and sets.
+      tags:
+        - enrollments
+      security:
+        - basicAuth: []
+      responses:
+        '204':
+          $ref: '#/components/responses/AssociationChanged'
+        '304':
+          $ref: '#/components/responses/AssociationUnchanged'
+        '401':
+           $ref: '#/components/responses/UnauthorizedError'
+        '400':
+           $ref: '#/components/responses/JSONBadRequest'
+        '500':
+           $ref: '#/components/responses/JSONError'
+      parameters:
+        - $ref: '#/components/parameters/noNotify'
+        - $ref: '#/components/parameters/setNameInQuery'
+    delete:
+      description: Dissociate enrollment IDs and sets.
+      tags:
+        - enrollments
+      security:
+        - basicAuth: []
+      responses:
+        '204':
+          $ref: '#/components/responses/DissociationChanged'
+        '304':
+          $ref: '#/components/responses/DissociationUnchanged'
+        '401':
+           $ref: '#/components/responses/UnauthorizedError'
+        '400':
+           $ref: '#/components/responses/JSONBadRequest'
+        '500':
+           $ref: '#/components/responses/JSONError'
+      parameters:
+        - $ref: '#/components/parameters/noNotify'
+        - $ref: '#/components/parameters/setNameInQuery'
+    parameters:
+      - $ref: '#/components/parameters/enrollmentID'
+  /v1/declaration-sets/{id}:
+    get:
+      description: Retrieve the list of sets that a declaration is associated with.
+      tags:
+        - sets
+      security:
+        - basicAuth: []
+      responses:
+        '200':
+          $ref: '#/components/responses/SetNameList'
+        '401':
+           $ref: '#/components/responses/UnauthorizedError'
+        '400':
+           $ref: '#/components/responses/JSONBadRequest'
+        '500':
+           $ref: '#/components/responses/JSONError'
+    parameters:
+      - $ref: '#/components/parameters/declarationID'
+  /v1/declaration-status/{id}:
+    get:
+      description: Retrieves the status of the declarations for enrollment IDs.
+      tags:
+        - status
+      security:
+        - basicAuth: []
+      responses:
+        '200':
+          description: Declaration status.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties: 
+                  $id:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        identifier:
+                          type: string
+                        active:
+                          type: boolean
+                        valid:
+                          type: string
+                          example: 'valid'
+                        server-token:
+                          type: string
+                          example: '9b6abc93f9773261'
+                        current:
+                          type: boolean
+                          description: This field reports on if the enrollment's `ServerToken` matches the *currently configured* token. In other words has the enrollment received the latest declaration and reported that fact back to us.
+                        status_received:
+                          type: string
+                          description: Timestamp of when this declaration's status was last received.
+                        reasons:
+                          type: object
+        '401':
+           $ref: '#/components/responses/UnauthorizedError'
+        '400':
+           $ref: '#/components/responses/JSONBadRequest'
+        '500':
+           $ref: '#/components/responses/JSONError'
+    parameters:
+      - $ref: '#/components/parameters/enrollmentIDs'
+  /v1/status-errors/{id}:
+    get:
+      description: Retrieve errors for an enrollment ID as reported on the status channel. Both the "root" level Errors are reported as well as any declarations that are reported as non-active and non-valid.
+      tags:
+        - status
+      security:
+        - basicAuth: []
+      responses:
+        '200':
+          description: Status errors.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties: 
+                  $id:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        path:
+                          type: string
+                          description: Path in the status report of where the error occured.
+                          example: '.StatusItems.management.declarations.configurations'
+                        error:
+                          type: object
+                          description: Error object from status report.
+                        timestamp:
+                          type: string
+                          description: Timestamp of when the the status report that repoted this error was received.
+        '401':
+           $ref: '#/components/responses/UnauthorizedError'
+        '400':
+           $ref: '#/components/responses/JSONBadRequest'
+        '500':
+           $ref: '#/components/responses/JSONError'
+    parameters:
+      - $ref: '#/components/parameters/enrollmentIDs'
+  /v1/status-values/{id}:
+    get:
+      description: Retrieve status values saved from status reports.
+      tags:
+        - status
+      security:
+        - basicAuth: []
+      responses:
+        '200':
+          description: Status errors.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties: 
+                  $id:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        path:
+                          type: string
+                          description: Path in the status report of where the error occured.
+                          example: '.StatusItems.device.identifier.serial-number'
+                        value:
+                          type: string
+                          example: 'ZMX24NJ671'
+        '401':
+           $ref: '#/components/responses/UnauthorizedError'
+        '400':
+           $ref: '#/components/responses/JSONBadRequest'
+        '500':
+           $ref: '#/components/responses/JSONError'
+    parameters:
+      - $ref: '#/components/parameters/enrollmentIDs'
+      - name: prefix
+        in: query
+        description: The prefix to limit the status values to. Syntax is SQL `LIKE`-like (i.e. include `%` as wildcards); see example. Note this parameter can be passed as either a query or a form value.
+        required: false
+        style: form
+        schema:
+          type: string
+          example: '.StatusItems.device.%'
   /v1/notify:
     post:
       description: Notify enrollment IDs by their ID or the sets they belong to, or, transitively, the declaration those sets are assigned.
@@ -83,11 +437,110 @@ components:
       schema:
         type: string
         example: 'com.example.test'
+    setName:
+      name: id
+      in: path
+      description: Name of set.
+      required: true
+      style: simple
+      schema:
+        type: string
+        example: 'procurement-team'
+    enrollmentID:
+      name: id
+      in: path
+      description: Enrollment identifier. Typically a device UDID (which looks like a UUID).
+      required: true
+      style: simple
+      schema:
+        type: string
+        example: '4C491E9F-64C4-4B9E-A994-C42458F07A6C'
+    enrollmentIDs:
+      name: id
+      in: path
+      description: Enrollment identifiers. Typically a device UDIDs (which looks like UUIDs).
+      required: true
+      explode: true
+      style: simple
+      schema:
+        type: array
+        items:
+          type: string
+        minItems: 1
+        example: ['EB9DE86C-2E95-4F73-80A3-34F1D8111FA2', '4C491E9F-64C4-4B9E-A994-C42458F07A6C']
+    declarationIDInQuery:
+      name: declaration
+      in: query
+      description: Declaration identifier.
+      required: true
+      schema:
+        type: string
+        example: 'com.example.test'
+    setNameInQuery:
+      name: set
+      in: query
+      description: Set name.
+      required: true
+      schema:
+        type: string
+        example: 'procurement-team'
+    noNotify:
+      name: nonotify
+      in: query
+      description: If true then do not notify any enrollments (i.e. send `DeclarativeManagement` commands) if there was a change.
+      required: false
+      schema:
+        type: boolean
+        example: true
   securitySchemes:
     basicAuth:
       type: http
       scheme: basic
+  requestBodies:
+    Declaration:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Declaration'
   responses:
+    AssociationChanged:
+      description: Association completed. Enrollments will be notified unless disabled with parameter.
+    AssociationUnchanged:
+      description: Association did not change (i.e. already associated). Enrollments will not be notified.
+    DissociationChanged:
+      description: Dissociation completed. Enrollments will be notified unless disabled with parameter.
+    DissociationUnchanged:
+      description: Dissociation did not change (i.e. already dissociated). Enrollments will not be notified.
+    SetNameList:
+      description: Array of set names.
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              type: string
+            example:
+              - default
+              - accounting
+              - procurement-team
+              - enroll.9AFDC638-0D78-41F1-BD42-1B9F770EABF7
+    DeclarationIDList:
+      description: Array of declaration IDs.
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              type: string
+            example:
+              - com.example.act
+              - com.example.test
+    Declaration:
+      description: Declaration.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Declaration'
     UnauthorizedError:
       description: API key is missing or invalid.
       headers:
@@ -127,3 +580,17 @@ components:
         error:
           type: string
           example: "it was sunny outside"
+    Declaration:
+      type: object
+      properties:
+        Identifier:
+          type: string
+          example: "E3ADE6E6-0CF5-4C3B-BD4F-92AD2EB0500A"
+        ServerToken:
+          type: string
+          example: d41d8cd98f00b204e9800998ecf8427e
+        Payload:
+          type: object
+        Type:
+          type: string
+          example: "com.apple.configuration.management.test"

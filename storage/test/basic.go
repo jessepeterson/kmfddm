@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/jessepeterson/kmfddm/ddm"
-	"github.com/jessepeterson/kmfddm/http/api"
 	"github.com/jessepeterson/kmfddm/storage"
 )
 
@@ -19,7 +18,7 @@ const testDecl = `{
 
 type allTestStorage interface {
 	setAndDeclStorage
-	api.EnrollmentAPIStorage
+	storage.EnrollmentSetStorage
 	storage.TokensDeclarationItemsRetriever
 	storage.EnrollmentIDRetriever
 	storage.DeclarationAPIStorage

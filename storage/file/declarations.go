@@ -19,6 +19,8 @@ func newSalt() (salt []byte, err error) {
 	return
 }
 
+// StoreDeclaration stores a declaration on disk.
+// See also the storage package for documentation on the storage interfaces.
 func (s *File) StoreDeclaration(_ context.Context, d *ddm.Declaration) (bool, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -120,6 +122,7 @@ func (s *File) writeDeclarationFiles(d *ddm.Declaration, forceNewSalt bool) (boo
 }
 
 // RetrieveDeclaration retrieves a declaration by its ID.
+// See also the storage package for documentation on the storage interfaces.
 func (s *File) RetrieveDeclaration(_ context.Context, declarationID string) (*ddm.Declaration, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -140,6 +143,7 @@ func (s *File) readDeclarationFile(declarationID string) (*ddm.Declaration, erro
 }
 
 // DeleteDeclaration deletes a declaration by its ID.
+// See also the storage package for documentation on the storage interfaces.
 func (s *File) DeleteDeclaration(_ context.Context, identifier string) (bool, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -171,6 +175,7 @@ func (s *File) DeleteDeclaration(_ context.Context, identifier string) (bool, er
 }
 
 // RetrieveDeclarations retrieves a slice of all declaration IDs.
+// See also the storage package for documentation on the storage interfaces.
 func (s *File) RetrieveDeclarations(_ context.Context) ([]string, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -187,6 +192,7 @@ func (s *File) RetrieveDeclarations(_ context.Context) ([]string, error) {
 }
 
 // TouchDeclaration rewrites a declaration with a new ServerToken.
+// See also the storage package for documentation on the storage interfaces.
 func (s *File) TouchDeclaration(ctx context.Context, declarationID string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()

@@ -6,12 +6,14 @@ import (
 	"strings"
 )
 
+// ManifestDeclaration contains the identifier and server token of a declaration.
 // See https://developer.apple.com/documentation/devicemanagement/manifestdeclaration
 type ManifestDeclaration struct {
 	Identifier  string
 	ServerToken string
 }
 
+// ManifestDeclarationItems contains a listing of manifest-type delineated declarations.
 // See https://developer.apple.com/documentation/devicemanagement/declarationitemsresponse/manifestdeclarationitems
 type ManifestDeclarationItems struct {
 	Activations    []ManifestDeclaration
@@ -20,6 +22,7 @@ type ManifestDeclarationItems struct {
 	Management     []ManifestDeclaration
 }
 
+// DeclarationItems are the set of declartions a DDM client should synchronize.
 // See https://developer.apple.com/documentation/devicemanagement/declarationitemsresponse
 type DeclarationItems struct {
 	Declarations      ManifestDeclarationItems
@@ -29,6 +32,11 @@ type DeclarationItems struct {
 // ManifestType returns the "type" of manifest from a declaration type.
 // The result should (but is not guaranteed to) be one of "activation",
 // "configuration", "asset", or "management".
+//
+// Generally this is the third word separated by periods in a
+// declaration type. For example the manifest type of the declaration
+// type "com.apple.configuration.management.test" should be
+// "configuration".
 func ManifestType(t string) string {
 	if !strings.HasPrefix(t, "com.apple.") {
 		return ""
@@ -41,13 +49,27 @@ func ManifestType(t string) string {
 	return t[0:pos]
 }
 
+// NewHash returns a newly instantiated hashing function.
+type NewHash func() hash.Hash
+
+// DIBuilder incrementally builds the DDM Declaration Items structure for later serializing.
 type DIBuilder struct {
+	hash hash.Hash
 	DeclarationItems
-	hash.Hash
 }
 
-func NewDIBuilder(newHash func() hash.Hash) *DIBuilder {
-	b := &DIBuilder{
+// NewDIBuilder constructs a new Declaration Items builder.
+// It will panic if provided with a nil hasher.
+func NewDIBuilder(newHash NewHash) *DIBuilder {
+	if newHash == nil {
+		panic("nil hasher")
+	}
+	hash := newHash()
+	if hash == nil {
+		panic("nil hash")
+	}
+	return &DIBuilder{
+		hash: hash,
 		DeclarationItems: DeclarationItems{
 			Declarations: ManifestDeclarationItems{
 				// init slices so they're non-nil for the JSON encoder.
@@ -59,20 +81,14 @@ func NewDIBuilder(newHash func() hash.Hash) *DIBuilder {
 			},
 		},
 	}
-	if newHash != nil {
-		b.Hash = newHash()
-	}
-	return b
 }
 
 func tokenHashWrite(h hash.Hash, d *Declaration) {
-	if h == nil {
-		return
-	}
 	h.Write([]byte(d.ServerToken))
 }
 
-func (b *DIBuilder) AddDeclarationData(d *Declaration) {
+// Add adds a declaration d to the Declaration Items builder.
+func (b *DIBuilder) Add(d *Declaration) {
 	md := ManifestDeclaration{
 		Identifier:  d.Identifier,
 		ServerToken: d.ServerToken,
@@ -87,11 +103,14 @@ func (b *DIBuilder) AddDeclarationData(d *Declaration) {
 	case "management":
 		b.Declarations.Management = append(b.Declarations.Management, md)
 	}
-	tokenHashWrite(b.Hash, d)
+	tokenHashWrite(b.hash, d)
 }
 
+func tokenHashFinalize(h hash.Hash) string {
+	return fmt.Sprintf("%x", h.Sum(nil))
+}
+
+// Finalize finishes building the declarations items by computing the final Declarations Token.
 func (b *DIBuilder) Finalize() {
-	if b.Hash != nil {
-		b.DeclarationItems.DeclarationsToken = fmt.Sprintf("%x", b.Hash.Sum(nil))
-	}
+	b.DeclarationItems.DeclarationsToken = tokenHashFinalize(b.hash)
 }

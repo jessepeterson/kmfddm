@@ -11,6 +11,8 @@ import (
 
 var ErrDeclarationNotChanged = errors.New("declaration not changed (may not exist)")
 
+// StoreDeclaration stores a declaration and returns whether it changed or not.
+// See also the storage package for documentation on the storage interfaces.
 func (s *MySQLStorage) StoreDeclaration(ctx context.Context, d *ddm.Declaration) (bool, error) {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -65,6 +67,8 @@ UPDATE
 	return changed, tx.Commit()
 }
 
+// RetrieveDeclaration retrieves a declaration.
+// See also the storage package for documentation on the storage interfaces.
 func (s *MySQLStorage) RetrieveDeclaration(ctx context.Context, declarationID string) (d *ddm.Declaration, err error) {
 	// we could simply load the declaration JSON and do a ddm.ParseDeclaration()
 	// but we'll try to take advantage of our fancy RDBMS we have here :)
@@ -125,6 +129,8 @@ WHERE
 	return
 }
 
+// DeleteDeclaration deletes a declaration and returns whether it was deleted or already existed.
+// See also the storage package for documentation on the storage interfaces.
 func (s *MySQLStorage) DeleteDeclaration(ctx context.Context, declarationID string) (bool, error) {
 	result, err := s.db.ExecContext(
 		ctx,
@@ -137,6 +143,8 @@ func (s *MySQLStorage) DeleteDeclaration(ctx context.Context, declarationID stri
 	return resultChangedRows(result)
 }
 
+// RetrieveDeclarationSets returns the list of sets a declaration is a part of.
+// See also the storage package for documentation on the storage interfaces.
 func (s *MySQLStorage) RetrieveDeclarationSets(ctx context.Context, declarationID string) ([]string, error) {
 	return s.singleStringColumn(
 		ctx,
@@ -145,6 +153,8 @@ func (s *MySQLStorage) RetrieveDeclarationSets(ctx context.Context, declarationI
 	)
 }
 
+// RetrieveDeclarations returns the list of declaration IDs.
+// See also the storage package for documentation on the storage interfaces.
 func (s *MySQLStorage) RetrieveDeclarations(ctx context.Context) ([]string, error) {
 	return s.singleStringColumn(
 		ctx,
@@ -153,6 +163,7 @@ func (s *MySQLStorage) RetrieveDeclarations(ctx context.Context) ([]string, erro
 }
 
 // TouchDeclaration updates a declaration's "touch count" which makes a new server token.
+// See also the storage package for documentation on the storage interfaces.
 func (s *MySQLStorage) TouchDeclaration(ctx context.Context, declarationID string) error {
 	result, err := s.db.ExecContext(
 		ctx,
