@@ -1,4 +1,4 @@
-// Package jsonpath is a JSON object "path-based" parser based on fastjson.
+// Package jsonpath is a JSON object "path-based" parser based on github.com/valyala/fastjson.
 package jsonpath
 
 import (
