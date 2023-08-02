@@ -4,11 +4,14 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/jessepeterson/kmfddm/jsonpath"
 	"github.com/valyala/fastjson"
 )
 
 const (
 	pathDeclarations = ".StatusItems.management.declarations"
+	pathManagement   = ".StatusItems.management."
+	pathDevice       = ".StatusItems.device."
 	pathErrors       = ".Errors"
 )
 
@@ -112,21 +115,8 @@ func parseErrors(v *fastjson.Value) ([]StatusError, error) {
 	return errs, nil
 }
 
-func parseStatusReportValue(v *fastjson.Value, s *StatusReport, path, container string) error {
-	switch path {
-	case pathDeclarations:
-		var err error
-		var errs []StatusError
-		s.Declarations, errs, err = parseStatusDeclarations(v)
-		s.Errors = append(s.Errors, errs...)
-		return err
-	case pathErrors:
-		errs, err := parseErrors(v)
-		s.Errors = append(s.Errors, errs...)
-		return err
-	}
-	vType := v.Type()
-	switch vType {
+func parseStatusReportValue(v *fastjson.Value, values *[]StatusValue, path, container string) error {
+	switch v.Type() {
 	case fastjson.TypeObject:
 		o, err := v.Object()
 		if err != nil {
@@ -134,7 +124,7 @@ func parseStatusReportValue(v *fastjson.Value, s *StatusReport, path, container 
 		}
 		o.Visit(func(k []byte, v *fastjson.Value) {
 			newPath := path + "." + string(k)
-			err = parseStatusReportValue(v, s, newPath, "object")
+			err = parseStatusReportValue(v, values, newPath, "object")
 		})
 		if err != nil {
 			return err
@@ -145,34 +135,34 @@ func parseStatusReportValue(v *fastjson.Value, s *StatusReport, path, container 
 			return err
 		}
 		for _, v := range a {
-			err = parseStatusReportValue(v, s, path, "array")
+			err = parseStatusReportValue(v, values, path, "array")
 			if err != nil {
 				return err
 			}
 		}
 	case fastjson.TypeString:
-		s.Values = append(s.Values, StatusValue{
+		*values = append(*values, StatusValue{
 			Path:          path,
 			ContainerType: container,
 			ValueType:     "string",
 			Value:         v.GetStringBytes(),
 		})
 	case fastjson.TypeNumber:
-		s.Values = append(s.Values, StatusValue{
+		*values = append(*values, StatusValue{
 			Path:          path,
 			ContainerType: container,
 			ValueType:     "number",
 			Value:         v.MarshalTo(nil),
 		})
 	case fastjson.TypeTrue:
-		s.Values = append(s.Values, StatusValue{
+		*values = append(*values, StatusValue{
 			Path:          path,
 			ContainerType: container,
 			ValueType:     "boolean",
 			Value:         []byte("true"),
 		})
 	case fastjson.TypeFalse:
-		s.Values = append(s.Values, StatusValue{
+		*values = append(*values, StatusValue{
 			Path:          path,
 			ContainerType: container,
 			ValueType:     "boolean",
@@ -182,12 +172,46 @@ func parseStatusReportValue(v *fastjson.Value, s *StatusReport, path, container 
 	return nil
 }
 
+func valueHandler(s *StatusReport) jsonpath.HandlerFunc {
+	return func(path string, v *fastjson.Value) ([]string, error) {
+		return nil, parseStatusReportValue(v, &s.Values, path, "object")
+	}
+}
+
+func declarationHandler(s *StatusReport) jsonpath.HandlerFunc {
+	return func(path string, v *fastjson.Value) ([]string, error) {
+		declarationStatus, declarationErrors, err := parseStatusDeclarations(v)
+		s.Declarations = declarationStatus
+		s.Errors = append(s.Errors, declarationErrors...)
+		return nil, err
+	}
+}
+
+func errorHandler(s *StatusReport) jsonpath.HandlerFunc {
+	return func(path string, v *fastjson.Value) ([]string, error) {
+		statusErrors, err := parseErrors(v)
+		s.Errors = append(s.Errors, statusErrors...)
+		return nil, err
+	}
+}
+
+func newMux(s *StatusReport) *jsonpath.PathMux {
+	mux := jsonpath.NewPathMux()
+	mux.Handle(pathDeclarations, declarationHandler(s))
+	mux.Handle(pathManagement, valueHandler(s))
+	mux.Handle(pathDevice, valueHandler(s))
+	mux.Handle(pathErrors, errorHandler(s))
+	return mux
+}
+
 // ParseStatus parses the status report from a DDM client.
-func ParseStatus(raw []byte) (*StatusReport, error) {
+func ParseStatus(raw []byte) ([]string, *StatusReport, error) {
 	v, err := fastjson.ParseBytes(raw)
 	if err != nil {
-		return nil, fmt.Errorf("parsing json: %w", err)
+		return nil, nil, fmt.Errorf("parsing json: %w", err)
 	}
 	s := &StatusReport{Raw: raw}
-	return s, parseStatusReportValue(v, s, "", "root")
+	mux := newMux(s)
+	unhandled, err := mux.JSONPath("", v)
+	return unhandled, s, err
 }

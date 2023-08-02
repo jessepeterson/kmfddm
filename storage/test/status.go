@@ -46,7 +46,7 @@ func TestBasicStatus(t *testing.T, pathToDDMTestdata string, storage statusStora
 		t.Fatal(err)
 	}
 
-	status, err := ddm.ParseStatus(jsonBytes)
+	_, status, err := ddm.ParseStatus(jsonBytes)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -79,7 +79,7 @@ func TestBasicStatus(t *testing.T, pathToDDMTestdata string, storage statusStora
 		t.Fatal(err)
 	}
 
-	status, err = ddm.ParseStatus(jsonBytes)
+	_, status, err = ddm.ParseStatus(jsonBytes)
 	if err != nil {
 		t.Fatal(err)
 	}
