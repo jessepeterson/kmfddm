@@ -51,6 +51,11 @@ func VersionHandler(version string) http.HandlerFunc {
 
 type ctxKeyTraceID struct{}
 
+func GetTraceID(ctx context.Context) string {
+	s, _ := ctx.Value(ctxKeyTraceID{}).(string)
+	return s
+}
+
 // TraceLoggingMiddleware sets up a trace ID in the request context and
 // logs HTTP requests.
 func TraceLoggingMiddleware(next http.Handler, logger log.Logger, traceID func(*http.Request) string) http.HandlerFunc {

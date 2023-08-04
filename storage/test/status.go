@@ -20,8 +20,8 @@ type statusStorage interface {
 
 const statusFile1 = "testdata/status.1st.json"
 const statusFile2 = "testdata/status.D0.error.json"
-const statusFileID1 = "A047820F-FC6B-4104-BED0-466876D82BB8"
-const statusFileID2 = "D0463AF6-D0BF-5D06-BBBC-4A9A1386D613"
+const statusFileID1 = "A047820F-FC6B-4104-BED0-466876D82BB8-1"
+const statusFileID2 = "D0463AF6-D0BF-5D06-BBBC-4A9A1386D613-2"
 
 const testDecl2 = `{
     "Type": "com.apple.configuration.management.test",
@@ -50,6 +50,7 @@ func TestBasicStatus(t *testing.T, pathToDDMTestdata string, storage statusStora
 	if err != nil {
 		t.Fatal(err)
 	}
+	status.ID = "TestBasicStatus-StatusID1"
 
 	err = storage.StoreDeclarationStatus(ctx, statusFileID1, status)
 	if err != nil {
@@ -83,6 +84,7 @@ func TestBasicStatus(t *testing.T, pathToDDMTestdata string, storage statusStora
 	if err != nil {
 		t.Fatal(err)
 	}
+	status.ID = "TestBasicStatus-StatusID2"
 
 	// we have to setup and enable a declaration for it to show up in our declaration status
 

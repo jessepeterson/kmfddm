@@ -2,6 +2,7 @@ package mysql
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -12,12 +13,12 @@ import (
 	"github.com/jessepeterson/kmfddm/storage"
 )
 
-func (s *MySQLStorage) storeStatusDeclarations(ctx context.Context, enrollmentID string, declarations []ddm.DeclarationStatus) error {
+func (s *MySQLStorage) storeStatusDeclarations(ctx context.Context, enrollmentID, statusID string, declarations []ddm.DeclarationStatus) error {
 	if len(declarations) < 1 {
 		return nil
 	}
-	const argLen = 7
-	argSQL := strings.Repeat(", (?, ?, ?, ?, ?, ?, ?)", len(declarations))[1:]
+	argSQL := strings.Repeat(", (?, ?, ?, ?, ?, ?, ?, ?)", len(declarations))[1:]
+	const argLen = 8
 	args := make([]interface{}, len(declarations)*argLen)
 	for i, d := range declarations {
 		args[i*argLen] = enrollmentID
@@ -27,6 +28,10 @@ func (s *MySQLStorage) storeStatusDeclarations(ctx context.Context, enrollmentID
 		args[i*argLen+4] = d.Valid
 		args[i*argLen+5] = d.ServerToken
 		args[i*argLen+6] = d.ReasonsJSON
+		args[i*argLen+7] = sql.NullString{
+			String: statusID,
+			Valid:  len(statusID) > 0,
+		}
 	}
 	_, err := s.db.ExecContext(
 		ctx, `
@@ -38,7 +43,8 @@ INSERT INTO status_declarations
         active,
         valid,
         server_token,
-        reasons
+        reasons,
+        status_id
     )
 VALUES
     `+argSQL+` AS new
@@ -48,19 +54,20 @@ UPDATE
     active = new.active,
     valid = new.valid,
     server_token = new.server_token,
-    reasons = new.reasons;`,
+    reasons = new.reasons,
+    status_id = new.status_id;`,
 		args...,
 	)
 
 	return err
 }
 
-func (s *MySQLStorage) storeStatusValues(ctx context.Context, enrollmentID string, values []ddm.StatusValue) error {
+func (s *MySQLStorage) storeStatusValues(ctx context.Context, enrollmentID, statusID string, values []ddm.StatusValue) error {
 	if len(values) < 1 {
 		return nil
 	}
-	argSQL := strings.Repeat(", (?, ?, ?, ?, ?)", len(values))[2:]
-	const argLen = 5
+	argSQL := strings.Repeat(", (?, ?, ?, ?, ?, ?)", len(values))[2:]
+	const argLen = 6
 	args := make([]interface{}, len(values)*argLen)
 	for i, v := range values {
 		args[i*argLen] = enrollmentID
@@ -68,6 +75,10 @@ func (s *MySQLStorage) storeStatusValues(ctx context.Context, enrollmentID strin
 		args[i*argLen+2] = v.ContainerType
 		args[i*argLen+3] = v.ValueType
 		args[i*argLen+4] = v.Value
+		args[i*argLen+5] = sql.NullString{
+			String: statusID,
+			Valid:  len(statusID) > 0,
+		}
 	}
 	_, err := s.db.ExecContext(
 		ctx, `
@@ -77,58 +88,95 @@ INSERT INTO status_values
         path,
         container_type,
         value_type,
-        value
+        value,
+        status_id
     )
 VALUES
     `+argSQL+` as new
 ON DUPLICATE KEY
 UPDATE
-    updated_at = CURRENT_TIMESTAMP;`,
+    updated_at = CURRENT_TIMESTAMP,
+    status_id = new.status_id;`,
 		args...,
 	)
 	return err
 }
 
-func (s *MySQLStorage) storeStatusErrors(ctx context.Context, enrollmentID string, errors []ddm.StatusError) error {
+func (s *MySQLStorage) storeStatusErrors(ctx context.Context, enrollmentID, statusID string, errors []ddm.StatusError) error {
 	if len(errors) < 1 {
 		return nil
 	}
-	argSQL := strings.Repeat(", (?, ?, ?)", len(errors))[2:]
-	const argLen = 3
-	args := make([]interface{}, len(errors)*argLen)
-	for i, e := range errors {
-		args[i*argLen] = enrollmentID
-		args[i*argLen+1] = e.Path
-		args[i*argLen+2] = e.ErrorJSON
+
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
 	}
-	_, err := s.db.ExecContext(
-		ctx, `
+
+	_, err = tx.ExecContext(
+		ctx,
+		`UPDATE status_errors SET row_count = row_count + 1 WHERE enrollment_id = ?;`,
+		enrollmentID,
+	)
+
+	if err == nil {
+		argSQL := strings.Repeat(", (?, ?, ?, ?)", len(errors))[2:]
+		const argLen = 4
+		args := make([]interface{}, len(errors)*argLen)
+		for i, e := range errors {
+			args[i*argLen] = enrollmentID
+			args[i*argLen+1] = e.Path
+			args[i*argLen+2] = e.ErrorJSON
+			args[i*argLen+3] = sql.NullString{
+				String: statusID,
+				Valid:  len(statusID) > 0,
+			}
+		}
+		_, err = tx.ExecContext(
+			ctx, `
 INSERT INTO status_errors
     (
         enrollment_id,
         path,
-        error
+        error,
+        status_id
     )
 VALUES
     `+argSQL+`;`,
-		args...,
-	)
-	return err
+			args...,
+		)
+	}
 
+	if s.errDel > 0 {
+		_, err = tx.ExecContext(
+			ctx,
+			`DELETE FROM status_errors WHERE enrollment_id = ? AND row_count >= ?`,
+			enrollmentID,
+			s.errDel,
+		)
+	}
+
+	if err != nil {
+		if rbErr := tx.Rollback(); rbErr != nil {
+			return fmt.Errorf("rollback error: %w; while trying to handle error: %v", rbErr, err)
+		}
+		return err
+	}
+
+	return tx.Commit()
 }
 
 // StoreDeclarationStatus stores the status report from enrollmentID.
 // See also the storage package for documentation on the storage interfaces.
 func (s *MySQLStorage) StoreDeclarationStatus(ctx context.Context, enrollmentID string, status *ddm.StatusReport) error {
-	err := s.storeStatusDeclarations(ctx, enrollmentID, status.Declarations)
+	err := s.storeStatusDeclarations(ctx, enrollmentID, status.ID, status.Declarations)
 	if err != nil {
 		return fmt.Errorf("storing declaration status: %w", err)
 	}
-	err = s.storeStatusValues(ctx, enrollmentID, status.Values)
+	err = s.storeStatusValues(ctx, enrollmentID, status.ID, status.Values)
 	if err != nil {
 		return fmt.Errorf("storing status values: %w", err)
 	}
-	err = s.storeStatusErrors(ctx, enrollmentID, status.Errors)
+	err = s.storeStatusErrors(ctx, enrollmentID, status.ID, status.Errors)
 	if err != nil {
 		return fmt.Errorf("storing status errors: %w", err)
 	}
@@ -157,9 +205,10 @@ SELECT
     statusd.active,
     statusd.valid,
     COALESCE(statusd.reasons, 'null'),
-	statusd.server_token,
-	statusd.updated_at,
-    statusd.server_token = d.server_token AS current
+    statusd.server_token,
+    statusd.updated_at,
+    statusd.server_token = d.server_token AS current,
+    statusd.status_id
 FROM
     status_declarations statusd
     INNER JOIN declarations d
@@ -192,6 +241,7 @@ ORDER BY
 			&status.ServerToken,
 			&updatedAt,
 			&status.Current,
+			&status.StatusID,
 		)
 		if err != nil {
 			break
@@ -230,6 +280,7 @@ SELECT
     enrollment_id,
     path,
     error,
+	status_id,
 	created_at
 FROM
     status_errors
@@ -247,13 +298,15 @@ LIMIT ?, ?;`,
 	resp := make(map[string][]storage.StatusError)
 	var id, dbTimestamp string
 	var dbErrorJSON []byte
+	var statusID sql.NullString
 	for rows.Next() {
 		sErr := storage.StatusError{}
-		err = rows.Scan(&id, &sErr.Path, &dbErrorJSON, &dbTimestamp)
+		err = rows.Scan(&id, &sErr.Path, &dbErrorJSON, &statusID, &dbTimestamp)
 		if err != nil {
 			break
 		}
 		_ = json.Unmarshal(dbErrorJSON, &sErr.Error)
+		sErr.StatusID = statusID.String
 		sErr.Timestamp, _ = time.Parse(mysqlTimeFormat, dbTimestamp)
 		resp[id] = append(resp[id], sErr)
 	}
@@ -282,7 +335,9 @@ func (s *MySQLStorage) RetrieveStatusValues(ctx context.Context, enrollmentIDs [
 SELECT
     enrollment_id,
     path,
-    value
+    value,
+    status_id,
+    updated_at
 FROM
     status_values
 WHERE
@@ -299,14 +354,20 @@ ORDER BY
 	var id string
 	for rows.Next() {
 		sVal := storage.StatusValue{}
+		var dbTimestamp string
+		var statusID sql.NullString
 		err = rows.Scan(
 			&id,
 			&sVal.Path,
 			&sVal.Value,
+			&statusID,
+			&dbTimestamp,
 		)
 		if err != nil {
 			break
 		}
+		sVal.StatusID = statusID.String
+		sVal.Timestamp, _ = time.Parse(mysqlTimeFormat, dbTimestamp)
 		resp[id] = append(resp[id], sVal)
 	}
 	if err == nil {

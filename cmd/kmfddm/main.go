@@ -35,6 +35,7 @@ func main() {
 		flVersion = flag.Bool("version", false, "print version")
 		flStorage = flag.String("storage", "file", "storage backend")
 		flDSN     = flag.String("storage-dsn", "", "storage data source name")
+		flOptions = flag.String("storage-options", "", "storage backend options")
 
 		flDumpStatus = flag.String("dump-status", "", "file name to dump status reports to (\"-\" for stdout)")
 
@@ -56,7 +57,7 @@ func main() {
 		logger.Info(logkeys.Message, "empty API key; API disabled")
 	}
 
-	storage, err := setupStorage(*flStorage, *flDSN)
+	storage, err := setupStorage(*flStorage, *flDSN, *flOptions, logger)
 	if err != nil {
 		logger.Info(logkeys.Message, "init storage", "name", *flStorage, logkeys.Error, err)
 		os.Exit(1)

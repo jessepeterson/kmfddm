@@ -27,5 +27,7 @@ func TestMySQL(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	test.TestBasic(t, storage, context.Background())
+	ctx := context.Background()
+	test.TestBasic(t, storage, ctx)
+	test.TestBasicStatus(t, "../test", storage, ctx)
 }

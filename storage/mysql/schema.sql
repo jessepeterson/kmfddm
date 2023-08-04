@@ -121,11 +121,14 @@ CREATE TABLE status_errors (
     error JSON NOT NULL,
 
     status_id VARCHAR(255) NULL,
+    row_count INT DEFAULT 0 NOT NULL,
 
     INDEX (enrollment_id),
 
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP NOT NULL,
 
-    INDEX (created_at)
+    INDEX (created_at),
+    INDEX (enrollment_id, row_count)
 );
+

@@ -13,12 +13,14 @@ const mysqlTimeFormat = "2006-01-02 15:04:05"
 type MySQLStorage struct {
 	db      *sql.DB
 	newHash func() hash.Hash
+	errDel  uint
 }
 
 type config struct {
 	driver string
 	dsn    string
 	db     *sql.DB
+	errDel uint
 }
 
 type Option func(*config)
@@ -45,6 +47,14 @@ func WithDB(db *sql.DB) Option {
 	}
 }
 
+// WithErrorDeletion sets the maximum number of error event rows to keep
+// per enrollment ID.
+func WithErrorDeletion(count uint) Option {
+	return func(c *config) {
+		c.errDel = count
+	}
+}
+
 // New creates and initializes a new MySQL storage backend.
 // New attempts to Ping the database after opening to verify connectivity.
 func New(newHash func() hash.Hash, opts ...Option) (*MySQLStorage, error) {
@@ -65,7 +75,7 @@ func New(newHash func() hash.Hash, opts ...Option) (*MySQLStorage, error) {
 	if err = cfg.db.Ping(); err != nil {
 		return nil, err
 	}
-	return &MySQLStorage{db: cfg.db, newHash: newHash}, nil
+	return &MySQLStorage{db: cfg.db, newHash: newHash, errDel: cfg.errDel}, nil
 }
 
 // resultChangedRows tries to tell us if if the record changed. Note that
