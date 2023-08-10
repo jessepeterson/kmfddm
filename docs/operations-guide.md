@@ -86,5 +86,7 @@ Options are specified as a comma-separated list of "key=value" pairs. The mysql 
 
 * `delete_errors=N`
   * This option sets the maximum number of errors to keep in the database per enrollment ID. A default of zero means to store unlimited errors in the database for each enrollment.
+* `delete_status_reports=N`
+  * This option sets the maximum number of errors to keep in the database per enrollment ID. A default of zero means to store unlimited errors in the database for each enrollment.
 
-*Example:* `-storage mysql -storage-dsn kmfddm:kmfddm/mymdmdb -storage-options delete_errors=100`
+*Example:* `-storage mysql -storage-dsn kmfddm:kmfddm/mymdmdb -storage-options delete_errors=20,delete_status_reports=5`

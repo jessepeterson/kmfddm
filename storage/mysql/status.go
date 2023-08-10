@@ -165,10 +165,66 @@ VALUES
 	return tx.Commit()
 }
 
+func (s *MySQLStorage) storeStatusReport(ctx context.Context, enrollmentID, statusID string, raw []byte) error {
+	if len(raw) < 1 {
+		return errors.New("empty raw status report")
+	}
+
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.ExecContext(
+		ctx,
+		`UPDATE status_reports SET row_count = row_count + 1 WHERE enrollment_id = ?;`,
+		enrollmentID,
+	)
+
+	if err == nil {
+		_, err = tx.ExecContext(
+			ctx, `
+INSERT INTO status_reports
+    (
+        enrollment_id,
+        status_id,
+        status_report
+    )
+VALUES
+    (?, ?, ?);`,
+			enrollmentID,
+			statusID,
+			raw,
+		)
+	}
+
+	if s.stsDel > 0 {
+		_, err = tx.ExecContext(
+			ctx,
+			`DELETE FROM status_errors WHERE enrollment_id = ? AND row_count >= ?`,
+			enrollmentID,
+			s.stsDel,
+		)
+	}
+
+	if err != nil {
+		if rbErr := tx.Rollback(); rbErr != nil {
+			return fmt.Errorf("rollback error: %w; while trying to handle error: %v", rbErr, err)
+		}
+		return err
+	}
+
+	return tx.Commit()
+}
+
 // StoreDeclarationStatus stores the status report from enrollmentID.
 // See also the storage package for documentation on the storage interfaces.
 func (s *MySQLStorage) StoreDeclarationStatus(ctx context.Context, enrollmentID string, status *ddm.StatusReport) error {
-	err := s.storeStatusDeclarations(ctx, enrollmentID, status.ID, status.Declarations)
+	err := s.storeStatusReport(ctx, enrollmentID, status.ID, status.Raw)
+	if err != nil {
+		return fmt.Errorf("storing status report: %w", err)
+	}
+	err = s.storeStatusDeclarations(ctx, enrollmentID, status.ID, status.Declarations)
 	if err != nil {
 		return fmt.Errorf("storing declaration status: %w", err)
 	}
@@ -374,4 +430,8 @@ ORDER BY
 		err = rows.Err()
 	}
 	return resp, err
+}
+
+func (s *MySQLStorage) RetrieveStatusReport(ctx context.Context, q storage.StatusReportQuery) (*storage.StoredStatusReport, error) {
+	return nil, errors.New("[MySQLStorage::RetrieveStatusReport] not implemented")
 }

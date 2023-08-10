@@ -467,3 +467,7 @@ func (s *File) RetrieveStatusValues(_ context.Context, enrollmentIDs []string, p
 	}
 	return ret, nil
 }
+
+func (s *File) RetrieveStatusReport(ctx context.Context, q storage.StatusReportQuery) (*storage.StoredStatusReport, error) {
+	return nil, errors.New("[File::RetrieveStatusReport] not implemented")
+}

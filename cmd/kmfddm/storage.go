@@ -60,6 +60,14 @@ func setupMySQLStorage(dsn string, options map[string]string, logger log.Logger)
 			}
 			opts = append(opts, mysql.WithErrorDeletion(uint(n)))
 			logger.Debug(logkeys.Message, errorDeleteOption, logkeys.GenericCount, int(n))
+		case "delete_status_reports":
+			const reportDeleteOption = "status report delete option"
+			n, err := strconv.ParseUint(v, 10, 64)
+			if err != nil {
+				return nil, fmt.Errorf("invalid value for %s: %w", reportDeleteOption, err)
+			}
+			opts = append(opts, mysql.WithStatusReportDeletion(uint(n)))
+			logger.Debug(logkeys.Message, reportDeleteOption, logkeys.GenericCount, int(n))
 		default:
 			return nil, fmt.Errorf("invalid option: %q", k)
 		}

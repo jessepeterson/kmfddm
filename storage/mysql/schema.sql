@@ -132,3 +132,25 @@ CREATE TABLE status_errors (
     INDEX (enrollment_id, row_count)
 );
 
+CREATE TABLE status_reports (
+    enrollment_id   VARCHAR(255) NOT NULL,
+
+    status_report JSON,
+
+    status_id VARCHAR(255) NULL,
+    row_count INT DEFAULT 0 NOT NULL,
+
+    INDEX (enrollment_id),
+
+    -- beware: we can get close to the maximum index size if our columns are too large
+    UNIQUE (enrollment_id, status_id, row_count),
+
+    CHECK (enrollment_id != ''),
+    CHECK (status_report != '' AND status_report != 'null'),
+
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP NOT NULL,
+
+    INDEX (created_at),
+    INDEX (enrollment_id, row_count)
+);
