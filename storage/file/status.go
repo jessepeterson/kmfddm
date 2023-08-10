@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"path"
 	"strconv"
@@ -468,6 +469,29 @@ func (s *File) RetrieveStatusValues(_ context.Context, enrollmentIDs []string, p
 	return ret, nil
 }
 
+// RetrieveStatusValues retrieves the status report for an enrollment ID.
+// The file storage backend only supports saving a single (the last) status report.
+// See also the storage package for documentation on the storage interfaces.
 func (s *File) RetrieveStatusReport(ctx context.Context, q storage.StatusReportQuery) (*storage.StoredStatusReport, error) {
-	return nil, errors.New("[File::RetrieveStatusReport] not implemented")
+	err := q.Valid()
+	if err != nil {
+		return nil, err
+	}
+	if (q.StatusID != nil && *q.StatusID != "") || q.Index == nil {
+		return nil, errors.New("file storage backend only supports status report retreival by index")
+	}
+	if *q.Index > 0 {
+		return nil, errors.New("file storage backend only stores the most recent status report")
+	}
+	report := new(storage.StoredStatusReport)
+	statusFilename := path.Join(s.path, q.EnrollmentID, "status.last.json")
+	report.Raw, err = os.ReadFile(statusFilename)
+	if err == nil {
+		var fi fs.FileInfo
+		fi, err = os.Stat(statusFilename)
+		if fi != nil {
+			report.Timestamp = fi.ModTime()
+		}
+	}
+	return report, err
 }

@@ -355,6 +355,51 @@ paths:
            $ref: '#/components/responses/JSONError'
     parameters:
       - $ref: '#/components/parameters/enrollmentIDs'
+  /v1/status-report/{id}:
+    get:
+      description: Retrieve a saved raw status report for an enrollment.
+      tags:
+        - status
+      security:
+        - basicAuth: []
+      responses:
+        '200':
+          description: The status report JSON.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  StatusItems:
+                    type: object
+                  Errors:
+                    type: array
+                    items:
+                      type: object
+        '404':
+          $ref: '#/components/responses/JSONNotFound'
+        '401':
+           $ref: '#/components/responses/UnauthorizedError'
+        '400':
+           $ref: '#/components/responses/JSONBadRequest'
+        '500':
+           $ref: '#/components/responses/JSONError'
+    parameters:
+      - $ref: '#/components/parameters/enrollmentID'
+      - in: query
+        name: index
+        description: The status report at this index. Zero (0) means the newest status report. One is the report received before that, and so on.
+        schema:
+          type: integer
+        example: 0
+        required: false
+      - in: query
+        name: status_id
+        description: The status ID of the status report.
+        schema:
+          type: string
+        example: 'deb0cb542b4e1566'
+        required: false
   /v1/status-values/{id}:
     get:
       description: Retrieve status values saved from status reports.
@@ -584,6 +629,12 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/JSONError'  
+    JSONNotFound:
+      description: The resource was not found.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/JSONError'
     JSONError:
       description: An internal server error occured on this endpoint.
       content:

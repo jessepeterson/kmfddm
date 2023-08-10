@@ -432,6 +432,54 @@ ORDER BY
 	return resp, err
 }
 
+// RetrieveStatusValues retrieves the status report for an enrollment ID.
+// The search can be filtered with properties on q.
+// See also the storage package for documentation on the storage interfaces.
 func (s *MySQLStorage) RetrieveStatusReport(ctx context.Context, q storage.StatusReportQuery) (*storage.StoredStatusReport, error) {
-	return nil, errors.New("[MySQLStorage::RetrieveStatusReport] not implemented")
+	if err := q.Valid(); err != nil {
+		return nil, err
+	}
+	args := []interface{}{q.EnrollmentID}
+	where := ""
+	if q.Index != nil {
+		where = "row_count = ?"
+		args = append(args, *q.Index)
+	}
+	if q.StatusID != nil {
+		if where != "" {
+			where += " AND"
+		}
+		where += "status_id = ?"
+		args = append(args, *q.StatusID)
+	}
+	if where == "" {
+		return nil, errors.New("invalid query")
+	}
+	report := new(storage.StoredStatusReport)
+	var dbTimestamp string
+	err := s.db.QueryRowContext(
+		ctx,
+		`
+SELECT
+    status_id,
+	created_at,
+	row_count,
+    status_report
+FROM
+    status_reports
+WHERE
+    enrollment_id = ? AND `+where+`
+LIMIT 1;`,
+		args...,
+	).Scan(
+		&report.StatusID,
+		&dbTimestamp,
+		&report.Index,
+		&report.Raw,
+	)
+	if err != nil {
+		return report, err
+	}
+	report.Timestamp, _ = time.Parse(mysqlTimeFormat, dbTimestamp)
+	return report, err
 }

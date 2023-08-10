@@ -235,6 +235,12 @@ func main() {
 				"GET",
 			)
 
+			mux.Handle(
+				"/v1/status-report/:id",
+				apihttp.GetStatusReportHandler(storage, logger.With(logkeys.Handler, "get-status-report")),
+				"GET",
+			)
+
 			// notifier
 			mux.Handle(
 				"/v1/notify",
