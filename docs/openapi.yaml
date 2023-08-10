@@ -300,6 +300,10 @@ paths:
                           description: Timestamp of when this declaration's status was last received.
                         reasons:
                           type: object
+                        status_id:
+                          type: string
+                          description: The status ID of the Status Report this value was last seen on.
+                          example: '0cd0246e536abe1a'
         '401':
            $ref: '#/components/responses/UnauthorizedError'
         '400':
@@ -337,7 +341,12 @@ paths:
                           description: Error object from status report.
                         timestamp:
                           type: string
-                          description: Timestamp of when the the status report that repoted this error was received.
+                          description: The timestamp of the Status Report this error was last seen at.
+                          example: '2023-08-04T06:26:02Z'
+                        status_id:
+                          type: string
+                          description: The status ID of the Status Report this error was last seen on.
+                          example: '0cd0246e536abe1a'
         '401':
            $ref: '#/components/responses/UnauthorizedError'
         '400':
@@ -355,7 +364,7 @@ paths:
         - basicAuth: []
       responses:
         '200':
-          description: Status errors.
+          description: Status values. Values under the `.StatusItems.management.` tree reported to the client (that are not declaration status).
           content:
             application/json:
               schema:
@@ -373,6 +382,14 @@ paths:
                         value:
                           type: string
                           example: 'ZMX24NJ671'
+                        timestamp:
+                          type: string
+                          description: The timestamp of the Status Report this value was last seen at.
+                          example: '2023-08-04T06:26:02Z'
+                        status_id:
+                          type: string
+                          description: The status ID of the Status Report this value was last seen on.
+                          example: '0cd0246e536abe1a'
         '401':
            $ref: '#/components/responses/UnauthorizedError'
         '400':
