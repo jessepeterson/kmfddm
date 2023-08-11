@@ -38,7 +38,7 @@ kmfddm-%-$(VERSION).zip: kmfddm-%.exe $(SUPPLEMENTAL)
 clean:
 	rm -f kmfddm-*
 
-release: $(foreach bin,$(GAT),$(subst .exe,,$(bin))-$(VERSION).zip)
+release: $(foreach bin,$(KMFDDM),$(subst .exe,,$(bin))-$(VERSION).zip)
 
 test:
 	go test -v -cover -race ./...
