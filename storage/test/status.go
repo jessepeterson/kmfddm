@@ -20,8 +20,8 @@ type statusStorage interface {
 
 const statusFile1 = "testdata/status.1st.json"
 const statusFile2 = "testdata/status.D0.error.json"
-const statusFileID1 = "A047820F-FC6B-4104-BED0-466876D82BB8-1"
-const statusFileID2 = "D0463AF6-D0BF-5D06-BBBC-4A9A1386D613-2"
+const statusFileID1 = "go.test.A047820F-FC6B-4104-BED0-466876D82BB8"
+const statusFileID2 = "go.test.D0463AF6-D0BF-5D06-BBBC-4A9A1386D613-2"
 
 const testDecl2 = `{
     "Type": "com.apple.configuration.management.test",
@@ -40,7 +40,7 @@ func getPathValue(values []storage.StatusValue, path string) string {
 	return ""
 }
 
-func TestBasicStatus(t *testing.T, pathToDDMTestdata string, storage statusStorage, ctx context.Context) {
+func TestBasicStatus(t *testing.T, pathToDDMTestdata string, store statusStorage, ctx context.Context) {
 	jsonBytes, err := os.ReadFile(filepath.Join(pathToDDMTestdata, statusFile1))
 	if err != nil {
 		t.Fatal(err)
@@ -52,12 +52,23 @@ func TestBasicStatus(t *testing.T, pathToDDMTestdata string, storage statusStora
 	}
 	status.ID = "TestBasicStatus-StatusID1"
 
-	err = storage.StoreDeclarationStatus(ctx, statusFileID1, status)
+	err = store.StoreDeclarationStatus(ctx, statusFileID1, status)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	enrollmentValues, err := storage.RetrieveStatusValues(ctx, []string{statusFileID1}, "")
+	zero := 0
+	q := storage.StatusReportQuery{EnrollmentID: statusFileID1, Index: &zero}
+	report, err := store.RetrieveStatusReport(ctx, q)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(report.Raw) <= 0 {
+		t.Error("report raw is zero")
+	}
+
+	enrollmentValues, err := store.RetrieveStatusValues(ctx, []string{statusFileID1}, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -93,28 +104,38 @@ func TestBasicStatus(t *testing.T, pathToDDMTestdata string, storage statusStora
 		t.Fatal(err)
 	}
 
-	_, err = storage.StoreDeclaration(ctx, d)
+	_, err = store.StoreDeclaration(ctx, d)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	_, err = storage.StoreSetDeclaration(ctx, "default", d.Identifier)
+	_, err = store.StoreSetDeclaration(ctx, "default", d.Identifier)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	_, err = storage.StoreEnrollmentSet(ctx, statusFileID2, "default")
+	_, err = store.StoreEnrollmentSet(ctx, statusFileID2, "default")
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// store declaration
-	err = storage.StoreDeclarationStatus(ctx, statusFileID2, status)
+	err = store.StoreDeclarationStatus(ctx, statusFileID2, status)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	ddmErrorMap, err := storage.RetrieveStatusErrors(ctx, []string{statusFileID2}, 0, 10)
+	q = storage.StatusReportQuery{EnrollmentID: statusFileID2, Index: &zero}
+	report, err = store.RetrieveStatusReport(ctx, q)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(report.Raw) <= 0 {
+		t.Error("report raw is zero")
+	}
+
+	ddmErrorMap, err := store.RetrieveStatusErrors(ctx, []string{statusFileID2}, 0, 10)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -136,7 +157,7 @@ func TestBasicStatus(t *testing.T, pathToDDMTestdata string, storage statusStora
 		t.Errorf("have: %v, want: %v", have, want)
 	}
 
-	declStatuses, err := storage.RetrieveDeclarationStatus(ctx, []string{statusFileID2})
+	declStatuses, err := store.RetrieveDeclarationStatus(ctx, []string{statusFileID2})
 	if err != nil {
 		t.Fatal(err)
 	}
