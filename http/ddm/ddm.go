@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/jessepeterson/kmfddm/ddm"
+	httpddm "github.com/jessepeterson/kmfddm/http"
 	"github.com/jessepeterson/kmfddm/log"
 	"github.com/jessepeterson/kmfddm/log/ctxlog"
 	"github.com/jessepeterson/kmfddm/log/logkeys"
@@ -143,10 +144,12 @@ func StatusReportHandler(store storage.StatusStorer, hLogger log.Logger) http.Ha
 			ErrorAndLog(w, http.StatusInternalServerError, logger, "parsing status report", err)
 			return
 		}
+		status.ID = httpddm.GetTraceID(ctx)
 		logger = logger.With(
 			logkeys.DeclarationCount, len(status.Declarations),
 			logkeys.ErrorCount, len(status.Errors),
 			logkeys.ValueCount, len(status.Values),
+			"status_id", status.ID,
 		)
 		for _, u := range unhandled {
 			logger.Debug(logkeys.Message, "unhandled status path", "path", u)

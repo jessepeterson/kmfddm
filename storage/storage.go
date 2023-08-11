@@ -170,9 +170,14 @@ type StatusValuesRetriever interface {
 	RetrieveStatusValues(ctx context.Context, enrollmentIDs []string, pathPrefix string) (map[string][]StatusValue, error)
 }
 
+type StatusReportRetriever interface {
+	RetrieveStatusReport(ctx context.Context, q StatusReportQuery) (*StoredStatusReport, error)
+}
+
 // StatusAPIStorage are storage interfaces related to retrieving status channel data.
 type StatusAPIStorage interface {
 	StatusDeclarationsRetriever
 	StatusErrorsRetriever
 	StatusValuesRetriever
+	StatusReportRetriever
 }

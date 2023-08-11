@@ -33,6 +33,7 @@ type DeclarationQueryStatus struct {
 	DeclarationStatus
 	Current        bool        `json:"current"`
 	StatusReceived time.Time   `json:"status_received"`
+	StatusID       string      `json:"status_id,omitempty"`
 	Reasons        interface{} `json:"reasons,omitempty"`
 }
 
@@ -53,6 +54,8 @@ type StatusError struct {
 
 // StatusReport is the combined parsed and raw status report.
 type StatusReport struct {
+	ID string
+
 	Declarations []DeclarationStatus
 
 	Errors []StatusError
@@ -60,6 +63,7 @@ type StatusReport struct {
 	// the "raw" status report values not otherwise parsed
 	Values []StatusValue
 
+	// the raw JSON bytes of the status report
 	Raw []byte
 }
 

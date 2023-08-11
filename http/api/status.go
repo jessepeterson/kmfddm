@@ -5,9 +5,11 @@ import (
 	"errors"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 
 	"github.com/jessepeterson/kmfddm/log"
+	"github.com/jessepeterson/kmfddm/log/ctxlog"
 	"github.com/jessepeterson/kmfddm/storage"
 )
 
@@ -46,4 +48,43 @@ func GetStatusValuesHandler(store storage.StatusValuesRetriever, logger log.Logg
 			return store.RetrieveStatusValues(ctx, strings.Split(resource, ","), pathPrefix)
 		},
 	)
+}
+
+// GetStatusReportHandler returns a handler that retrieves a status report for en enrollment.
+func GetStatusReportHandler(store storage.StatusReportRetriever, logger log.Logger) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		logger := ctxlog.Logger(r.Context(), logger)
+		q := storage.StatusReportQuery{EnrollmentID: getResourceID(r)}
+		if _, ok := r.URL.Query()["index"]; ok {
+			index64, err := strconv.ParseInt(r.URL.Query().Get("index"), 10, 64)
+			if err != nil {
+				jsonErrorAndLog(w, http.StatusBadRequest, err, "parsing index", logger)
+				return
+			}
+			index := int(index64)
+			q.Index = &index
+		}
+		if statusID := r.URL.Query().Get("status_id"); statusID != "" {
+			q.StatusID = &statusID
+		}
+		report, err := store.RetrieveStatusReport(r.Context(), q)
+		statusCode := 0
+		if err == nil && report == nil {
+			err = errors.New("status report not found")
+			statusCode = 404
+		}
+		if err != nil {
+			jsonErrorAndLog(w, statusCode, err, "retrieving status report", logger)
+			return
+		}
+		w.Header().Set("Content-type", jsonContentType)
+		if !report.Timestamp.IsZero() {
+			w.Header().Set("Last-Modified", report.Timestamp.UTC().Format(http.TimeFormat))
+		}
+		w.Header().Set("X-Status-Report-Index", strconv.Itoa(report.Index))
+		if report.StatusID != "" {
+			w.Header().Set("X-Status-Report-ID", report.StatusID)
+		}
+		w.Write(report.Raw)
+	}
 }

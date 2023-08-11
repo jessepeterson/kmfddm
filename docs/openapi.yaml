@@ -300,6 +300,10 @@ paths:
                           description: Timestamp of when this declaration's status was last received.
                         reasons:
                           type: object
+                        status_id:
+                          type: string
+                          description: The status ID of the Status Report this value was last seen on.
+                          example: '0cd0246e536abe1a'
         '401':
            $ref: '#/components/responses/UnauthorizedError'
         '400':
@@ -337,7 +341,12 @@ paths:
                           description: Error object from status report.
                         timestamp:
                           type: string
-                          description: Timestamp of when the the status report that repoted this error was received.
+                          description: The timestamp of the Status Report this error was last seen at.
+                          example: '2023-08-04T06:26:02Z'
+                        status_id:
+                          type: string
+                          description: The status ID of the Status Report this error was last seen on.
+                          example: '0cd0246e536abe1a'
         '401':
            $ref: '#/components/responses/UnauthorizedError'
         '400':
@@ -346,6 +355,65 @@ paths:
            $ref: '#/components/responses/JSONError'
     parameters:
       - $ref: '#/components/parameters/enrollmentIDs'
+  /v1/status-report/{id}:
+    get:
+      description: Retrieve a saved raw status report for an enrollment.
+      tags:
+        - status
+      security:
+        - basicAuth: []
+      responses:
+        '200':
+          description: Status Report JSON.
+          headers:
+            Last-Modified:
+              description: When the status report was received by the client.
+              schema:
+                type: string
+            X-Status-Report-ID:
+              description: Status Report identifier. Typically this is the trace ID of the original HTTP request that this status report was seen from.
+              schema:
+                type: string
+            X-Status-Report-Index:
+              description: The status report "index". A reverse-chronological identifier, per enrollment ID, for this status report. I.e. index zero (`0`) is the last status report seen from a client.
+              schema:
+                type: integer
+                example: 0
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  StatusItems:
+                    type: object
+                  Errors:
+                    type: array
+                    items:
+                      type: object
+        '404':
+          $ref: '#/components/responses/JSONNotFound'
+        '401':
+           $ref: '#/components/responses/UnauthorizedError'
+        '400':
+           $ref: '#/components/responses/JSONBadRequest'
+        '500':
+           $ref: '#/components/responses/JSONError'
+    parameters:
+      - $ref: '#/components/parameters/enrollmentID'
+      - in: query
+        name: index
+        description: The status report at this index. Zero (0) means the newest status report. One is the report received before that, and so on.
+        schema:
+          type: integer
+        example: 0
+        required: false
+      - in: query
+        name: status_id
+        description: The status ID of the status report.
+        schema:
+          type: string
+        example: 'deb0cb542b4e1566'
+        required: false
   /v1/status-values/{id}:
     get:
       description: Retrieve status values saved from status reports.
@@ -355,7 +423,7 @@ paths:
         - basicAuth: []
       responses:
         '200':
-          description: Status errors.
+          description: Status values. Values under the `.StatusItems.management.` tree reported to the client (that are not declaration status).
           content:
             application/json:
               schema:
@@ -373,6 +441,14 @@ paths:
                         value:
                           type: string
                           example: 'ZMX24NJ671'
+                        timestamp:
+                          type: string
+                          description: The timestamp of the Status Report this value was last seen at.
+                          example: '2023-08-04T06:26:02Z'
+                        status_id:
+                          type: string
+                          description: The status ID of the Status Report this value was last seen on.
+                          example: '0cd0246e536abe1a'
         '401':
            $ref: '#/components/responses/UnauthorizedError'
         '400':
@@ -567,6 +643,12 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/JSONError'  
+    JSONNotFound:
+      description: The resource was not found.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/JSONError'
     JSONError:
       description: An internal server error occured on this endpoint.
       content:
