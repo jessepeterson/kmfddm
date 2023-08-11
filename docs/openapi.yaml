@@ -364,7 +364,21 @@ paths:
         - basicAuth: []
       responses:
         '200':
-          description: The status report JSON.
+          description: Status Report JSON.
+          headers:
+            Last-Modified:
+              description: When the status report was received by the client.
+              schema:
+                type: string
+            X-Status-Report-ID:
+              description: Status Report identifier. Typically this is the trace ID of the original HTTP request that this status report was seen from.
+              schema:
+                type: string
+            X-Status-Report-Index:
+              description: The status report "index". A reverse-chronological identifier, per enrollment ID, for this status report. I.e. index zero (`0`) is the last status report seen from a client.
+              schema:
+                type: integer
+                example: 0
           content:
             application/json:
               schema:
