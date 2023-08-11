@@ -14,8 +14,12 @@ FROM gcr.io/distroless/static
 
 ARG TARGETOS TARGETARCH
 
-COPY --from=builder /go/app/kmfddm-$TARGETOS-$TARGETARCH /usr/bin/kmfddm
+COPY --from=builder /go/app/kmfddm-$TARGETOS-$TARGETARCH /app/kmfddm
 
-EXPOSE 8080
+EXPOSE 9002
 
-ENTRYPOINT ["/usr/bin/kmfddm"]
+VOLUME ["/app/db"]
+
+WORKDIR /app
+
+ENTRYPOINT ["/app/kmfddm"]
