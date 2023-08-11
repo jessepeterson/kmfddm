@@ -1,0 +1,21 @@
+FROM --platform=$BUILDPLATFORM golang:1.19 AS builder
+
+WORKDIR /go/app
+
+COPY . .
+
+ARG TARGETOS TARGETARCH
+
+RUN --mount=type=cache,target=/root/.cache/go-build \
+    --mount=type=cache,target=/go/pkg \
+    CGO_ENABLED=0 make kmfddm-$TARGETOS-$TARGETARCH
+
+FROM gcr.io/distroless/static
+
+ARG TARGETOS TARGETARCH
+
+COPY --from=builder /go/app/kmfddm-$TARGETOS-$TARGETARCH /usr/bin/kmfddm
+
+EXPOSE 8080
+
+ENTRYPOINT ["/usr/bin/kmfddm"]

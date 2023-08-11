@@ -1,7 +1,9 @@
 FROM gcr.io/distroless/static
 
-COPY kmfddm-linux-amd64 /kmfddm
+ARG TARGETOS TARGETARCH
+
+COPY kmfddm-$TARGETOS-$TARGETARCH /usr/bin/kmfddm
 
 EXPOSE 9002
 
-ENTRYPOINT ["/kmfddm"]
+ENTRYPOINT ["/usr/bin/kmfddm"]

@@ -6,6 +6,8 @@ KMFDDM=\
 	kmfddm-darwin-arm64 \
 	kmfddm-darwin-amd64 \
 	kmfddm-linux-amd64 \
+	kmfddm-linux-arm64 \
+	kmfddm-linux-arm \
 	kmfddm-windows-amd64.exe
 
 SUPPLEMENTAL=\
@@ -34,12 +36,9 @@ kmfddm-%-$(VERSION).zip: kmfddm-%.exe $(SUPPLEMENTAL)
 	rm -rf $(subst .zip,,$@)
 
 clean:
-	rm -f kmfddm-* kmfddm-*.zip
+	rm -f kmfddm-*
 
-release: \
-	kmfddm-darwin-amd64-$(VERSION).zip \
-	kmfddm-darwin-arm64-$(VERSION).zip \
-	kmfddm-linux-amd64-$(VERSION).zip
+release: $(foreach bin,$(GAT),$(subst .exe,,$(bin))-$(VERSION).zip)
 
 test:
 	go test -v -cover -race ./...

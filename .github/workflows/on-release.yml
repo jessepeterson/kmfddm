@@ -1,0 +1,20 @@
+on:
+  release:
+    types: [published]
+jobs:
+  release-zips:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@755da8c3cf115ac066823e79a1e1788f8940201b  # v3.2.0
+
+      - uses: actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568  # v3.5.0
+        with:
+          go-version: '1.19'
+
+      - run: CGO_ENABLED=0 make release
+
+      - run: gh release upload ${{ github.event.release.tag_name }} *.zip
+        env:
+            GH_TOKEN: ${{ github.token }}
