@@ -69,6 +69,7 @@ func DeclarationHandler(store storage.DeclarationRetriever, hLogger log.Logger) 
 		ctx, logger, enrollmentID, err := contextEnrollmentID(r, hLogger)
 		if err != nil {
 			ErrorAndLog(w, http.StatusBadRequest, logger, "getting enrollment id", err)
+			return
 		}
 		declarationType, declarationID, err := parseDeclarationPath(r.URL.Path)
 		if err != nil {
@@ -100,6 +101,7 @@ func TokensOrDeclarationItemsHandler(store storage.TokensDeclarationItemsRetriev
 		ctx, logger, enrollmentID, err := contextEnrollmentID(r, hLogger)
 		if err != nil {
 			ErrorAndLog(w, http.StatusBadRequest, logger, "getting enrollment id", err)
+			return
 		}
 		var op string
 		var rawJSON []byte
@@ -129,6 +131,7 @@ func StatusReportHandler(store storage.StatusStorer, hLogger log.Logger) http.Ha
 		ctx, logger, enrollmentID, err := contextEnrollmentID(r, hLogger)
 		if err != nil {
 			ErrorAndLog(w, http.StatusBadRequest, logger, "getting enrollment id", err)
+			return
 		}
 		bodyBytes, err := io.ReadAll(r.Body)
 		if err != nil {
