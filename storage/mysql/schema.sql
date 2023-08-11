@@ -142,9 +142,6 @@ CREATE TABLE status_reports (
 
     INDEX (enrollment_id),
 
-    -- beware: we can get close to the maximum index size if our columns are too large
-    UNIQUE (enrollment_id, status_id, row_count),
-
     CHECK (enrollment_id != ''),
     CHECK (status_report != '' AND status_report != 'null'),
 
