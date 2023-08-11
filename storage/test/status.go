@@ -21,7 +21,7 @@ type statusStorage interface {
 const statusFile1 = "testdata/status.1st.json"
 const statusFile2 = "testdata/status.D0.error.json"
 const statusFileID1 = "go.test.A047820F-FC6B-4104-BED0-466876D82BB8"
-const statusFileID2 = "go.test.D0463AF6-D0BF-5D06-BBBC-4A9A1386D613-2"
+const statusFileID2 = "go.test.D0463AF6-D0BF-5D06-BBBC-4A9A1386D613"
 
 const testDecl2 = `{
     "Type": "com.apple.configuration.management.test",
