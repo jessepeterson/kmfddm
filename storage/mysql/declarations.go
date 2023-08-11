@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/jessepeterson/kmfddm/ddm"
 )
@@ -127,6 +128,16 @@ WHERE
 		err = rows.Err()
 	}
 	return
+}
+
+// RetrieveDeclarationModTime retrieves the last modification time of the declaration.
+// See also the storage package for documentation on the storage interfaces.
+func (s *MySQLStorage) RetrieveDeclarationModTime(ctx context.Context, declarationID string) (time.Time, error) {
+	var dbTimestamp string
+	if err := s.db.QueryRowContext(ctx, "SELECT updated_at FROM declarations WHERE identifier = ? LIMIT 1;", declarationID).Scan(&dbTimestamp); err != nil {
+		return time.Time{}, err
+	}
+	return time.Parse(mysqlTimeFormat, dbTimestamp)
 }
 
 // DeleteDeclaration deletes a declaration and returns whether it was deleted or already existed.

@@ -37,6 +37,13 @@ func testStoreDeclaration(t *testing.T, storage storage.DeclarationAPIStorage, c
 	if have, want := decl2.Type, decl.Type; have != want {
 		t.Errorf("have %q; want %q", have, want)
 	}
+	modTime, err := storage.RetrieveDeclarationModTime(ctx, decl.Identifier)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if modTime.IsZero() {
+		t.Error("declaration mod time is zero")
+	}
 	changed, err := storage.StoreDeclaration(ctx, decl2)
 	if err != nil {
 		t.Fatal(err)

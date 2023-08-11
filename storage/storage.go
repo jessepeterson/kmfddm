@@ -3,6 +3,7 @@ package storage
 
 import (
 	"context"
+	"time"
 
 	"github.com/jessepeterson/kmfddm/ddm"
 )
@@ -33,6 +34,8 @@ type DeclarationDeleter interface {
 type DeclarationAPIRetriever interface {
 	// RetrieveDeclaration retrieves a declaration from storage.
 	RetrieveDeclaration(ctx context.Context, declarationID string) (*ddm.Declaration, error)
+	// RetrieveDeclarationModTime retrieves the last modification time of the declaration.
+	RetrieveDeclarationModTime(ctx context.Context, declarationID string) (time.Time, error)
 }
 
 type EnrollmentIDRetriever interface {

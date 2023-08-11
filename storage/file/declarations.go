@@ -9,6 +9,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"time"
 
 	"github.com/jessepeterson/kmfddm/ddm"
 )
@@ -140,6 +141,13 @@ func (s *File) readDeclarationFile(declarationID string) (*ddm.Declaration, erro
 		return nil, fmt.Errorf("parsing declaration: %w", err)
 	}
 	return d, nil
+}
+
+// RetrieveDeclarationModTime retrieves the last modification time of the declaration.
+// See also the storage package for documentation on the storage interfaces.
+func (s *File) RetrieveDeclarationModTime(ctx context.Context, declarationID string) (time.Time, error) {
+	fi, err := os.Stat(s.declarationFilename(declarationID))
+	return fi.ModTime(), err
 }
 
 // DeleteDeclaration deletes a declaration by its ID.
