@@ -288,6 +288,7 @@ ORDER BY
 		var id, updatedAt string
 		var reasonJSON []byte
 		var status ddm.DeclarationQueryStatus
+		var statusID sql.NullString
 		err = rows.Scan(
 			&id,
 			&status.Identifier,
@@ -297,11 +298,12 @@ ORDER BY
 			&status.ServerToken,
 			&updatedAt,
 			&status.Current,
-			&status.StatusID,
+			&statusID,
 		)
 		if err != nil {
 			break
 		}
+		status.StatusID = statusID.String
 		status.StatusReceived, err = time.Parse(mysqlTimeFormat, updatedAt)
 		if err != nil {
 			break
