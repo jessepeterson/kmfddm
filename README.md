@@ -22,6 +22,15 @@ Please read this README before proceeding to the quickstart guide. It will lay s
 - [Quickstart](docs/quickstart.md)  
 A guide to get KMFDDM up and running quickly.
 
+## Getting the latest version
+
+* Release `.zip` files containing the server and scripts should be attached to every [GitHub release](https://github.com/jessepeterson/kmfddm/releases).
+  * Release zips are also [published](https://github.com/jessepeterson/kmfddm/actions) for every `main` branch commit.
+* A Docker container is built and [published to the GHCR.io](http://ghcr.io/jessepeterson/kmfddm) registry for every release.
+  * `docker pull ghcr.io/jessepeterson/kmfddm:latest` — `docker run ghcr.io/jessepeterson/kmfddm:latest`
+  * A Docker container is also published for every `main` branch commit (and tagged with `:main`)
+* If you have a [Go toolchain installed](https://go.dev/doc/install) you can checkout the source and simply run `make`.
+
 ## Concepts & Terms
 
 ### Declaration
