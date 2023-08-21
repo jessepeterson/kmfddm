@@ -1,8 +1,6 @@
 package ddm
 
-import (
-	"testing"
-)
+import "testing"
 
 func TestPathSplit(t *testing.T) {
 	for _, v := range []struct {
@@ -31,7 +29,7 @@ func TestPathSplit(t *testing.T) {
 		},
 	} {
 		t.Run("parse-"+v.path, func(t *testing.T) {
-			rType, rDecl, err := parseDeclarationPath(v.path)
+			rType, rDecl, err := ParseDeclarationPath(v.path)
 			if err != nil && !v.expectedErr {
 				t.Errorf("expected no error, but go one: %v", err)
 			}

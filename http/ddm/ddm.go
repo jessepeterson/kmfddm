@@ -4,10 +4,8 @@ package ddm
 import (
 	"context"
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
-	"strings"
 
 	"github.com/jessepeterson/kmfddm/ddm"
 	httpddm "github.com/jessepeterson/kmfddm/http"
@@ -25,18 +23,6 @@ const (
 )
 
 var ErrEmptyEnrollmentID = errors.New("empty enrollment ID")
-
-// parseDeclarationPath parses path to separate out the declaration type and identifier.
-func parseDeclarationPath(path string) (string, string, error) {
-	split := strings.SplitN(path, "/", 2)
-	if len(split) != 2 {
-		return "", "", fmt.Errorf("invalid path element count: %d", len(split))
-	}
-	if split[0] == "" || split[1] == "" {
-		return "", "", errors.New("empty type or identifier path elements")
-	}
-	return split[0], split[1], nil
-}
 
 func ErrorAndLog(w http.ResponseWriter, status int, logger log.Logger, msg string, err error) {
 	logger.Info(logkeys.Message, msg, logkeys.Error, err)
@@ -72,7 +58,7 @@ func DeclarationHandler(store storage.DeclarationRetriever, hLogger log.Logger) 
 			ErrorAndLog(w, http.StatusBadRequest, logger, "getting enrollment id", err)
 			return
 		}
-		declarationType, declarationID, err := parseDeclarationPath(r.URL.Path)
+		declarationType, declarationID, err := ddm.ParseDeclarationPath(r.URL.Path)
 		if err != nil {
 			ErrorAndLog(w, http.StatusBadRequest, logger, "parsing path", err)
 			return
