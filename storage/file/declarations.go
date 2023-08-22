@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/jessepeterson/kmfddm/ddm"
+	"github.com/jessepeterson/kmfddm/storage"
 )
 
 func newSalt() (salt []byte, err error) {
@@ -134,6 +135,9 @@ func (s *File) RetrieveDeclaration(_ context.Context, declarationID string) (*dd
 func (s *File) readDeclarationFile(declarationID string) (*ddm.Declaration, error) {
 	dBytes, err := os.ReadFile(s.declarationFilename(declarationID))
 	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			err = fmt.Errorf("%w: %v", storage.ErrDeclarationNotFound, err)
+		}
 		return nil, fmt.Errorf("reading declaration: %w", err)
 	}
 	d, err := ddm.ParseDeclaration(dBytes)
@@ -147,6 +151,9 @@ func (s *File) readDeclarationFile(declarationID string) (*ddm.Declaration, erro
 // See also the storage package for documentation on the storage interfaces.
 func (s *File) RetrieveDeclarationModTime(ctx context.Context, declarationID string) (time.Time, error) {
 	fi, err := os.Stat(s.declarationFilename(declarationID))
+	if errors.Is(err, os.ErrNotExist) {
+		err = fmt.Errorf("%w: %v", storage.ErrDeclarationNotFound, err)
+	}
 	return fi.ModTime(), err
 }
 

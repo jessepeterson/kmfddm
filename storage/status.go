@@ -5,7 +5,10 @@ import (
 	"time"
 )
 
-var ErrStatusReportNotFound = errors.New("status report not found")
+var (
+	ErrStatusReportNotFound = errors.New("status report not found")
+	ErrDeclarationNotFound  = errors.New("declaration not found")
+)
 
 type StatusError struct {
 	Path      string      `json:"path"`

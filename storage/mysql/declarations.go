@@ -2,15 +2,15 @@ package mysql
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"strings"
 	"time"
 
 	"github.com/jessepeterson/kmfddm/ddm"
+	"github.com/jessepeterson/kmfddm/storage"
 )
-
-var ErrDeclarationNotChanged = errors.New("declaration not changed (may not exist)")
 
 // StoreDeclaration stores a declaration and returns whether it changed or not.
 // See also the storage package for documentation on the storage interfaces.
@@ -101,6 +101,9 @@ WHERE
 		&d.Raw,
 	)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			err = fmt.Errorf("%w: %v", storage.ErrDeclarationNotFound, err)
+		}
 		return
 	}
 	rows, err := s.db.QueryContext(
@@ -136,6 +139,9 @@ WHERE
 func (s *MySQLStorage) RetrieveDeclarationModTime(ctx context.Context, declarationID string) (time.Time, error) {
 	var dbTimestamp string
 	if err := s.db.QueryRowContext(ctx, "SELECT updated_at FROM declarations WHERE identifier = ? LIMIT 1;", declarationID).Scan(&dbTimestamp); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			err = fmt.Errorf("%w: %v", storage.ErrDeclarationNotFound, err)
+		}
 		return time.Time{}, err
 	}
 	return time.Parse(mysqlTimeFormat, dbTimestamp)
@@ -197,7 +203,7 @@ WHERE
 		return err
 	}
 	if !changed {
-		return ErrDeclarationNotChanged
+		return fmt.Errorf("%w: declaration not touched (may not exist)", storage.ErrDeclarationNotFound)
 	}
 	return nil
 }

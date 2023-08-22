@@ -76,7 +76,11 @@ func GetDeclarationHandler(store storage.DeclarationAPIRetriever, logger log.Log
 		logger = logger.With(logkeys.DeclarationID, declarationID)
 		d, err := store.RetrieveDeclaration(r.Context(), declarationID)
 		if err != nil {
-			jsonErrorAndLog(w, 0, err, "retrieving declaration", logger)
+			statusCode := 0
+			if errors.Is(err, storage.ErrDeclarationNotFound) {
+				statusCode = 404
+			}
+			jsonErrorAndLog(w, statusCode, err, "retrieving declaration", logger)
 			return
 		}
 		logger.Debug(logkeys.Message, "retrieved declaration")
@@ -150,7 +154,11 @@ func TouchDeclarationHandler(store storage.Toucher, notifier Notifier, logger lo
 		logger = logger.With("declaration", declarationID)
 		err = store.TouchDeclaration(r.Context(), declarationID)
 		if err != nil {
-			jsonErrorAndLog(w, http.StatusInternalServerError, err, "touching declaration", logger)
+			statusCode := 0
+			if errors.Is(err, storage.ErrDeclarationNotFound) {
+				statusCode = 404
+			}
+			jsonErrorAndLog(w, statusCode, err, "touching declaration", logger)
 			return
 		}
 		http.Error(w, http.StatusText(http.StatusNoContent), http.StatusNoContent)

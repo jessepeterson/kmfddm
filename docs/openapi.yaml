@@ -71,6 +71,8 @@ paths:
           $ref: '#/components/responses/Declaration'
         '401':
            $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/JSONNotFound'
         '400':
            $ref: '#/components/responses/JSONBadRequest'
         '500':
@@ -106,6 +108,8 @@ paths:
           description: Declaration server token successfully updated.
         '401':
            $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/JSONNotFound'
         '400':
            $ref: '#/components/responses/JSONBadRequest'
         '500':

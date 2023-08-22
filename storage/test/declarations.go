@@ -2,6 +2,7 @@ package test
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/jessepeterson/kmfddm/ddm"
@@ -70,6 +71,21 @@ func testStoreDeclaration(t *testing.T, storage storage.DeclarationAPIStorage, c
 		t.Errorf("server token should not be equal: %v", have)
 	}
 	// TODO: compare PayloadJSON
+}
+
+func testNotFoundDeclaration(t *testing.T, store storage.DeclarationAPIStorage, ctx context.Context) {
+	_, err := store.RetrieveDeclaration(ctx, "229ea7487aae57d9c26dafe54ae96e61")
+	if !errors.Is(err, storage.ErrDeclarationNotFound) {
+		t.Error("retrieve declaration should error not found")
+	}
+	err = store.TouchDeclaration(ctx, "229ea7487aae57d9c26dafe54ae96e61")
+	if !errors.Is(err, storage.ErrDeclarationNotFound) {
+		t.Error("touch declaration should error not found")
+	}
+	_, err = store.RetrieveDeclarationModTime(ctx, "229ea7487aae57d9c26dafe54ae96e61")
+	if !errors.Is(err, storage.ErrDeclarationNotFound) {
+		t.Error("retrieve declaration mod time should error not found")
+	}
 }
 
 func testDeleteDeclaration(t *testing.T, storage storage.DeclarationAPIStorage, ctx context.Context, id string) {
