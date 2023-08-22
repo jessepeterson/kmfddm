@@ -23,13 +23,14 @@ func (s *MySQLStorage) StoreDeclaration(ctx context.Context, d *ddm.Declaration)
 		ctx,
 		`
 INSERT INTO declarations
-    (identifier, type, payload)
+    (identifier, type, payload, server_token)
 VALUES
-    (?, ?, ?) AS new
+    (?, ?, ?, SHA1(CONCAT(identifier, type, payload, CURRENT_TIMESTAMP, 0))) AS new
 ON DUPLICATE KEY
 UPDATE
     type    = new.type,
-    payload = new.payload;`,
+    payload = new.payload,
+	server_token = SHA1(CONCAT(new.identifier, new.type, new.payload, created_at, touched_ct));`,
 		d.Identifier,
 		d.Type,
 		d.PayloadJSON,
@@ -178,7 +179,14 @@ func (s *MySQLStorage) RetrieveDeclarations(ctx context.Context) ([]string, erro
 func (s *MySQLStorage) TouchDeclaration(ctx context.Context, declarationID string) error {
 	result, err := s.db.ExecContext(
 		ctx,
-		`UPDATE declarations SET touched_ct = touched_ct + 1 WHERE identifier = ?;`,
+		`
+UPDATE
+    declarations
+SET
+    touched_ct = touched_ct + 1,
+    server_token = SHA1(CONCAT(identifier, type, payload, created_at, touched_ct))
+WHERE
+    identifier = ?;`,
 		declarationID,
 	)
 	if err != nil {

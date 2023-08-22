@@ -7,7 +7,11 @@ CREATE TABLE declarations (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP NOT NULL,
     touched_ct INT DEFAULT 0 NOT NULL,
 
-    server_token CHAR(40) AS (SHA1(CONCAT(identifier, type, payload, created_at, touched_ct))) STORED NOT NULL,
+    -- previously: AS (SHA1(CONCAT(identifier, type, payload, created_at, touched_ct))) STORED 
+    -- due to a schema management system this type of column isn't used
+    -- despite MySQL supporting it just fine. instead we manually inject the
+    -- stored SHA-1 in the SQL in declarations.go.
+    server_token CHAR(40) NOT NULL,
 
     PRIMARY KEY (identifier),
 
