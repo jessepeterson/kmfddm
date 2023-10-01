@@ -44,7 +44,7 @@ jobs:
 
       - uses: docker/setup-buildx-action@885d1462b80bc1c1c7f0b00334ad271f09369c55  # v2.10.0
 
-      - uses: docker/metadata-action@818d4b7b91585d195f67373fd9cb0332e31a7175  # v4.6.0
+      - uses: docker/metadata-action@96383f45573cb7f253c731d3b3ab81c87ef81934  # v5.0.0
         id: meta
         with:
           images: |
