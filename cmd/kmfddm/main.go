@@ -57,7 +57,9 @@ func main() {
 		logger.Info(logkeys.Message, "empty API key; API disabled")
 	}
 
-	storage, err := setupStorage(*flStorage, *flDSN, *flOptions, logger)
+	var store allStorage
+	var err error
+	store, err = setupStorage(*flStorage, *flDSN, *flOptions, logger)
 	if err != nil {
 		logger.Info(logkeys.Message, "init storage", "name", *flStorage, logkeys.Error, err)
 		os.Exit(1)
@@ -74,7 +76,7 @@ func main() {
 		logger.Info(logkeys.Message, "creating notifier", logkeys.Error, err)
 		os.Exit(1)
 	}
-	nanoNotif, err := notifier.New(fossNotif, storage, notifier.WithLogger(logger.With("service", "notifier")))
+	nanoNotif, err := notifier.New(fossNotif, store, notifier.WithLogger(logger.With("service", "notifier")))
 	if err != nil {
 		logger.Info(logkeys.Message, "creating notifier", logkeys.Error, err)
 		os.Exit(1)
@@ -86,25 +88,25 @@ func main() {
 
 	mux.Handle(
 		"/declaration-items",
-		ddmhttp.TokensOrDeclarationItemsHandler(storage, false, logger.With(logkeys.Handler, "declaration-items")),
+		ddmhttp.TokensOrDeclarationItemsHandler(store, false, logger.With(logkeys.Handler, "declaration-items")),
 		"GET",
 	)
 
 	mux.Handle(
 		"/tokens",
-		ddmhttp.TokensOrDeclarationItemsHandler(storage, true, logger.With(logkeys.Handler, "tokens")),
+		ddmhttp.TokensOrDeclarationItemsHandler(store, true, logger.With(logkeys.Handler, "tokens")),
 		"GET",
 	)
 
 	mux.Handle(
 		"/declaration/:type/:id",
 		http.StripPrefix("/declaration/",
-			ddmhttp.DeclarationHandler(storage, logger.With(logkeys.Handler, "declaration")),
+			ddmhttp.DeclarationHandler(store, logger.With(logkeys.Handler, "declaration")),
 		),
 		"GET",
 	)
 
-	var statusHandler http.Handler = ddmhttp.StatusReportHandler(storage, logger.With(logkeys.Handler, "status"))
+	var statusHandler http.Handler = ddmhttp.StatusReportHandler(store, logger.With(logkeys.Handler, "status"))
 	if *flDumpStatus != "" {
 		f := os.Stdout
 		if *flDumpStatus != "-" {
@@ -136,108 +138,108 @@ func main() {
 			// declarations
 			mux.Handle(
 				"/v1/declarations",
-				apihttp.GetDeclarationsHandler(storage, logger.With("get-declarations")),
+				apihttp.GetDeclarationsHandler(store, logger.With("get-declarations")),
 				"GET",
 			)
 
 			mux.Handle(
 				"/v1/declarations",
-				apihttp.PutDeclarationHandler(storage, nanoNotif, logger.With(logkeys.Handler, "put-declaration")),
+				apihttp.PutDeclarationHandler(store, nanoNotif, logger.With(logkeys.Handler, "put-declaration")),
 				"PUT",
 			)
 
 			mux.Handle(
 				"/v1/declarations/:id",
-				apihttp.GetDeclarationHandler(storage, logger.With(logkeys.Handler, "get-declaration")),
+				apihttp.GetDeclarationHandler(store, logger.With(logkeys.Handler, "get-declaration")),
 				"GET",
 			)
 
 			mux.Handle(
 				"/v1/declarations/:id",
-				apihttp.DeleteDeclarationHandler(storage, logger.With(logkeys.Handler, "delete-declaration")),
+				apihttp.DeleteDeclarationHandler(store, logger.With(logkeys.Handler, "delete-declaration")),
 				"DELETE",
 			)
 
 			mux.Handle(
 				"/v1/declarations/:id/touch",
-				apihttp.TouchDeclarationHandler(storage, nanoNotif, logger.With(logkeys.Handler, "touch-declaration")),
+				apihttp.TouchDeclarationHandler(store, nanoNotif, logger.With(logkeys.Handler, "touch-declaration")),
 				"POST",
 			)
 
 			// sets
 			mux.Handle(
 				"/v1/sets",
-				apihttp.GetSetsHandler(storage, logger.With("get-sets")),
+				apihttp.GetSetsHandler(store, logger.With("get-sets")),
 				"GET",
 			)
 
 			// set declarations
 			mux.Handle(
 				"/v1/set-declarations/:id",
-				apihttp.GetSetDeclarationsHandler(storage, logger.With(logkeys.Handler, "get-set-declarations")),
+				apihttp.GetSetDeclarationsHandler(store, logger.With(logkeys.Handler, "get-set-declarations")),
 				"GET",
 			)
 
 			mux.Handle(
 				"/v1/set-declarations/:id",
-				apihttp.PutSetDeclarationHandler(storage, nanoNotif, logger.With(logkeys.Handler, "put-set-declarations")),
+				apihttp.PutSetDeclarationHandler(store, nanoNotif, logger.With(logkeys.Handler, "put-set-declarations")),
 				"PUT",
 			)
 
 			mux.Handle(
 				"/v1/set-declarations/:id",
-				apihttp.DeleteSetDeclarationHandler(storage, nanoNotif, logger.With(logkeys.Handler, "delete-set-delcarations")),
+				apihttp.DeleteSetDeclarationHandler(store, nanoNotif, logger.With(logkeys.Handler, "delete-set-delcarations")),
 				"DELETE",
 			)
 
 			// enrollment sets
 			mux.Handle(
 				"/v1/enrollment-sets/:id",
-				apihttp.GetEnrollmentSetsHandler(storage, logger.With(logkeys.Handler, "get-enrollment-sets")),
+				apihttp.GetEnrollmentSetsHandler(store, logger.With(logkeys.Handler, "get-enrollment-sets")),
 				"GET",
 			)
 
 			mux.Handle(
 				"/v1/enrollment-sets/:id",
-				apihttp.PutEnrollmentSetHandler(storage, nanoNotif, logger.With(logkeys.Handler, "put-enrollment-sets")),
+				apihttp.PutEnrollmentSetHandler(store, nanoNotif, logger.With(logkeys.Handler, "put-enrollment-sets")),
 				"PUT",
 			)
 
 			mux.Handle(
 				"/v1/enrollment-sets/:id",
-				apihttp.DeleteEnrollmentSetHandler(storage, nanoNotif, logger.With(logkeys.Handler, "delete-enrollment-sets")),
+				apihttp.DeleteEnrollmentSetHandler(store, nanoNotif, logger.With(logkeys.Handler, "delete-enrollment-sets")),
 				"DELETE",
 			)
 
 			// declarations sets
 			mux.Handle(
 				"/v1/declaration-sets/:id",
-				apihttp.GetDeclarationSetsHandler(storage, logger.With(logkeys.Handler, "get-declaration-sets")),
+				apihttp.GetDeclarationSetsHandler(store, logger.With(logkeys.Handler, "get-declaration-sets")),
 				"GET",
 			)
 
 			// status queries
 			mux.Handle(
 				"/v1/declaration-status/:id",
-				apihttp.GetDeclarationStatusHandler(storage, logger.With(logkeys.Handler, "get-declaration-status")),
+				apihttp.GetDeclarationStatusHandler(store, logger.With(logkeys.Handler, "get-declaration-status")),
 				"GET",
 			)
 
 			mux.Handle(
 				"/v1/status-errors/:id",
-				apihttp.GetStatusErrorsHandler(storage, logger.With(logkeys.Handler, "get-status-errors")),
+				apihttp.GetStatusErrorsHandler(store, logger.With(logkeys.Handler, "get-status-errors")),
 				"GET",
 			)
 
 			mux.Handle(
 				"/v1/status-values/:id",
-				apihttp.GetStatusValuesHandler(storage, logger.With(logkeys.Handler, "get-status-values")),
+				apihttp.GetStatusValuesHandler(store, logger.With(logkeys.Handler, "get-status-values")),
 				"GET",
 			)
 
 			mux.Handle(
 				"/v1/status-report/:id",
-				apihttp.GetStatusReportHandler(storage, logger.With(logkeys.Handler, "get-status-report")),
+				apihttp.GetStatusReportHandler(store, logger.With(logkeys.Handler, "get-status-report")),
 				"GET",
 			)
 
