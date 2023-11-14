@@ -8,12 +8,6 @@ Refer to the [project README](../README.md) for a conceptual introduction to KMF
 
 ### Switches
 
-#### -version
-
-* print version
-
-Print version and exit.
-
 #### -api string
 
  * API key for API endpoints
@@ -62,6 +56,12 @@ Specifies the listen address (interface and port number) for the server to liste
 
 Submit commands for enqueueing in a style that is compatible with MicroMDM (instead of NanoMDM). Specifically this flag limits sending commands to one enrollment ID at a time, uses a POST request, and changes the HTTP Basic username.
 
+### -shard
+
+ * enable shard management properties declaration
+
+Enable an always-on [management properties declaration](https://developer.apple.com/documentation/devicemanagement/managementproperties) for every enrollment. It contains a `shard` payload key which is a dynamically computed integer between 0 and 100, inclusive, based on the enrollment ID. This `shard` key can then be used in activation declaration predicates. For example `(@property(shard) <= 75)`. The identifier of this dynamic declaration is `com.github.jessepeterson.kmfddm.storage.shard.v1`; the Server Token includes the shard number. It is "static" in that it should not change for any given enrollment.
+
 ### -storage, -storage-dsn, & -storage-options
 
 The `-storage`, `-storage-dsn`, & `-storage-options` flags together configure the storage backend. `-storage` specifies the name of the backend while `-storage-dsn` specifies the backend data source name (e.g. the connection string). The optional `-storage-options` flag specifies options for the backend (if it supports them). If no storage flags are supplied then it is as if you specified `-storage file -storage-dsn db` meaning we use the `file` storage backend with `db` as its DSN.
@@ -90,3 +90,9 @@ Options are specified as a comma-separated list of "key=value" pairs. The mysql 
   * This option sets the maximum number of errors to keep in the database per enrollment ID. A default of zero means to store unlimited errors in the database for each enrollment.
 
 *Example:* `-storage mysql -storage-dsn kmfddm:kmfddm/mymdmdb -storage-options delete_errors=20,delete_status_reports=5`
+
+#### -version
+
+* print version
+
+Print version and exit.

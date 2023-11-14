@@ -49,32 +49,6 @@ type EnrollmentIDRetriever interface {
 	RetrieveEnrollmentIDs(ctx context.Context, declarations []string, sets []string, ids []string) ([]string, error)
 }
 
-type TokensJSONRetriever interface {
-	// RetrieveTokensJSON returns the sync token JSON for enrollmentID.
-	// This is part of the core DDM protocol for handling declarations for enrollments.
-	RetrieveTokensJSON(ctx context.Context, enrollmentID string) ([]byte, error)
-}
-
-type TokensDeclarationItemsRetriever interface {
-	// RetrieveDeclarationItemsJSON returns the declaration items JSON for enrollmentID.
-	// This is part of the core DDM protocol for handling declarations for enrollments.
-	RetrieveDeclarationItemsJSON(ctx context.Context, enrollmentID string) ([]byte, error)
-	TokensJSONRetriever
-}
-
-type DeclarationRetriever interface {
-	// RetrieveEnrollmentDeclarationJSON fetches the JSON for a declaration for an enrollment ID.
-	// This is part of the core DDM protocol for handling declarations for enrollments.
-	RetrieveEnrollmentDeclarationJSON(ctx context.Context, declarationID, declarationType, enrollmentID string) ([]byte, error)
-}
-
-// EnrollmentDeclarationStorage is the storage required to support declarations in the DDM protocol.
-// This is part of the core DDM protocol for handling declarations for enrollments.
-type EnrollmentDeclarationStorage interface {
-	TokensDeclarationItemsRetriever
-	DeclarationRetriever
-}
-
 type StatusStorer interface {
 	// StoreDeclarationStatus stores the status report details.
 	// For later retrieval by the StatusAPIStorage interface(s).

@@ -15,6 +15,8 @@ import (
 	"github.com/jessepeterson/kmfddm/logkeys"
 	"github.com/jessepeterson/kmfddm/notifier"
 	"github.com/jessepeterson/kmfddm/notifier/foss"
+	"github.com/jessepeterson/kmfddm/storage"
+	"github.com/jessepeterson/kmfddm/storage/shard"
 
 	"github.com/alexedwards/flow"
 	"github.com/micromdm/nanolib/log/stdlogfmt"
@@ -37,6 +39,8 @@ func main() {
 		flStorage = flag.String("storage", "file", "storage backend")
 		flDSN     = flag.String("storage-dsn", "", "storage data source name")
 		flOptions = flag.String("storage-options", "", "storage backend options")
+
+		flShard = flag.Bool("shard", false, "enable shard management properties declaration")
 
 		flDumpStatus = flag.String("dump-status", "", "file name to dump status reports to (\"-\" for stdout)")
 
@@ -77,6 +81,14 @@ func main() {
 		logger.Info(logkeys.Message, "creating notifier", logkeys.Error, err)
 		os.Exit(1)
 	}
+
+	var ddmStore storage.EnrollmentDeclarationStorage = store
+
+	if *flShard {
+		// compose DDM storage out of shard storage and the underlying storage
+		ddmStore = storage.NewJSONAdapt(storage.NewMulti(shard.NewShardStorage(), store), hasher)
+	}
+
 	nanoNotif, err := notifier.New(fossNotif, store, notifier.WithLogger(logger.With("service", "notifier")))
 	if err != nil {
 		logger.Info(logkeys.Message, "creating notifier", logkeys.Error, err)
@@ -89,20 +101,20 @@ func main() {
 
 	mux.Handle(
 		"/declaration-items",
-		ddmhttp.TokensOrDeclarationItemsHandler(store, false, logger.With(logkeys.Handler, "declaration-items")),
+		ddmhttp.TokensOrDeclarationItemsHandler(ddmStore, false, logger.With(logkeys.Handler, "declaration-items")),
 		"GET",
 	)
 
 	mux.Handle(
 		"/tokens",
-		ddmhttp.TokensOrDeclarationItemsHandler(store, true, logger.With(logkeys.Handler, "tokens")),
+		ddmhttp.TokensOrDeclarationItemsHandler(ddmStore, true, logger.With(logkeys.Handler, "tokens")),
 		"GET",
 	)
 
 	mux.Handle(
 		"/declaration/:type/:id",
 		http.StripPrefix("/declaration/",
-			ddmhttp.DeclarationHandler(store, logger.With(logkeys.Handler, "declaration")),
+			ddmhttp.DeclarationHandler(ddmStore, logger.With(logkeys.Handler, "declaration")),
 		),
 		"GET",
 	)

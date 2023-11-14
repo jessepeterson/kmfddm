@@ -5,6 +5,8 @@ import (
 	"context"
 	"database/sql"
 	"hash"
+
+	"github.com/jessepeterson/kmfddm/storage/mysql/sqlc"
 )
 
 const mysqlTimeFormat = "2006-01-02 15:04:05"
@@ -12,6 +14,7 @@ const mysqlTimeFormat = "2006-01-02 15:04:05"
 // MySQLStorage implements a MySQL storage backend.
 type MySQLStorage struct {
 	db      *sql.DB
+	q       *sqlc.Queries
 	newHash func() hash.Hash
 	errDel  uint
 	stsDel  uint
@@ -87,6 +90,7 @@ func New(newHash func() hash.Hash, opts ...Option) (*MySQLStorage, error) {
 	}
 	return &MySQLStorage{
 		db:      cfg.db,
+		q:       sqlc.New(cfg.db),
 		newHash: newHash,
 		errDel:  cfg.errDel,
 		stsDel:  cfg.stsDel,
