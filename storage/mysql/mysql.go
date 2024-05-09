@@ -128,3 +128,28 @@ func (s *MySQLStorage) singleStringColumn(ctx context.Context, sql string, args 
 	}
 	return strs, err
 }
+
+func (s *MySQLStorage) RetrieveAllDeclarationIDs(ctx context.Context) (map[string]string, error) {
+    rows, err := s.db.QueryContext(ctx, `SELECT declaration_identifier, set_name FROM set_declarations`)
+    if err != nil {
+        return nil, err
+    }
+    defer rows.Close()
+
+    ids := make(map[string]string)
+    for rows.Next() {
+        var id, setName string
+        if err := rows.Scan(&id, &setName); err != nil {
+            return nil, err
+        }
+        ids[id] = setName
+    }
+
+    return ids, rows.Err()
+}
+
+// RemoveSet removes a set from the database.
+func (s *MySQLStorage) RemoveSet(ctx context.Context, setName string) error {
+	_, err := s.db.ExecContext(ctx, `DELETE FROM set_declarations WHERE set_name = ?`, setName)
+	return err
+}
