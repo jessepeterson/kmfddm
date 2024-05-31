@@ -100,6 +100,13 @@ type DeclarationSetRetriever interface {
 	RetrieveDeclarationSets(ctx context.Context, declarationID string) (setNames []string, err error)
 }
 
+type DeclarationSetRemover interface {
+	// RemoveSet dissociates setName and all declarations.
+	// If the association is removed true should be returned.
+	// It should not be an error if the association does not exist.
+	RemoveSet(ctx context.Context, setName string) (bool, error)
+}
+
 type SetDeclarationsRetriever interface {
 	// RetrieveSetDeclarations retreives the list of declarations IDs for setName.
 	RetrieveSetDeclarations(ctx context.Context, setName string) (declarationIDs []string, err error)
