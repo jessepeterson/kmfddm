@@ -61,3 +61,19 @@ func (s *MySQLStorage) RetrieveSets(ctx context.Context) ([]string, error) {
 		`SELECT DISTINCT set_name FROM set_declarations;`,
 	)
 }
+
+// RemoveDeclarationsFromSet removes all declarations associated with a set.
+// See also the storage package for documentation on the storage interfaces.
+func (s *MySQLStorage) RemoveDeclarationsFromSet(ctx context.Context, setName string) (bool, error) {
+	result, err := s.db.ExecContext(
+		ctx, `
+DELETE FROM set_declarations
+WHERE
+    set_name = ?;`,
+		setName,
+	)
+	if err != nil {
+		return false, err
+	}
+	return resultChangedRows(result)
+}
