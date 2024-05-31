@@ -199,23 +199,33 @@ func errorHandler(s *StatusReport) jsonpath.HandlerFunc {
 	}
 }
 
-func newMux(s *StatusReport) *jsonpath.PathMux {
-	mux := jsonpath.NewPathMux()
+// RegisterStatusHandlers attaches default jsonpath Mux handlers for s to mux.
+// These default handlers populate the fields of s from a status report.
+func RegisterStatusHandlers(mux *jsonpath.PathMux, s *StatusReport) {
 	mux.Handle(pathDeclarations, declarationHandler(s))
 	mux.Handle(pathManagement, valueHandler(s))
 	mux.Handle(pathDevice, valueHandler(s))
 	mux.Handle(pathErrors, errorHandler(s))
-	return mux
 }
 
-// ParseStatus parses the status report from a DDM client.
-func ParseStatus(raw []byte) ([]string, *StatusReport, error) {
+// ParseStatusUsingMux parses the raw status report from a DDM client using mux.
+func ParseStatusUsingMux(raw []byte, mux *jsonpath.PathMux) ([]string, error) {
+	if mux == nil {
+		panic("mux is nil")
+	}
 	v, err := fastjson.ParseBytes(raw)
 	if err != nil {
-		return nil, nil, fmt.Errorf("parsing json: %w", err)
+		return nil, fmt.Errorf("parsing json: %w", err)
 	}
-	s := &StatusReport{Raw: raw}
-	mux := newMux(s)
 	unhandled, err := mux.JSONPath("", v)
+	return unhandled, err
+}
+
+// ParseStatus parses the raw status report from a DDM client using mux.
+func ParseStatus(raw []byte) ([]string, *StatusReport, error) {
+	s := &StatusReport{Raw: raw}
+	mux := jsonpath.NewPathMux()
+	RegisterStatusHandlers(mux, s)
+	unhandled, err := ParseStatusUsingMux(s.Raw, mux)
 	return unhandled, s, err
 }
