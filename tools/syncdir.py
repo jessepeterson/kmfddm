@@ -26,11 +26,14 @@ set.
 
 import os
 import json
+import ssl
 import urllib.request
 from urllib.parse import urlencode
 import argparse
 import base64
 import re
+
+ssl._create_default_https_context = ssl._create_stdlib_context
 
 set_pattern = r"set\.(.*?)\.txt"
 
