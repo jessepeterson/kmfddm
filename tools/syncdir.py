@@ -216,13 +216,13 @@ if __name__ == "__main__":
     parser.add_argument(
         "--baseurl",
         type=str,
-        default="http://[::1]:9002",
+        default=os.environ.get("BASE_URL", "http://[::1]:9002"),
         help="URL for uploading the JSON files (default: http://[::1]:9002)",
     )
     parser.add_argument(
         "--key",
         type=str,
-        default="kmfddm",
+        default=os.environ.get("API_KEY", "kmfddm"),
         help="Password for HTTP Basic authentication",
     )
     args = parser.parse_args()
