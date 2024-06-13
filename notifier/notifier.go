@@ -4,11 +4,12 @@ package notifier
 import (
 	"context"
 
-	"github.com/groob/plist"
-	"github.com/jessepeterson/kmfddm/log"
-	"github.com/jessepeterson/kmfddm/log/ctxlog"
-	"github.com/jessepeterson/kmfddm/log/logkeys"
+	"github.com/jessepeterson/kmfddm/logkeys"
 	"github.com/jessepeterson/kmfddm/storage"
+
+	"github.com/groob/plist"
+	"github.com/micromdm/nanolib/log"
+	"github.com/micromdm/nanolib/log/ctxlog"
 )
 
 // EnrollmentIDFinder is the interface we use to fetch enrollment IDs.

@@ -7,10 +7,11 @@ import (
 	"net/http"
 
 	"github.com/jessepeterson/kmfddm/ddm"
-	"github.com/jessepeterson/kmfddm/log"
-	"github.com/jessepeterson/kmfddm/log/ctxlog"
-	"github.com/jessepeterson/kmfddm/log/logkeys"
+	"github.com/jessepeterson/kmfddm/logkeys"
 	"github.com/jessepeterson/kmfddm/storage"
+
+	"github.com/micromdm/nanolib/log"
+	"github.com/micromdm/nanolib/log/ctxlog"
 )
 
 // PutDeclarationHandler returns a handler that stores a declaration.

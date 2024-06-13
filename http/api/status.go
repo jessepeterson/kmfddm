@@ -8,9 +8,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/jessepeterson/kmfddm/log"
-	"github.com/jessepeterson/kmfddm/log/ctxlog"
 	"github.com/jessepeterson/kmfddm/storage"
+
+	"github.com/micromdm/nanolib/log"
+	"github.com/micromdm/nanolib/log/ctxlog"
 )
 
 // GetDeclarationStatusHandler returns a handler that retrives that last declaration status for an enrollment ID.

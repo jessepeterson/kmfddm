@@ -9,14 +9,15 @@ import (
 	"os"
 	"time"
 
-	"github.com/alexedwards/flow"
 	httpddm "github.com/jessepeterson/kmfddm/http"
 	apihttp "github.com/jessepeterson/kmfddm/http/api"
 	ddmhttp "github.com/jessepeterson/kmfddm/http/ddm"
-	"github.com/jessepeterson/kmfddm/log/logkeys"
-	"github.com/jessepeterson/kmfddm/log/stdlogfmt"
+	"github.com/jessepeterson/kmfddm/logkeys"
 	"github.com/jessepeterson/kmfddm/notifier"
 	"github.com/jessepeterson/kmfddm/notifier/foss"
+
+	"github.com/alexedwards/flow"
+	"github.com/micromdm/nanolib/log/stdlogfmt"
 )
 
 // overridden by -ldflags -X

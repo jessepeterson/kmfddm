@@ -6,14 +6,14 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/cespare/xxhash"
-	"github.com/jessepeterson/kmfddm/log"
-	"github.com/jessepeterson/kmfddm/log/logkeys"
+	"github.com/jessepeterson/kmfddm/logkeys"
 	"github.com/jessepeterson/kmfddm/storage"
 	"github.com/jessepeterson/kmfddm/storage/file"
 	"github.com/jessepeterson/kmfddm/storage/mysql"
 
+	"github.com/cespare/xxhash"
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/micromdm/nanolib/log"
 )
 
 type allStorage interface {

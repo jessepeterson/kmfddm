@@ -3,7 +3,7 @@ package api
 import (
 	"net/http"
 
-	"github.com/jessepeterson/kmfddm/log"
+	"github.com/micromdm/nanolib/log"
 )
 
 // NotifyHandler notifies enrollment IDs.
