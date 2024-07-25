@@ -3,19 +3,64 @@ package file
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path"
 	"path/filepath"
 
 	"github.com/jessepeterson/kmfddm/ddm"
+	"github.com/jessepeterson/kmfddm/ddm/build"
+	"github.com/jessepeterson/kmfddm/storage"
 )
+
+func (s *File) RetrieveDeclarationItems(ctx context.Context, enrollmentID string) ([]*ddm.Declaration, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	diBytes, err := os.ReadFile(s.declarationItemsFilename(enrollmentID))
+	if err != nil {
+		return nil, err
+	}
+
+	di := new(ddm.DeclarationItems)
+
+	err = json.Unmarshal(diBytes, di)
+	if err != nil {
+		return nil, err
+	}
+
+	var decls []*ddm.Declaration
+
+	for _, md := range [][]ddm.ManifestDeclaration{
+		di.Declarations.Activations,
+		di.Declarations.Configurations,
+		di.Declarations.Assets,
+		di.Declarations.Management,
+	} {
+		for _, di := range md {
+			d, err := s.readDeclarationFile(di.Identifier)
+			if err != nil {
+				return decls, fmt.Errorf("reading declaration: %s: %w", di.Identifier, err)
+			}
+			d.PayloadJSON = nil
+			d.Raw = nil
+
+			decls = append(decls, d)
+		}
+	}
+
+	return decls, nil
+}
 
 // RetrieveEnrollmentDeclarationJSON retrieves the DDM declaration JSON for an enrollment ID.
 func (s *File) RetrieveEnrollmentDeclarationJSON(_ context.Context, declarationID, declarationType, enrollmentID string) ([]byte, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	return os.ReadFile(s.enrollmentDeclarationFilename(declarationID, declarationType, enrollmentID))
+	b, err := os.ReadFile(s.enrollmentDeclarationFilename(declarationID, declarationType, enrollmentID))
+	if errors.Is(err, os.ErrNotExist) {
+		err = fmt.Errorf("%w: %v", storage.ErrDeclarationNotFound, err)
+	}
+	return b, err
 }
 
 // RetrieveDeclarationItemsJSON retrieves the DDM declaration-items JSON for an enrollment ID.
@@ -90,8 +135,8 @@ func (s *File) writeEnrollmentDDM(enrollmentID string) error {
 	}
 
 	// create our token and declaration-items builders
-	di := ddm.NewDIBuilder(s.newHash)
-	ti := ddm.NewTokensBuilder(s.newHash)
+	di := build.NewDIBuilder(s.newHash)
+	ti := build.NewTokensBuilder(s.newHash)
 
 	// find any existing declaration symlinks
 	matches, err := filepath.Glob(path.Join(s.path, enrollmentID, "declaration.*.json"))

@@ -20,6 +20,7 @@ type allTestStorage interface {
 	setAndDeclStorage
 	storage.EnrollmentSetStorage
 	storage.TokensDeclarationItemsRetriever
+	storage.EnrollmentDeclarationDataStorage
 	storage.EnrollmentIDRetriever
 	storage.DeclarationAPIStorage
 }

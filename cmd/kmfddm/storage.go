@@ -25,6 +25,7 @@ type allStorage interface {
 	storage.SetRetreiver
 	storage.EnrollmentSetStorage
 	storage.StatusAPIStorage
+	storage.EnrollmentDeclarationDataStorage
 }
 
 var hasher func() hash.Hash = func() hash.Hash { return xxhash.New() }

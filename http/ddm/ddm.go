@@ -69,7 +69,10 @@ func DeclarationHandler(store storage.DeclarationRetriever, hLogger log.Logger) 
 			logkeys.DeclarationType, declarationType,
 		)
 		rawDecl, err := store.RetrieveEnrollmentDeclarationJSON(ctx, declarationID, declarationType, enrollmentID)
-		if err != nil {
+		if errors.Is(err, storage.ErrDeclarationNotFound) {
+			ErrorAndLog(w, http.StatusNotFound, logger, "retrieving declaration", err)
+			return
+		} else if err != nil {
 			ErrorAndLog(w, http.StatusInternalServerError, logger, "retrieving declaration", err)
 			return
 		}

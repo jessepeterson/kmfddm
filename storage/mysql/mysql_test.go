@@ -1,12 +1,9 @@
-//go:build integration
-// +build integration
-
 package mysql
 
 import (
 	"context"
-	"flag"
 	"hash"
+	"os"
 	"testing"
 
 	"github.com/cespare/xxhash"
@@ -15,14 +12,13 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 )
 
-var flDSN = flag.String("dsn", "", "DSN of test MySQL instance")
-
 func TestMySQL(t *testing.T) {
-	if *flDSN == "" {
-		t.Fatal("MySQL DSN flag not provided to test")
+	testDSN := os.Getenv("KMFDDM_MYSQL_STORAGE_TEST_DSN")
+	if testDSN == "" {
+		t.Skip("KMFDDM_MYSQL_STORAGE_TEST_DSN not set")
 	}
 
-	storage, err := New(func() hash.Hash { return xxhash.New() }, WithDSN(*flDSN))
+	storage, err := New(func() hash.Hash { return xxhash.New() }, WithDSN(testDSN))
 	if err != nil {
 		t.Fatal(err)
 	}
