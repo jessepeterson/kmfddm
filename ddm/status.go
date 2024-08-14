@@ -176,7 +176,8 @@ func parseStatusReportValue(v *fastjson.Value, values *[]StatusValue, path, cont
 	return nil
 }
 
-func valueHandler(s *StatusReport) jsonpath.HandlerFunc {
+// ValueHandler uses a jsonpath handler to parse the data for the given status item path
+func ValueHandler(s *StatusReport) jsonpath.HandlerFunc {
 	return func(path string, v *fastjson.Value) ([]string, error) {
 		return nil, parseStatusReportValue(v, &s.Values, path, "object")
 	}
@@ -203,8 +204,8 @@ func errorHandler(s *StatusReport) jsonpath.HandlerFunc {
 // These default handlers populate the fields of s from a status report.
 func RegisterStatusHandlers(mux *jsonpath.PathMux, s *StatusReport) {
 	mux.Handle(pathDeclarations, declarationHandler(s))
-	mux.Handle(pathManagement, valueHandler(s))
-	mux.Handle(pathDevice, valueHandler(s))
+	mux.Handle(pathManagement, ValueHandler(s))
+	mux.Handle(pathDevice, ValueHandler(s))
 	mux.Handle(pathErrors, errorHandler(s))
 }
 
