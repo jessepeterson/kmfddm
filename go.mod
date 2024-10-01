@@ -8,7 +8,7 @@ require (
 	github.com/go-sql-driver/mysql v1.8.1
 	github.com/google/uuid v1.6.0
 	github.com/groob/plist v0.0.0-20220217120414-63fa881b19a5
-	github.com/micromdm/nanolib v0.1.1
+	github.com/micromdm/nanolib v0.2.0
 	github.com/valyala/fastjson v1.6.4
 )
 
