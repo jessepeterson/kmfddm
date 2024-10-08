@@ -1,5 +1,7 @@
 # KMFDDM
 
+[![CI/CD](https://github.com/jessepeterson/kmfddm/workflows/CI%2FCD/badge.svg)](https://github.com/jessepeterson/kmfddm/actions)
+
 KMFDDM is an Apple Declarative Device Management (DDM) server. It works together with open source MDM servers.
 
 ## EXPERIMENTAL
