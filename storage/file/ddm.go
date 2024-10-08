@@ -14,19 +14,23 @@ import (
 	"github.com/jessepeterson/kmfddm/storage"
 )
 
+// RetrieveDeclarationItems reads the declarations from disk for enrollmentID.
+// First the already-cached declaration items is read from disk then
+// each individual declaration is from disk.
 func (s *File) RetrieveDeclarationItems(ctx context.Context, enrollmentID string) ([]*ddm.Declaration, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	diBytes, err := os.ReadFile(s.declarationItemsFilename(enrollmentID))
+
+	dif, err := os.Open(s.declarationItemsFilename(enrollmentID))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("opening declaration items file: %w", err)
 	}
+	defer dif.Close()
 
 	di := new(ddm.DeclarationItems)
-
-	err = json.Unmarshal(diBytes, di)
+	err = json.NewDecoder(dif).Decode(di)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("decoding declaration items json: %w", err)
 	}
 
 	var decls []*ddm.Declaration
@@ -42,6 +46,9 @@ func (s *File) RetrieveDeclarationItems(ctx context.Context, enrollmentID string
 			if err != nil {
 				return decls, fmt.Errorf("reading declaration: %s: %w", di.Identifier, err)
 			}
+
+			// clear out unused fields. decls will (likely) only be used
+			// for generating DI/tokens so actual data is unecessary.
 			d.PayloadJSON = nil
 			d.Raw = nil
 
