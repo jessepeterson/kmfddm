@@ -3,19 +3,71 @@ package file
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path"
 	"path/filepath"
 
 	"github.com/jessepeterson/kmfddm/ddm"
+	"github.com/jessepeterson/kmfddm/ddm/build"
+	"github.com/jessepeterson/kmfddm/storage"
 )
+
+// RetrieveDeclarationItems reads the declarations from disk for enrollmentID.
+// First the already-cached declaration items is read from disk then
+// each individual declaration is from disk.
+func (s *File) RetrieveDeclarationItems(ctx context.Context, enrollmentID string) ([]*ddm.Declaration, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	dif, err := os.Open(s.declarationItemsFilename(enrollmentID))
+	if err != nil {
+		return nil, fmt.Errorf("opening declaration items file: %w", err)
+	}
+	defer dif.Close()
+
+	di := new(ddm.DeclarationItems)
+	err = json.NewDecoder(dif).Decode(di)
+	if err != nil {
+		return nil, fmt.Errorf("decoding declaration items json: %w", err)
+	}
+
+	var decls []*ddm.Declaration
+
+	for _, md := range [][]ddm.ManifestDeclaration{
+		di.Declarations.Activations,
+		di.Declarations.Configurations,
+		di.Declarations.Assets,
+		di.Declarations.Management,
+	} {
+		for _, di := range md {
+			d, err := s.readDeclarationFile(di.Identifier)
+			if err != nil {
+				return decls, fmt.Errorf("reading declaration: %s: %w", di.Identifier, err)
+			}
+
+			// clear out unused fields. decls will (likely) only be used
+			// for generating DI/tokens so actual data is unecessary.
+			d.PayloadJSON = nil
+			d.Raw = nil
+
+			decls = append(decls, d)
+		}
+	}
+
+	return decls, nil
+}
 
 // RetrieveEnrollmentDeclarationJSON retrieves the DDM declaration JSON for an enrollment ID.
 func (s *File) RetrieveEnrollmentDeclarationJSON(_ context.Context, declarationID, declarationType, enrollmentID string) ([]byte, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	return os.ReadFile(s.enrollmentDeclarationFilename(declarationID, declarationType, enrollmentID))
+	b, err := os.ReadFile(s.enrollmentDeclarationFilename(declarationID, declarationType, enrollmentID))
+	if errors.Is(err, os.ErrNotExist) {
+		err = fmt.Errorf("%w: %v", storage.ErrDeclarationNotFound, err)
+	}
+	return b, err
 }
 
 // RetrieveDeclarationItemsJSON retrieves the DDM declaration-items JSON for an enrollment ID.
@@ -90,8 +142,8 @@ func (s *File) writeEnrollmentDDM(enrollmentID string) error {
 	}
 
 	// create our token and declaration-items builders
-	di := ddm.NewDIBuilder(s.newHash)
-	ti := ddm.NewTokensBuilder(s.newHash)
+	di := build.NewDIBuilder(s.newHash)
+	ti := build.NewTokensBuilder(s.newHash)
 
 	// find any existing declaration symlinks
 	matches, err := filepath.Glob(path.Join(s.path, enrollmentID, "declaration.*.json"))
