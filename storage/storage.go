@@ -123,6 +123,11 @@ type EnrollmentSetRemover interface {
 	// If the association is removed true is returned.
 	// It should not be an error if the association does not exist.
 	RemoveEnrollmentSet(ctx context.Context, enrollmentID, setName string) (bool, error)
+
+	// RemoveAllEnrollmentSets dissociates enrollment ID from any sets.
+	// If any associations are removed true is returned.
+	// It should not be an error if no associations exist.
+	RemoveAllEnrollmentSets(ctx context.Context, enrollmentID string) (bool, error)
 }
 
 // EnrollmentSetStorage are storage interfaces related to MDM enrollment IDs.

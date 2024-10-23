@@ -12,7 +12,7 @@ import (
 	"github.com/micromdm/nanolib/log"
 )
 
-// GetEnrollmentSetsHandler returns a handle that retrieves the list of sets for an enrollment ID.
+// GetEnrollmentSetsHandler returns a handler that retrieves the list of sets for an enrollment ID.
 func GetEnrollmentSetsHandler(store storage.EnrollmentSetsRetriever, logger log.Logger) http.HandlerFunc {
 	return simpleJSONResourceHandler(
 		logger,
@@ -22,7 +22,7 @@ func GetEnrollmentSetsHandler(store storage.EnrollmentSetsRetriever, logger log.
 	)
 }
 
-// PutEnrollmentSetHandler returns a handle that associates a set to an enrollment.
+// PutEnrollmentSetHandler returns a handler that associates a set to an enrollment.
 func PutEnrollmentSetHandler(store storage.EnrollmentSetStorer, notifier Notifier, logger log.Logger) http.HandlerFunc {
 	return simpleChangeResourceHandler(
 		logger,
@@ -43,7 +43,7 @@ func PutEnrollmentSetHandler(store storage.EnrollmentSetStorer, notifier Notifie
 	)
 }
 
-// DeleteEnrollmentSetHandler returns a handle that dissociates a set from an enrollment.
+// DeleteEnrollmentSetHandler returns a handler that dissociates a set from an enrollment.
 func DeleteEnrollmentSetHandler(store storage.EnrollmentSetRemover, notifier Notifier, logger log.Logger) http.HandlerFunc {
 	return simpleChangeResourceHandler(
 		logger,
@@ -53,6 +53,23 @@ func DeleteEnrollmentSetHandler(store storage.EnrollmentSetRemover, notifier Not
 				return false, "", errors.New("empty set name")
 			}
 			changed, err := store.RemoveEnrollmentSet(ctx, resource, setName)
+			if err == nil && changed && notify {
+				err = notifier.Changed(ctx, nil, nil, []string{resource})
+				if err != nil {
+					err = fmt.Errorf("notify enrollment: %w", err)
+				}
+			}
+			return changed, "remove enrollment set", err
+		},
+	)
+}
+
+// DeleteAllEnrollmentSetsHandler returns a handler that dissociates all sets from an enrollment.
+func DeleteAllEnrollmentSetsHandler(store storage.EnrollmentSetRemover, notifier Notifier, logger log.Logger) http.HandlerFunc {
+	return simpleChangeResourceHandler(
+		logger,
+		func(ctx context.Context, resource string, u *url.URL, notify bool) (bool, string, error) {
+			changed, err := store.RemoveAllEnrollmentSets(ctx, resource)
 			if err == nil && changed && notify {
 				err = notifier.Changed(ctx, nil, nil, []string{resource})
 				if err != nil {

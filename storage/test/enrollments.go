@@ -165,4 +165,57 @@ func testEnrollments(t *testing.T, store myStorage, ctx context.Context, d *ddm.
 		t.Error("error should be ErrDeclarationNotFound")
 	}
 
+	// associate again
+	changed, err := store.StoreEnrollmentSet(ctx, enrollmentID, setName)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if have, want := changed, true; have != want {
+		t.Errorf("changed: have: %v, want: %v", have, want)
+	}
+
+	// verify 1 ref
+	setNames, err = store.RetrieveEnrollmentSets(ctx, enrollmentID)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if have, want := len(setNames), 1; have != want {
+		t.Errorf("len(setName) have: %v, want: %v", have, want)
+	} else {
+		if have, want := setNames[0], setName; have != want {
+			t.Errorf("setNames[0] have: %v, want: %v", have, want)
+		}
+	}
+
+	// remove all sets associated with enrollmentID
+	changed, err = store.RemoveAllEnrollmentSets(ctx, enrollmentID)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if have, want := changed, true; have != want {
+		t.Errorf("changed: have: %v, want: %v", have, want)
+	}
+
+	// verify no ref
+	setNames, err = store.RetrieveEnrollmentSets(ctx, enrollmentID)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if have, want := len(setNames), 0; have != want {
+		t.Errorf("len(setName) have: %v, want: %v", have, want)
+	}
+
+	// remove all sets associated with enrollmentID again (to check changed status)
+	changed, err = store.RemoveAllEnrollmentSets(ctx, enrollmentID)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if have, want := changed, false; have != want {
+		t.Errorf("changed: have: %v, want: %v", have, want)
+	}
 }

@@ -248,6 +248,28 @@ paths:
         - $ref: '#/components/parameters/setNameInQuery'
     parameters:
       - $ref: '#/components/parameters/enrollmentID'
+  /v1/enrollment-sets-all/{id}:
+    delete:
+      description: Dissociate all sets from enrollment ID.
+      tags:
+        - enrollments
+      security:
+        - basicAuth: []
+      responses:
+        '204':
+          $ref: '#/components/responses/DissociationChanged'
+        '304':
+          $ref: '#/components/responses/DissociationUnchanged'
+        '401':
+           $ref: '#/components/responses/UnauthorizedError'
+        '400':
+           $ref: '#/components/responses/JSONBadRequest'
+        '500':
+           $ref: '#/components/responses/JSONError'
+      parameters:
+        - $ref: '#/components/parameters/noNotify'
+    parameters:
+      - $ref: '#/components/parameters/enrollmentID'
   /v1/declaration-sets/{id}:
     get:
       description: Retrieve the list of sets that a declaration is associated with.

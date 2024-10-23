@@ -75,6 +75,36 @@ func (s *File) RemoveEnrollmentSet(_ context.Context, enrollmentID, setName stri
 	return changed, nil
 }
 
+// RemoveAllEnrollmentSets dissociates enrollment ID from any sets.
+// If any associations are removed true is returned.
+// It should not be an error if no associations exist.
+func (s *File) RemoveAllEnrollmentSets(ctx context.Context, enrollmentID string) (bool, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	err := s.assureEnrollmentDirExists(enrollmentID)
+	if err != nil {
+		return false, fmt.Errorf("assuring enrollment directory exists: %w", err)
+	}
+
+	exist := true
+	_, err = os.Stat(s.enrollmentSetsFilename(enrollmentID))
+	if errors.Is(err, os.ErrNotExist) {
+		exist = false
+	} else if err != nil {
+		return false, fmt.Errorf("stat sets for enrollment %s: %w", enrollmentID, err)
+	}
+
+	if exist {
+		err = os.Remove(s.enrollmentSetsFilename(enrollmentID))
+		if err != nil {
+			return exist, fmt.Errorf("removing sets for enrollment %s: %w", enrollmentID, err)
+		}
+	}
+
+	return exist, nil
+}
+
 // RetrieveEnrollmentIDs retrieves MDM enrollment IDs from storage.
 // If a set, declaration, or enrollment ID doesn't exist it is ignored.
 // See also the storage package for documentation on the storage interfaces.

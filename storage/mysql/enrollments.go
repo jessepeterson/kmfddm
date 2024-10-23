@@ -66,6 +66,17 @@ func qAndP(params []string) (r string, p []interface{}) {
 	return
 }
 
+// RemoveAllEnrollmentSets dissociates enrollment ID from any sets.
+// If any associations are removed true is returned.
+// It should not be an error if no associations exist.
+func (s *MySQLStorage) RemoveAllEnrollmentSets(ctx context.Context, enrollmentID string) (bool, error) {
+	r, err := s.q.RemoveAllEnrollmentSets(ctx, enrollmentID)
+	if err != nil {
+		return false, err
+	}
+	return resultChangedRows(r)
+}
+
 // RetrieveEnrollmentIDs retrieves enrollment IDs.
 // See also the storage package for documentation on the storage interfaces.
 func (s *MySQLStorage) RetrieveEnrollmentIDs(ctx context.Context, declarations []string, sets []string, ids []string) ([]string, error) {
