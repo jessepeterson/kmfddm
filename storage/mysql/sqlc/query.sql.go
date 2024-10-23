@@ -7,6 +7,7 @@ package sqlc
 
 import (
 	"context"
+	"database/sql"
 )
 
 const getManifestItems = `-- name: GetManifestItems :many
@@ -51,4 +52,15 @@ func (q *Queries) GetManifestItems(ctx context.Context, enrollmentID string) ([]
 		return nil, err
 	}
 	return items, nil
+}
+
+const removeAllEnrollmentSets = `-- name: RemoveAllEnrollmentSets :execresult
+DELETE FROM
+    enrollment_sets
+WHERE
+    enrollment_id = ?
+`
+
+func (q *Queries) RemoveAllEnrollmentSets(ctx context.Context, enrollmentID string) (sql.Result, error) {
+	return q.db.ExecContext(ctx, removeAllEnrollmentSets, enrollmentID)
 }

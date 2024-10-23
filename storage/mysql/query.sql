@@ -11,3 +11,9 @@ FROM
         ON sd.set_name = es.set_name
 WHERE
     es.enrollment_id = ?;
+
+-- name: RemoveAllEnrollmentSets :execresult
+DELETE FROM
+    enrollment_sets
+WHERE
+    enrollment_id = ?;

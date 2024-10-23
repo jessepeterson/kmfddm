@@ -224,6 +224,12 @@ func main() {
 				"DELETE",
 			)
 
+			mux.Handle(
+				"/v1/enrollment-sets-all/sets/:id",
+				apihttp.DeleteAllEnrollmentSetsHandler(store, nanoNotif, logger.With(logkeys.Handler, "delete-all-enrollment-sets")),
+				"DELETE",
+			)
+
 			// declarations sets
 			mux.Handle(
 				"/v1/declaration-sets/:id",
