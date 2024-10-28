@@ -138,9 +138,13 @@ func testEnrollments(t *testing.T, store myStorage, ctx context.Context, d *ddm.
 	}
 
 	// dissociate
-	_, err = store.RemoveEnrollmentSet(ctx, enrollmentID, setName)
+	changed, err := store.RemoveEnrollmentSet(ctx, enrollmentID, setName)
 	if err != nil {
 		t.Fatal(err)
+	}
+
+	if have, want := changed, true; have != want {
+		t.Errorf("changed: have: %v, want: %v", have, want)
 	}
 
 	// verify no ref
@@ -166,7 +170,7 @@ func testEnrollments(t *testing.T, store myStorage, ctx context.Context, d *ddm.
 	}
 
 	// associate again
-	changed, err := store.StoreEnrollmentSet(ctx, enrollmentID, setName)
+	changed, err = store.StoreEnrollmentSet(ctx, enrollmentID, setName)
 	if err != nil {
 		t.Fatal(err)
 	}
