@@ -119,7 +119,7 @@ type EnrollmentSetStorer interface {
 }
 
 type EnrollmentSetRemover interface {
-	// StoreEnrollmentSet dissociates enrollmentID and setName.
+	// RemoveEnrollmentSet dissociates enrollmentID and setName.
 	// If the association is removed true is returned.
 	// It should not be an error if the association does not exist.
 	RemoveEnrollmentSet(ctx context.Context, enrollmentID, setName string) (bool, error)
