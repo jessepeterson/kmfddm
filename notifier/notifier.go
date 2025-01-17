@@ -7,9 +7,9 @@ import (
 	"github.com/jessepeterson/kmfddm/logkeys"
 	"github.com/jessepeterson/kmfddm/storage"
 
-	"github.com/groob/plist"
 	"github.com/micromdm/nanolib/log"
 	"github.com/micromdm/nanolib/log/ctxlog"
+	"github.com/micromdm/plist"
 )
 
 // EnrollmentIDFinder is the interface we use to fetch enrollment IDs.
