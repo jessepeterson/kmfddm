@@ -120,7 +120,7 @@ func (m *PathMux) HandleFunc(path string, f HandlerFunc) {
 }
 
 // processValue recursively traverses JSON structure v.
-func (m *PathMux) processValue(handlerMap pathHandlerMap, pathElems []string, curElem int, v *fastjson.Value, wcHandlers []Handler) ([]string, error) {
+func processValue(handlerMap pathHandlerMap, pathElems []string, curElem int, v *fastjson.Value, wcHandlers []Handler) ([]string, error) {
 	curPath := pathElems[curElem]
 	path := strings.Join(pathElems, ".")
 	handlers, ok := handlerMap[curPath]
@@ -164,7 +164,7 @@ func (m *PathMux) processValue(handlerMap pathHandlerMap, pathElems []string, cu
 				// don't go further if we have any errors
 				return
 			}
-			tmpUnhandled, err = m.processValue(handlers.pathHandlers, append(pathElems, string(k)), curElem+1, v, wcHandlers)
+			tmpUnhandled, err = processValue(handlers.pathHandlers, append(pathElems, string(k)), curElem+1, v, wcHandlers)
 			// accumulate our unhandled paths
 			unhandled = append(unhandled, tmpUnhandled...)
 		})
@@ -191,7 +191,7 @@ func (m *PathMux) processValue(handlerMap pathHandlerMap, pathElems []string, cu
 func (m *PathMux) JSONPath(path string, v *fastjson.Value) ([]string, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
-	return m.processValue(m.pathHandlers, strings.Split(path, "."), 0, v, nil)
+	return processValue(m.pathHandlers, strings.Split(path, "."), 0, v, nil)
 }
 
 // StripAndAddPrefix is a middleware that removes pathPrefix from
