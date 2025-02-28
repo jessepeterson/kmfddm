@@ -200,6 +200,27 @@ def make_simple_decl_subp(simple_name, decl_type, parent_parser):
     p.set_defaults(func=make_simple_wrap(decl_type))
     return p
 
+def make_watch_enrollment(args):
+    decl = {
+        "Type": "com.apple.configuration.watch.enrollment",
+        "Payload": {
+            "EnrollmentProfileURL": args.url,
+        },
+    }
+    return decl
+
+
+def make_watch_enrollment_subp(parent_parser):
+    decl_type = "com.apple.configuration.watch.enrollment"
+    p = parent_parser.add_parser("watch-enrollment", help=decl_type + " DDM declaration")
+    p.add_argument(
+        "url",
+        type=str,
+        help="URL of the enrollment profile",
+    )
+    p.set_defaults(func=make_watch_enrollment)
+    return p
+
 
 def main():
     p = argparse.ArgumentParser(description="DDM declaration generator")
