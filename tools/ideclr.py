@@ -249,6 +249,7 @@ def main():
     make_iprofile_subp(subps)
     make_org_subp(subps)
     make_test_subp(subps)
+    make_watch_enrollment_subp(subps)
 
     args = p.parse_args()
 
