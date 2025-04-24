@@ -236,4 +236,4 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    sync_dir(args.dir, args.baseurl, args.user, args.key)
+    sync_dir(args.dir, args.apibaseurl, args.user, args.key)
