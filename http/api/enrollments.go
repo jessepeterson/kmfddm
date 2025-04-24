@@ -14,6 +14,9 @@ import (
 
 // GetEnrollmentSetsHandler returns a handler that retrieves the list of sets for an enrollment ID.
 func GetEnrollmentSetsHandler(store storage.EnrollmentSetsRetriever, logger log.Logger) http.HandlerFunc {
+	if store == nil || logger == nil {
+		panic("nil store or logger")
+	}
 	return simpleJSONResourceHandler(
 		logger,
 		func(ctx context.Context, resource string, _ *url.URL) (interface{}, error) {
@@ -24,6 +27,9 @@ func GetEnrollmentSetsHandler(store storage.EnrollmentSetsRetriever, logger log.
 
 // PutEnrollmentSetHandler returns a handler that associates a set to an enrollment.
 func PutEnrollmentSetHandler(store storage.EnrollmentSetStorer, notifier Notifier, logger log.Logger) http.HandlerFunc {
+	if store == nil || notifier == nil || logger == nil {
+		panic("nil store or notifier or logger")
+	}
 	return simpleChangeResourceHandler(
 		logger,
 		func(ctx context.Context, resource string, u *url.URL, notify bool) (bool, string, error) {
@@ -45,6 +51,9 @@ func PutEnrollmentSetHandler(store storage.EnrollmentSetStorer, notifier Notifie
 
 // DeleteEnrollmentSetHandler returns a handler that dissociates a set from an enrollment.
 func DeleteEnrollmentSetHandler(store storage.EnrollmentSetRemover, notifier Notifier, logger log.Logger) http.HandlerFunc {
+	if store == nil || notifier == nil || logger == nil {
+		panic("nil store or notifier or logger")
+	}
 	return simpleChangeResourceHandler(
 		logger,
 		func(ctx context.Context, resource string, u *url.URL, notify bool) (bool, string, error) {
@@ -66,6 +75,9 @@ func DeleteEnrollmentSetHandler(store storage.EnrollmentSetRemover, notifier Not
 
 // DeleteAllEnrollmentSetsHandler returns a handler that dissociates all sets from an enrollment.
 func DeleteAllEnrollmentSetsHandler(store storage.EnrollmentSetRemover, notifier Notifier, logger log.Logger) http.HandlerFunc {
+	if store == nil || notifier == nil || logger == nil {
+		panic("nil store or notifier or logger")
+	}
 	return simpleChangeResourceHandler(
 		logger,
 		func(ctx context.Context, resource string, u *url.URL, notify bool) (bool, string, error) {

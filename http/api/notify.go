@@ -8,6 +8,9 @@ import (
 
 // NotifyHandler notifies enrollment IDs.
 func NotifyHandler(notifier Notifier, logger log.Logger) http.HandlerFunc {
+	if notifier == nil || logger == nil {
+		panic("nil notifier or logger")
+	}
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := notifier.Changed(
 			r.Context(),

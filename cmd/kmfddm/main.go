@@ -19,6 +19,8 @@ import (
 	"github.com/jessepeterson/kmfddm/storage/shard"
 
 	"github.com/alexedwards/flow"
+	nanohttp "github.com/micromdm/nanolib/http"
+	"github.com/micromdm/nanolib/http/trace"
 	"github.com/micromdm/nanolib/log/stdlogfmt"
 )
 
@@ -97,7 +99,7 @@ func main() {
 
 	mux := flow.New()
 
-	mux.Handle("/version", httpddm.VersionHandler(version))
+	mux.Handle("/version", nanohttp.NewJSONVersionHandler(version))
 
 	mux.Handle(
 		"/declaration-items",
@@ -145,129 +147,10 @@ func main() {
 
 		mux.Group(func(mux *flow.Mux) {
 			mux.Use(func(h http.Handler) http.Handler {
-				return httpddm.BasicAuthMiddleware(h, apiUsername, *flAPIKey, apiRealm)
+				return nanohttp.NewSimpleBasicAuthHandler(h, apiUsername, *flAPIKey, apiRealm)
 			})
 
-			// declarations
-			mux.Handle(
-				"/v1/declarations",
-				apihttp.GetDeclarationsHandler(store, logger.With("get-declarations")),
-				"GET",
-			)
-
-			mux.Handle(
-				"/v1/declarations",
-				apihttp.PutDeclarationHandler(store, nanoNotif, logger.With(logkeys.Handler, "put-declaration")),
-				"PUT",
-			)
-
-			mux.Handle(
-				"/v1/declarations/:id",
-				apihttp.GetDeclarationHandler(store, logger.With(logkeys.Handler, "get-declaration")),
-				"GET",
-			)
-
-			mux.Handle(
-				"/v1/declarations/:id",
-				apihttp.DeleteDeclarationHandler(store, logger.With(logkeys.Handler, "delete-declaration")),
-				"DELETE",
-			)
-
-			mux.Handle(
-				"/v1/declarations/:id/touch",
-				apihttp.TouchDeclarationHandler(store, nanoNotif, logger.With(logkeys.Handler, "touch-declaration")),
-				"POST",
-			)
-
-			// sets
-			mux.Handle(
-				"/v1/sets",
-				apihttp.GetSetsHandler(store, logger.With("get-sets")),
-				"GET",
-			)
-
-			// set declarations
-			mux.Handle(
-				"/v1/set-declarations/:id",
-				apihttp.GetSetDeclarationsHandler(store, logger.With(logkeys.Handler, "get-set-declarations")),
-				"GET",
-			)
-
-			mux.Handle(
-				"/v1/set-declarations/:id",
-				apihttp.PutSetDeclarationHandler(store, nanoNotif, logger.With(logkeys.Handler, "put-set-declarations")),
-				"PUT",
-			)
-
-			mux.Handle(
-				"/v1/set-declarations/:id",
-				apihttp.DeleteSetDeclarationHandler(store, nanoNotif, logger.With(logkeys.Handler, "delete-set-delcarations")),
-				"DELETE",
-			)
-
-			// enrollment sets
-			mux.Handle(
-				"/v1/enrollment-sets/:id",
-				apihttp.GetEnrollmentSetsHandler(store, logger.With(logkeys.Handler, "get-enrollment-sets")),
-				"GET",
-			)
-
-			mux.Handle(
-				"/v1/enrollment-sets/:id",
-				apihttp.PutEnrollmentSetHandler(store, nanoNotif, logger.With(logkeys.Handler, "put-enrollment-sets")),
-				"PUT",
-			)
-
-			mux.Handle(
-				"/v1/enrollment-sets/:id",
-				apihttp.DeleteEnrollmentSetHandler(store, nanoNotif, logger.With(logkeys.Handler, "delete-enrollment-sets")),
-				"DELETE",
-			)
-
-			mux.Handle(
-				"/v1/enrollment-sets-all/sets/:id",
-				apihttp.DeleteAllEnrollmentSetsHandler(store, nanoNotif, logger.With(logkeys.Handler, "delete-all-enrollment-sets")),
-				"DELETE",
-			)
-
-			// declarations sets
-			mux.Handle(
-				"/v1/declaration-sets/:id",
-				apihttp.GetDeclarationSetsHandler(store, logger.With(logkeys.Handler, "get-declaration-sets")),
-				"GET",
-			)
-
-			// status queries
-			mux.Handle(
-				"/v1/declaration-status/:id",
-				apihttp.GetDeclarationStatusHandler(store, logger.With(logkeys.Handler, "get-declaration-status")),
-				"GET",
-			)
-
-			mux.Handle(
-				"/v1/status-errors/:id",
-				apihttp.GetStatusErrorsHandler(store, logger.With(logkeys.Handler, "get-status-errors")),
-				"GET",
-			)
-
-			mux.Handle(
-				"/v1/status-values/:id",
-				apihttp.GetStatusValuesHandler(store, logger.With(logkeys.Handler, "get-status-values")),
-				"GET",
-			)
-
-			mux.Handle(
-				"/v1/status-report/:id",
-				apihttp.GetStatusReportHandler(store, logger.With(logkeys.Handler, "get-status-report")),
-				"GET",
-			)
-
-			// notifier
-			mux.Handle(
-				"/v1/notify",
-				apihttp.NotifyHandler(nanoNotif, logger.With(logkeys.Handler, "notify")),
-				"POST",
-			)
+			apihttp.HandleAPIv1("/v1", mux, logger, store, nanoNotif)
 		})
 	}
 
@@ -275,7 +158,7 @@ func main() {
 	rand.Seed(time.Now().UnixNano())
 
 	logger.Info(logkeys.Message, "starting server", "listen", *flListen)
-	err = http.ListenAndServe(*flListen, httpddm.TraceLoggingMiddleware(mux, logger.With(logkeys.Handler, "log"), newTraceID))
+	err = http.ListenAndServe(*flListen, trace.NewTraceLoggingHandler(mux, logger.With(logkeys.Handler, "log"), newTraceID))
 	logs := []interface{}{logkeys.Message, "server shutdown"}
 	if err != nil {
 		logs = append(logs, logkeys.Error, err)
