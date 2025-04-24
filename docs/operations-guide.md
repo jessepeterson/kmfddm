@@ -64,15 +64,15 @@ Enable an always-on [management properties declaration](https://developer.apple.
 
 ### -storage, -storage-dsn, & -storage-options
 
-The `-storage`, `-storage-dsn`, & `-storage-options` flags together configure the storage backend. `-storage` specifies the name of the backend while `-storage-dsn` specifies the backend data source name (e.g. the connection string). The optional `-storage-options` flag specifies options for the backend (if it supports them). If no storage flags are supplied then it is as if you specified `-storage file -storage-dsn db` meaning we use the `file` storage backend with `db` as its DSN.
+The `-storage`, `-storage-dsn`, & `-storage-options` flags together configure the storage backend. `-storage` specifies the name of the backend while `-storage-dsn` specifies the backend data source name (e.g. the connection string). The optional `-storage-options` flag specifies options for the backend (if it supports them). If no storage flags are supplied then it is as if you specified `-storage filekv -storage-dsn dbkv` meaning we use the `filekv` storage backend with `dbkv` as its DSN.
 
-#### file storage backend
+#### filekv storage backend
 
-* `-storage file`
+* `-storage filekv`
 
-Configures the `file` storage backend. This manages storage data within plain filesystem files and directories. It has zero dependencies and should run out of the box. The `-storage-dsn` flag specifies the filesystem directory for the database. The `file` backend has no storage options.
+Configures the `filekv` storage backend. This manages storing data within plain filesystem files and directories using a key-value storage system. It has zero dependencies and should run out of the box. The `-storage-dsn` flag specifies the filesystem directory for the database otherwise `dbkv` is used. The `filekv` backend has no options.
 
-*Example:* `-storage file -storage-dsn /path/to/my/db`
+*Example* `-storage filekv -storage-dsn /path/to/my/db`
 
 #### mysql storage backend
 
@@ -91,8 +91,39 @@ Options are specified as a comma-separated list of "key=value" pairs. The mysql 
 
 *Example:* `-storage mysql -storage-dsn kmfddm:kmfddm/mymdmdb -storage-options delete_errors=20,delete_status_reports=5`
 
+#### in-memory storage backend
+
+* `-storage inmem`
+
+Configure the `inmem` in-memory storage backend. This manages DDM data entirely in *volatile* memeory. There are no options and the DSN is ignored.
+
+> [!CAUTION]
+> All data is lost when the server process exits when using the in-memory storage backend.
+
+*Example:* `-storage inmem`
+
+#### file storage backend
+
+* `-storage file`
+
+> [!WARNING]
+> The `file` storage backend is deprecated in KMFDDM **versions after v0.7** and will be removed in a future release.
+
+Configures the `file` storage backend. This manages storage data within plain filesystem files and directories.  It has zero dependencies but is disabled out of the box. The `-storage-dsn` flag specifies the filesystem directory for the database.
+
+Options are specified as a comma-separated list of "key=value" pairs. Supported options:
+
+* `enable_deprecated=1`
+  * This option enables the file backend. Without this switch the `file` backend is disabled.
+
+*Example:* `-storage file -storage-dsn /path/to/my/db -storage-options enable_deprecated=1`
+
 #### -version
 
 * print version
 
 Print version and exit.
+
+## Tools and scripts
+
+The KMFDDM project includes tools and scripts that use the HTTP API for configuration. Most of these are basically just shell scripts that utilize `curl` and `jq` to assist in managing the KMFDDM server.

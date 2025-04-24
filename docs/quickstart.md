@@ -58,6 +58,7 @@ To use the helper shell scripts you'll want to set some environment variables fi
 ```sh
 # port 9002 is the default KMFDDM port
 export BASE_URL='http://[::1]:9002'
+export API_BASE_URL="$BASE_URL/v1"
 # this key was specified when we started KMFDDM, above
 export API_KEY='supersecret'
 

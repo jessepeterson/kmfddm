@@ -8,6 +8,39 @@ import (
 	"github.com/jessepeterson/kmfddm/ddm/build"
 )
 
+// buildItems retrieves the declaration items for enrollmentID using s and builds using b.
+func buildItems(ctx context.Context, s EnrollmentDeclarationDataStorage, b build.Builder, enrollmentID string) error {
+	decs, err := s.RetrieveDeclarationItems(ctx, enrollmentID)
+	if err != nil {
+		return fmt.Errorf("retrieving declaration items: %w", err)
+	}
+	for _, d := range decs {
+		b.Add(d)
+	}
+	b.Finalize()
+	return nil
+}
+
+// TokensJSON returns the declaration synchronization token JSON for enrollmentID.
+// The token JSON is dynamically build using s and newHash.
+func TokensJSON(ctx context.Context, s EnrollmentDeclarationDataStorage, enrollmentID string, newHash build.NewHash) ([]byte, error) {
+	b := build.NewTokensBuilder(newHash)
+	if err := buildItems(ctx, s, b, enrollmentID); err != nil {
+		return nil, fmt.Errorf("building items: %w", err)
+	}
+	return json.Marshal(&b.TokensResponse)
+}
+
+// DeclarationsItemsJSON returns the declaration items JSON for enrollmentID.
+// The JSON is dynamically built for enrollmentID using s and newHash.
+func DeclarationItemsJSON(ctx context.Context, s EnrollmentDeclarationDataStorage, enrollmentID string, newHash build.NewHash) ([]byte, error) {
+	b := build.NewDIBuilder(newHash)
+	if err := buildItems(ctx, s, b, enrollmentID); err != nil {
+		return nil, fmt.Errorf("building items: %w", err)
+	}
+	return json.Marshal(&b.DeclarationItems)
+}
+
 // JSONAdapt generates sync token and declaration items JSON from declaration data.
 type JSONAdapt struct {
 	store   EnrollmentDeclarationDataStorage
@@ -28,39 +61,16 @@ func NewJSONAdapt(store EnrollmentDeclarationDataStorage, newHash build.NewHash)
 	return &JSONAdapt{store: store, newHash: newHash}
 }
 
-// build retrieves the declaration items for enrollmentID and builds using b.
-func (a *JSONAdapt) build(ctx context.Context, b build.Builder, enrollmentID string) error {
-	declarations, err := a.store.RetrieveDeclarationItems(ctx, enrollmentID)
-	if err != nil {
-		return fmt.Errorf("retrieving items: %w", err)
-	}
-	for _, d := range declarations {
-		b.Add(d)
-	}
-	b.Finalize()
-	return nil
-}
-
 // RetrieveTokensJSON returns the declaration synchronization token JSON for enrollmentID.
 // The JSON is dynamically built for enrollmentID.
 func (a *JSONAdapt) RetrieveTokensJSON(ctx context.Context, enrollmentID string) ([]byte, error) {
-	b := build.NewTokensBuilder(a.newHash)
-	err := a.build(ctx, b, enrollmentID)
-	if err != nil {
-		return nil, fmt.Errorf("building items: %w", err)
-	}
-	return json.Marshal(&b.TokensResponse)
+	return TokensJSON(ctx, a.store, enrollmentID, a.newHash)
 }
 
 // RetrieveDeclarationItemsJSON returns the declaration items JSON for enrollmentID.
 // The JSON is dynamically built for enrollmentID.
 func (a *JSONAdapt) RetrieveDeclarationItemsJSON(ctx context.Context, enrollmentID string) ([]byte, error) {
-	b := build.NewDIBuilder(a.newHash)
-	err := a.build(ctx, b, enrollmentID)
-	if err != nil {
-		return nil, fmt.Errorf("building items: %w", err)
-	}
-	return json.Marshal(&b.DeclarationItems)
+	return DeclarationItemsJSON(ctx, a.store, enrollmentID, a.newHash)
 }
 
 // RetrieveEnrollmentDeclarationJSON returns a JSON declaration for

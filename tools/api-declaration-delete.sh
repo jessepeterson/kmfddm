@@ -1,10 +1,14 @@
 #!/bin/sh
 
-URL="${BASE_URL}/v1/declarations/$1"
+URL="${API_BASE_URL}/declarations/$1"
+
+if [ "x$API_USER" = "x" ]; then
+    API_USER="kmfddm"
+fi
 
 curl \
     $CURL_OPTS \
     -X DELETE \
-    -u "kmfddm:$API_KEY" \
+    -u "$API_USER:$API_KEY" \
     -w "Response HTTP Code: %{http_code}\n" \
     "$URL"

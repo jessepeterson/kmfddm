@@ -14,7 +14,7 @@ import (
 )
 
 type myStorage interface {
-	storage.TokensDeclarationItemsRetriever
+	storage.TokensDeclarationItemsStorage
 	storage.EnrollmentDeclarationDataStorage
 	storage.EnrollmentIDRetriever
 	storage.DeclarationAPIStorage
@@ -166,7 +166,7 @@ func testEnrollments(t *testing.T, store myStorage, ctx context.Context, d *ddm.
 	// verify error return type for missing declaration
 	_, err = store.RetrieveEnrollmentDeclarationJSON(ctx, "should.be.missing.a", "asset", "should.be.missing.b")
 	if !errors.Is(err, storage.ErrDeclarationNotFound) {
-		t.Error("error should be ErrDeclarationNotFound")
+		t.Errorf("error should be ErrDeclarationNotFound but got: %v", err)
 	}
 
 	// associate again
@@ -191,6 +191,42 @@ func testEnrollments(t *testing.T, store myStorage, ctx context.Context, d *ddm.
 		if have, want := setNames[0], setName; have != want {
 			t.Errorf("setNames[0] have: %v, want: %v", have, want)
 		}
+	}
+
+	// verify error return type for missing declaration
+	_, err = store.RetrieveEnrollmentDeclarationJSON(ctx, d.Identifier, "invalid type", enrollmentID)
+	if err == nil {
+		t.Error("error should be ErrDeclarationNotFound")
+	}
+
+	// read back to the declaration from API storage
+	// mostly so we can test against its current ServerToken
+	d2, err := store.RetrieveDeclaration(ctx, d.Identifier)
+	if err != nil {
+		t.Error(err)
+	}
+
+	// get the declaration in JSON from storage
+	dBytes, err := store.RetrieveEnrollmentDeclarationJSON(ctx, d.Identifier, ddm.ManifestType(d.Type), enrollmentID)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// decode
+	declaration := new(ddm.Declaration)
+	err = json.Unmarshal(dBytes, declaration)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if have, want := d.Identifier, declaration.Identifier; have != want {
+		t.Errorf("have: %v, want: %v", have, want)
+	}
+	if have, want := d.Type, declaration.Type; have != want {
+		t.Errorf("have: %v, want: %v", have, want)
+	}
+	if have, want := d2.ServerToken, declaration.ServerToken; have != want {
+		t.Errorf("have: %v, want: %v", have, want)
 	}
 
 	// remove all sets associated with enrollmentID
