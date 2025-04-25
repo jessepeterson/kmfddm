@@ -1,13 +1,15 @@
 package storage
 
 import (
+	"context"
 	"errors"
 	"time"
+
+	"github.com/jessepeterson/kmfddm/ddm"
 )
 
 var (
 	ErrStatusReportNotFound = errors.New("status report not found")
-	ErrDeclarationNotFound  = errors.New("declaration not found")
 )
 
 type StatusError struct {
@@ -47,4 +49,29 @@ func (q StatusReportQuery) Valid() error {
 		return errors.New("status ID and index cannot both be empty")
 	}
 	return nil
+}
+
+type StatusStorer interface {
+	// StoreDeclarationStatus stores the status report details.
+	// For later retrieval by the StatusAPIStorage interface(s).
+	StoreDeclarationStatus(ctx context.Context, enrollmentID string, status *ddm.StatusReport) error
+}
+
+type StatusDeclarationsRetriever interface {
+	// RetrieveDeclarationStatus retrieves the status of the declarations for enrollmentIDs.
+	RetrieveDeclarationStatus(ctx context.Context, enrollmentIDs []string) (map[string][]ddm.DeclarationQueryStatus, error)
+}
+
+type StatusErrorsRetriever interface {
+	// RetrieveStatusErrors retrieves the collected errors for enrollmentIDs.
+	RetrieveStatusErrors(ctx context.Context, enrollmentIDs []string, offset, limit int) (map[string][]StatusError, error)
+}
+
+type StatusValuesRetriever interface {
+	// RetrieveStatusErrors retrieves the collected errors for enrollmentIDs.
+	RetrieveStatusValues(ctx context.Context, enrollmentIDs []string, pathPrefix string) (map[string][]StatusValue, error)
+}
+
+type StatusReportRetriever interface {
+	RetrieveStatusReport(ctx context.Context, q StatusReportQuery) (*StoredStatusReport, error)
 }

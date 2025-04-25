@@ -1,8 +1,12 @@
 #!/bin/sh
 
-URL="${BASE_URL}/v1/enrollment-sets/$1"
+URL="${API_BASE_URL}/enrollment-sets/$1"
+
+if [ "x$API_USER" = "x" ]; then
+    API_USER="kmfddm"
+fi
 
 curl \
     $CURL_OPTS \
-    -u kmfddm:$API_KEY \
+    -u "$API_USER:$API_KEY" \
     "$URL"

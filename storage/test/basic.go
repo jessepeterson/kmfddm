@@ -19,7 +19,7 @@ const testDecl = `{
 type allTestStorage interface {
 	setAndDeclStorage
 	storage.EnrollmentSetStorage
-	storage.TokensDeclarationItemsRetriever
+	storage.TokensDeclarationItemsStorage
 	storage.EnrollmentDeclarationDataStorage
 	storage.EnrollmentIDRetriever
 	storage.DeclarationAPIStorage

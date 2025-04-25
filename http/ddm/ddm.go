@@ -49,7 +49,7 @@ func contextEnrollmentID(r *http.Request, logger log.Logger) (context.Context, l
 // DeclarationHandler creates a handler that fetches and returns a single declaration.
 // The request URL path is assumed to contain the declaration type and identifier.
 // This probably requires the handler to have the path prefix stripped before use.
-func DeclarationHandler(store storage.DeclarationRetriever, hLogger log.Logger) http.HandlerFunc {
+func DeclarationHandler(store storage.DeclarationJSONRetriever, hLogger log.Logger) http.HandlerFunc {
 	if store == nil || hLogger == nil {
 		panic("nil store or logger")
 	}
@@ -84,7 +84,7 @@ func DeclarationHandler(store storage.DeclarationRetriever, hLogger log.Logger) 
 
 // TokensOrDeclarationItemsHandler creates a handler that fetchs and returns either
 // the tokens or declaration items JSON for an erollment ID depending on tokens.
-func TokensOrDeclarationItemsHandler(store storage.TokensDeclarationItemsRetriever, tokens bool, hLogger log.Logger) http.HandlerFunc {
+func TokensOrDeclarationItemsHandler(store storage.TokensDeclarationItemsStorage, tokens bool, hLogger log.Logger) http.HandlerFunc {
 	if store == nil || hLogger == nil {
 		panic("nil store or logger")
 	}

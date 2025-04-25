@@ -45,9 +45,9 @@ nonotify_params = urlencode(
 
 
 def make_declaration_req(
-    base_url: str, auth_header: str, declaraion_data: bytes
+    api_base_url: str, auth_header: str, declaraion_data: bytes
 ) -> urllib.request.Request:
-    url = base_url + "/v1/declarations?" + nonotify_params
+    url = api_base_url + "/declarations?" + nonotify_params
     req = urllib.request.Request(url=url, method="PUT")
     req.add_header("Content-Type", "application/json")
     req.add_header("Authorization", f"Basic {auth_header}")
@@ -56,11 +56,11 @@ def make_declaration_req(
 
 
 def make_set_req(
-    base_url: str, auth_header: str, method: str, set_name: str, declaration_id: str
+    api_base_url: str, auth_header: str, method: str, set_name: str, declaration_id: str
 ) -> urllib.request.Request:
     url = (
-        base_url
-        + "/v1/set-declarations/"
+        api_base_url
+        + "/set-declarations/"
         + set_name
         + "?"
         + urlencode(
@@ -75,14 +75,14 @@ def make_set_req(
     return req
 
 
-def sync_dir(dir, base_url, key):
+def sync_dir(dir, api_base_url, user, key):
     # collectors for later notifying/reporting
     changed_decls = []
     unchanged_decls = []
     changed_sets = []
     unchanged_sets = []
 
-    auth_header = base64.b64encode(f"kmfddm:{key}".encode("utf-8")).decode("utf-8")
+    auth_header = base64.b64encode(f"{user}:{key}".encode("utf-8")).decode("utf-8")
     set_files = []
     for root, dirs, files in os.walk(dir):
         for file in files:
@@ -92,7 +92,7 @@ def sync_dir(dir, base_url, key):
                     try:
                         data = f.read()
                         decl = json.loads(data)
-                        req = make_declaration_req(base_url, auth_header, data)
+                        req = make_declaration_req(api_base_url, auth_header, data)
                         response = urllib.request.urlopen(req)
                         status_code = response.getcode()
                         if status_code == 204:
@@ -139,7 +139,7 @@ def sync_dir(dir, base_url, key):
                     # indicates removal of the association
                     decl_id = decl_id[1:].strip()
                     method = "DELETE"
-                req = make_set_req(base_url, auth_header, method, set_name, decl_id)
+                req = make_set_req(api_base_url, auth_header, method, set_name, decl_id)
                 try:
                     response = urllib.request.urlopen(req)
                     status_code = response.getcode()
@@ -189,7 +189,7 @@ def sync_dir(dir, base_url, key):
             params["set"] = changed_sets
             print(f"changed sets ({len(changed_sets)}): " + ", ".join(changed_sets))
         encoded_params = urlencode(params, doseq=True)
-        notify_url = base_url + "/v1/notify?" + encoded_params
+        notify_url = api_base_url + "/notify?" + encoded_params
         req = urllib.request.Request(url=notify_url, method="POST")
         req.add_header("Authorization", f"Basic {auth_header}")
         try:
@@ -217,10 +217,10 @@ if __name__ == "__main__":
         help="path to the directory containing declarations and set files",
     )
     parser.add_argument(
-        "--baseurl",
+        "--apibaseurl",
         type=str,
-        default=os.environ.get("BASE_URL", "http://[::1]:9002"),
-        help="URL for uploading the JSON files (default: http://[::1]:9002)",
+        default=os.environ.get("API_BASE_URL", "http://[::1]:9002/v1"),
+        help="URL for uploading the JSON files (default: http://[::1]:9002/v1)",
     )
     parser.add_argument(
         "--key",
@@ -228,6 +228,12 @@ if __name__ == "__main__":
         default=os.environ.get("API_KEY", "kmfddm"),
         help="Password for HTTP Basic authentication",
     )
+    parser.add_argument(
+        "--user",
+        type=str,
+        default=os.environ.get("API_USER", "kmfddm"),
+        help="Username for HTTP Basic authentication",
+    )
     args = parser.parse_args()
 
-    sync_dir(args.dir, args.baseurl, args.key)
+    sync_dir(args.dir, args.apibaseurl, args.user, args.key)
