@@ -18,6 +18,9 @@ import (
 // The entire request URL path is assumed to contain the set name.
 // This implies the handler should have the path prefix stripped before use.
 func GetDeclarationSetsHandler(store storage.DeclarationSetRetriever, logger log.Logger) http.HandlerFunc {
+	if store == nil || logger == nil {
+		panic("nil store or logger")
+	}
 	return simpleJSONResourceHandler(
 		logger,
 		func(ctx context.Context, resource string, _ *url.URL) (interface{}, error) {
@@ -30,6 +33,9 @@ func GetDeclarationSetsHandler(store storage.DeclarationSetRetriever, logger log
 // The entire request URL path is assumed to contain the set name.
 // This implies the handler should have the path prefix stripped before use.
 func GetSetDeclarationsHandler(store storage.SetDeclarationsRetriever, logger log.Logger) http.HandlerFunc {
+	if store == nil || logger == nil {
+		panic("nil store or logger")
+	}
 	return simpleJSONResourceHandler(
 		logger,
 		func(ctx context.Context, resource string, _ *url.URL) (interface{}, error) {
@@ -42,6 +48,9 @@ func GetSetDeclarationsHandler(store storage.SetDeclarationsRetriever, logger lo
 // The entire request URL path is assumed to contain the set name.
 // This implies the handler should have the path prefix stripped before use.
 func PutSetDeclarationHandler(store storage.SetDeclarationStorer, notifier Notifier, logger log.Logger) http.HandlerFunc {
+	if store == nil || notifier == nil || logger == nil {
+		panic("nil store or notifier or logger")
+	}
 	return simpleChangeResourceHandler(
 		logger,
 		func(ctx context.Context, resource string, u *url.URL, notify bool) (bool, string, error) {
@@ -65,6 +74,9 @@ func PutSetDeclarationHandler(store storage.SetDeclarationStorer, notifier Notif
 // The entire request URL path is assumed to contain the set name.
 // This implies the handler should have the path prefix stripped before use.
 func DeleteSetDeclarationHandler(store storage.SetDeclarationRemover, notifier Notifier, logger log.Logger) http.HandlerFunc {
+	if store == nil || notifier == nil || logger == nil {
+		panic("nil store or notifier or logger")
+	}
 	return simpleChangeResourceHandler(
 		logger,
 		func(ctx context.Context, resource string, u *url.URL, notify bool) (bool, string, error) {
@@ -86,6 +98,9 @@ func DeleteSetDeclarationHandler(store storage.SetDeclarationRemover, notifier N
 
 // GetSetsHandler returns a handler that retrieves the list of sets.
 func GetSetsHandler(store storage.SetRetreiver, logger log.Logger) http.HandlerFunc {
+	if store == nil || logger == nil {
+		panic("nil store or logger")
+	}
 	return func(w http.ResponseWriter, r *http.Request) {
 		logger := ctxlog.Logger(r.Context(), logger)
 		ids, err := store.RetrieveSets(r.Context())

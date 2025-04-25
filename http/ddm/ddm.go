@@ -8,10 +8,10 @@ import (
 	"net/http"
 
 	"github.com/jessepeterson/kmfddm/ddm"
-	httpddm "github.com/jessepeterson/kmfddm/http"
 	"github.com/jessepeterson/kmfddm/logkeys"
 	"github.com/jessepeterson/kmfddm/storage"
 
+	"github.com/micromdm/nanolib/http/trace"
 	"github.com/micromdm/nanolib/log"
 	"github.com/micromdm/nanolib/log/ctxlog"
 )
@@ -134,7 +134,7 @@ func StatusReportHandler(store storage.StatusStorer, hLogger log.Logger) http.Ha
 			ErrorAndLog(w, http.StatusInternalServerError, logger, "parsing status report", err)
 			return
 		}
-		status.ID = httpddm.GetTraceID(ctx)
+		status.ID = trace.GetTraceID(ctx)
 		logger = logger.With(
 			logkeys.DeclarationCount, len(status.Declarations),
 			logkeys.ErrorCount, len(status.Errors),

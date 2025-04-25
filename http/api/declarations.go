@@ -16,6 +16,9 @@ import (
 
 // PutDeclarationHandler returns a handler that stores a declaration.
 func PutDeclarationHandler(store storage.DeclarationStorer, notifier Notifier, logger log.Logger) http.HandlerFunc {
+	if store == nil || notifier == nil || logger == nil {
+		panic("nil store or notifier or logger")
+	}
 	return func(w http.ResponseWriter, r *http.Request) {
 		logger := ctxlog.Logger(r.Context(), logger)
 		bodyBytes, err := io.ReadAll(r.Body)
@@ -67,6 +70,9 @@ func PutDeclarationHandler(store storage.DeclarationStorer, notifier Notifier, l
 // The entire request URL path is assumed to contain the declaration identifier.
 // This implies the handler should have the path prefix stripped before use.
 func GetDeclarationHandler(store storage.DeclarationAPIRetriever, logger log.Logger) http.HandlerFunc {
+	if store == nil || logger == nil {
+		panic("nil store or logger")
+	}
 	return func(w http.ResponseWriter, r *http.Request) {
 		logger := ctxlog.Logger(r.Context(), logger)
 		declarationID := getResourceID(r)
@@ -100,6 +106,9 @@ func GetDeclarationHandler(store storage.DeclarationAPIRetriever, logger log.Log
 // The entire request URL path is assumed to contain the declaration identifier.
 // This implies the handler should have the path prefix stripped before use.
 func DeleteDeclarationHandler(store storage.DeclarationDeleter, logger log.Logger) http.HandlerFunc {
+	if store == nil || logger == nil {
+		panic("nil store or logger")
+	}
 	return func(w http.ResponseWriter, r *http.Request) {
 		logger := ctxlog.Logger(r.Context(), logger)
 		declarationID := getResourceID(r)
@@ -126,6 +135,9 @@ func DeleteDeclarationHandler(store storage.DeclarationDeleter, logger log.Logge
 
 // GetDeclarationsHandler returns a handler that lists declarations.
 func GetDeclarationsHandler(store storage.DeclarationsRetriever, logger log.Logger) http.HandlerFunc {
+	if store == nil || logger == nil {
+		panic("nil store or logger")
+	}
 	return func(w http.ResponseWriter, r *http.Request) {
 		logger := ctxlog.Logger(r.Context(), logger)
 		ids, err := store.RetrieveDeclarations(r.Context())
@@ -143,6 +155,9 @@ func GetDeclarationsHandler(store storage.DeclarationsRetriever, logger log.Logg
 
 // TouchDeclarationHandler modifies a declaration ServerToken specified by ID.
 func TouchDeclarationHandler(store storage.Toucher, notifier Notifier, logger log.Logger) http.HandlerFunc {
+	if store == nil || notifier == nil || logger == nil {
+		panic("nil store or notifier or logger")
+	}
 	return func(w http.ResponseWriter, r *http.Request) {
 		logger := ctxlog.Logger(r.Context(), logger)
 		var err error
