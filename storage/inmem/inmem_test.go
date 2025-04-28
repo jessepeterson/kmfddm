@@ -7,6 +7,7 @@ import (
 
 	"github.com/cespare/xxhash"
 	"github.com/jessepeterson/kmfddm/storage/test"
+	"github.com/jessepeterson/kmfddm/test/e2e"
 )
 
 func TestInMem(t *testing.T) {
@@ -18,5 +19,8 @@ func TestInMem(t *testing.T) {
 	})
 	t.Run("TestBasicStatus", func(t *testing.T) {
 		test.TestBasicStatus(t, "../test", s, ctx)
+	})
+	t.Run("TestE2E", func(t *testing.T) {
+		e2e.TestE2E(t, ctx, s)
 	})
 }

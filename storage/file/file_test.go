@@ -8,6 +8,7 @@ import (
 
 	"github.com/cespare/xxhash"
 	"github.com/jessepeterson/kmfddm/storage/test"
+	"github.com/jessepeterson/kmfddm/test/e2e"
 )
 
 func TestFile(t *testing.T) {
@@ -15,9 +16,14 @@ func TestFile(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	ctx := context.Background()
 
-	test.TestBasic(t, s, context.Background())
-	test.TestBasicStatus(t, "../test", s, context.Background())
+	test.TestBasic(t, s, ctx)
+	test.TestBasicStatus(t, "../test", s, ctx)
+	t.Run("TestE2E", func(t *testing.T) {
+		e2e.TestE2E(t, ctx, s)
+	})
+
 }
 
 func TestSliceOps(t *testing.T) {
