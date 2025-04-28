@@ -1,6 +1,6 @@
 #!/bin/sh
 
-URL="${BASE_URL}/declarations/$1"
+URL="${API_BASE_URL}/declarations/$1"
 
 if [ "x$API_USER" = "x" ]; then
     API_USER="kmfddm"
