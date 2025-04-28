@@ -1,6 +1,6 @@
 # KMFDDM
 
-[![CI/CD](https://github.com/jessepeterson/kmfddm/workflows/CI%2FCD/badge.svg)](https://github.com/jessepeterson/kmfddm/actions)
+[![CI/CD](https://github.com/jessepeterson/kmfddm/actions/workflows/on-push-pr.yml/badge.svg)](https://github.com/jessepeterson/kmfddm/actions/workflows/on-push-pr.yml) [![Go Reference](https://pkg.go.dev/badge/github.com/jessepeterson/kmfddm.svg)](https://pkg.go.dev/github.com/jessepeterson/kmfddm)
 
 KMFDDM is an Apple Declarative Device Management (DDM) server. It works together with open source MDM servers.
 
