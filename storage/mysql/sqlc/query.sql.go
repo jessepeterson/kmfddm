@@ -8,7 +8,112 @@ package sqlc
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 )
+
+const getDDMDeclaration = `-- name: GetDDMDeclaration :one
+SELECT
+    JSON_OBJECT(
+        'Identifier',  d.identifier,
+        'Type',        d.type,
+        'Payload',     d.payload,
+        'ServerToken', d.server_token
+    ) AS declaration
+FROM
+    declarations d
+    INNER JOIN set_declarations sd
+        ON d.identifier = sd.declaration_identifier
+    INNER JOIN enrollment_sets es
+        ON sd.set_name = es.set_name
+WHERE
+    d.identifier = ? AND
+    es.enrollment_id = ? AND
+    d.type LIKE ?
+`
+
+type GetDDMDeclarationParams struct {
+	Identifier   string
+	EnrollmentID string
+	Type         string
+}
+
+func (q *Queries) GetDDMDeclaration(ctx context.Context, arg GetDDMDeclarationParams) (json.RawMessage, error) {
+	row := q.db.QueryRowContext(ctx, getDDMDeclaration, arg.Identifier, arg.EnrollmentID, arg.Type)
+	var declaration json.RawMessage
+	err := row.Scan(&declaration)
+	return declaration, err
+}
+
+const getDeclaration = `-- name: GetDeclaration :one
+SELECT
+    d.identifier,
+    d.type,
+    d.payload,
+    d.server_token,
+    JSON_OBJECT(
+        'Identifier',  d.identifier,
+        'Type',        d.type,
+        'Payload',     d.payload,
+        'ServerToken', d.server_token
+    ) AS declaration
+FROM
+    declarations d
+WHERE
+    d.identifier = ?
+`
+
+type GetDeclarationRow struct {
+	Identifier  string
+	Type        string
+	Payload     json.RawMessage
+	ServerToken string
+	Declaration json.RawMessage
+}
+
+func (q *Queries) GetDeclaration(ctx context.Context, identifier string) (GetDeclarationRow, error) {
+	row := q.db.QueryRowContext(ctx, getDeclaration, identifier)
+	var i GetDeclarationRow
+	err := row.Scan(
+		&i.Identifier,
+		&i.Type,
+		&i.Payload,
+		&i.ServerToken,
+		&i.Declaration,
+	)
+	return i, err
+}
+
+const getDeclarationReferences = `-- name: GetDeclarationReferences :many
+SELECT
+    declaration_reference
+FROM
+    declaration_references
+WHERE
+    declaration_identifier = ?
+`
+
+func (q *Queries) GetDeclarationReferences(ctx context.Context, declarationIdentifier string) ([]string, error) {
+	rows, err := q.db.QueryContext(ctx, getDeclarationReferences, declarationIdentifier)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var declaration_reference string
+		if err := rows.Scan(&declaration_reference); err != nil {
+			return nil, err
+		}
+		items = append(items, declaration_reference)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
 
 const getManifestItems = `-- name: GetManifestItems :many
 SELECT DISTINCT

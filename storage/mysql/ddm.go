@@ -10,6 +10,7 @@ import (
 	"github.com/jessepeterson/kmfddm/ddm"
 	"github.com/jessepeterson/kmfddm/ddm/build"
 	"github.com/jessepeterson/kmfddm/storage"
+	"github.com/jessepeterson/kmfddm/storage/mysql/sqlc"
 )
 
 // RetrieveEnrollmentDeclarationJSON retreives a declaration intended for a
@@ -21,31 +22,13 @@ func (s *MySQLStorage) RetrieveEnrollmentDeclarationJSON(ctx context.Context, de
 	// we JOIN against the enrollments table to make sure only those
 	// declarations that are transitively related are able to be
 	// accessed. kinda-sorta like an ACL. almost.
-	err = s.db.QueryRowContext(
-		ctx, `
-SELECT
-    JSON_OBJECT(
-        "Identifier",  d.identifier,
-        "Type",        d.type,
-        "Payload",     d.payload,
-        "ServerToken", d.server_token
-    ) AS declaration
-FROM
-    declarations d
-    INNER JOIN set_declarations sd
-        ON d.identifier = sd.declaration_identifier
-    INNER JOIN enrollment_sets es
-        ON sd.set_name = es.set_name
-WHERE
-    d.identifier = ? AND
-    es.enrollment_id = ? AND
-    d.type LIKE ?;`,
-		declarationID,
-		enrollmentID,
-		"com.apple."+declarationType+".%",
-	).Scan(&raw)
+	raw, err = s.q.GetDDMDeclaration(ctx, sqlc.GetDDMDeclarationParams{
+		Identifier:   declarationID,
+		Type:         "com.apple." + declarationType + ".%",
+		EnrollmentID: enrollmentID,
+	})
 	if errors.Is(err, sql.ErrNoRows) {
-		err = fmt.Errorf("%w: %v", storage.ErrDeclarationNotFound, err)
+		return raw, fmt.Errorf("%w: %v", storage.ErrDeclarationNotFound, err)
 	}
 	return
 }

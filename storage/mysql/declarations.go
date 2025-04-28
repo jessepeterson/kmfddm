@@ -72,65 +72,20 @@ UPDATE
 // RetrieveDeclaration retrieves a declaration.
 // See also the storage package for documentation on the storage interfaces.
 func (s *MySQLStorage) RetrieveDeclaration(ctx context.Context, declarationID string) (d *ddm.Declaration, err error) {
-	// we could simply load the declaration JSON and do a ddm.ParseDeclaration()
-	// but we'll try to take advantage of our fancy RDBMS we have here :)
-	d = new(ddm.Declaration)
-	err = s.db.QueryRowContext(
-		ctx, `
-SELECT
-    d.identifier,
-    d.type,
-    d.payload,
-    d.server_token,
-    JSON_OBJECT(
-        "Identifier",  d.identifier,
-        "Type",        d.type,
-        "Payload",     d.payload,
-        "ServerToken", d.server_token
-    ) AS declaration
-FROM
-    declarations d
-WHERE
-    d.identifier = ?;`,
-		declarationID,
-	).Scan(
-		&d.Identifier,
-		&d.Type,
-		&d.PayloadJSON,
-		&d.ServerToken,
-		&d.Raw,
-	)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			err = fmt.Errorf("%w: %v", storage.ErrDeclarationNotFound, err)
-		}
-		return
+	qd, err := s.q.GetDeclaration(ctx, declarationID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, fmt.Errorf("%w: %v", storage.ErrDeclarationNotFound, err)
+	} else if err != nil {
+		return nil, err
 	}
-	rows, err := s.db.QueryContext(
-		ctx, `
-SELECT
-    declaration_reference
-FROM
-    declaration_references
-WHERE
-    declaration_identifier = ?;`,
-		declarationID,
-	)
-	if err != nil {
-		return
+	d = &ddm.Declaration{
+		Identifier:  qd.Identifier,
+		Type:        qd.Type,
+		ServerToken: qd.ServerToken,
+		PayloadJSON: qd.Payload,
+		Raw:         qd.Declaration,
 	}
-	defer rows.Close()
-	var declarationRef string
-	for rows.Next() {
-		err = rows.Scan(&declarationRef)
-		if err != nil {
-			break
-		}
-		d.IdentifierRefs = append(d.IdentifierRefs, declarationRef)
-	}
-	if err == nil {
-		err = rows.Err()
-	}
+	d.IdentifierRefs, err = s.q.GetDeclarationReferences(ctx, declarationID)
 	return
 }
 
