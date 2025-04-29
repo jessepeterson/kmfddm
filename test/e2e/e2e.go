@@ -3,10 +3,8 @@ package e2e
 import (
 	"context"
 	"encoding/json"
-	"io"
 	"reflect"
 	"sort"
-	"strings"
 	"testing"
 
 	"github.com/alexedwards/flow"
@@ -121,13 +119,7 @@ func TestE2E(t *testing.T, ctx context.Context, storage api.APIStorage) {
 
 	// retrieve the declarations for this (not yet existing) set
 	resp = doReq(mux, "GET", "/v1/set-declarations/golang_test_set_854CC771FACE", nil)
-	expectHTTP(t, resp, 200)
-
-	// check that we have no association in the result
-	bodyBytes, _ := io.ReadAll(resp.Body)
-	if have, want := strings.TrimSpace(string(bodyBytes)), "null"; have != want {
-		t.Errorf("have: %v, want: %v", have, want)
-	}
+	expectHTTPStringSlice(t, resp, 200, nil)
 
 	// associate the declaration with the set
 	resp = doReq(mux, "PUT", "/v1/set-declarations/golang_test_set_854CC771FACE?declaration="+testID1, nil)
@@ -135,23 +127,43 @@ func TestE2E(t *testing.T, ctx context.Context, storage api.APIStorage) {
 
 	// retrieve the declarations for this (not yet existing) set
 	resp = doReq(mux, "GET", "/v1/set-declarations/golang_test_set_854CC771FACE", nil)
-	expectHTTP(t, resp, 200)
+	expectHTTPStringSlice(t, resp, 200, []string{"golang_test_decl_A711884F1270"})
 
-	// check that we have the proper association
-	var s *[]string
-	if err := json.NewDecoder(resp.Body).Decode(&s); err != nil {
-		t.Fatal(err)
-	}
-	if s == nil {
-		t.Fatal("nil result")
-	}
-	if have, want := *s, []string{"golang_test_decl_A711884F1270"}; !stringSlicesEqual(have, want) {
-		t.Errorf("have: %v, want: %v", have, want)
-	}
+	// first delete the association to make sure no change
+	resp = doReq(mux, "DELETE", "/v1/enrollment-sets/golang_test_enr_775871FF5E47?set=golang_test_set_854CC771FACE", nil)
+	expectHTTP(t, resp, 304)
+
+	// first delete the association to make sure no change
+	resp = doReq(mux, "GET", "/v1/enrollment-sets/golang_test_enr_775871FF5E47", nil)
+	expectHTTPStringSlice(t, resp, 200, nil)
+
+	// associate the set with the enrollment
+	resp = doReq(mux, "PUT", "/v1/enrollment-sets/golang_test_enr_775871FF5E47?set=golang_test_set_854CC771FACE", nil)
+	expectHTTP(t, resp, 204)
+
+	// retrieve the sets for this enrollment
+	resp = doReq(mux, "GET", "/v1/enrollment-sets/golang_test_enr_775871FF5E47", nil)
+	expectHTTPStringSlice(t, resp, 200, []string{"golang_test_set_854CC771FACE"})
+
+	// remove the association
+	resp = doReq(mux, "DELETE", "/v1/enrollment-sets/golang_test_enr_775871FF5E47?set=golang_test_set_854CC771FACE", nil)
+	expectHTTP(t, resp, 204)
+
+	// first delete the association to make sure no change
+	resp = doReq(mux, "GET", "/v1/enrollment-sets/golang_test_enr_775871FF5E47", nil)
+	expectHTTPStringSlice(t, resp, 200, nil)
+
+	// remove the association again
+	resp = doReq(mux, "DELETE", "/v1/enrollment-sets/golang_test_enr_775871FF5E47?set=golang_test_set_854CC771FACE", nil)
+	expectHTTP(t, resp, 304)
 
 	// remove the association
 	resp = doReq(mux, "DELETE", "/v1/set-declarations/golang_test_set_854CC771FACE?declaration="+testID1, nil)
 	expectHTTP(t, resp, 204)
+
+	// retrieve the declarations for this (not yet existing) set
+	resp = doReq(mux, "GET", "/v1/set-declarations/golang_test_set_854CC771FACE", nil)
+	expectHTTPStringSlice(t, resp, 200, nil)
 
 	// remove the association again
 	resp = doReq(mux, "DELETE", "/v1/set-declarations/golang_test_set_854CC771FACE?declaration="+testID1, nil)
