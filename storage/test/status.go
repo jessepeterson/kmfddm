@@ -16,6 +16,7 @@ type statusStorage interface {
 	storage.SetDeclarationStorage
 	storage.EnrollmentSetStorer
 	storage.StatusAPIStorage
+	storage.DeclarationDeleter
 }
 
 const statusFile1 = "testdata/status.1st.json"
@@ -185,6 +186,18 @@ func TestBasicStatus(t *testing.T, pathToDDMTestdata string, store statusStorage
 
 	if have, want := declStatus[0].Active, false; have != want {
 		t.Errorf("have: %v, want: %v", have, want)
+	}
+
+	// clean-up the set assignement ...
+	_, err = store.RemoveSetDeclaration(ctx, "default", d.Identifier)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// ... and the declaration
+	_, err = store.DeleteDeclaration(ctx, d.Identifier)
+	if err != nil {
+		t.Fatal(err)
 	}
 
 }

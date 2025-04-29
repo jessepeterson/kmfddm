@@ -9,21 +9,64 @@ import (
 	"sort"
 	"strings"
 	"testing"
+
+	"github.com/jessepeterson/kmfddm/http/api"
+	ddmhttp "github.com/jessepeterson/kmfddm/http/ddm"
+	"github.com/jessepeterson/kmfddm/logkeys"
+	"github.com/jessepeterson/kmfddm/storage"
+
+	"github.com/micromdm/nanolib/log"
 )
+
+type DDMStorage interface {
+	storage.TokensDeclarationItemsStorage
+	storage.DeclarationJSONRetriever
+}
+
+func handleDDM(mux api.Mux, logger log.Logger, storage DDMStorage) {
+	mux.Handle(
+		"/declaration-items",
+		ddmhttp.TokensOrDeclarationItemsHandler(storage, false, logger.With(logkeys.Handler, "declaration-items")),
+		"GET",
+	)
+
+	mux.Handle(
+		"/tokens",
+		ddmhttp.TokensOrDeclarationItemsHandler(storage, true, logger.With(logkeys.Handler, "tokens")),
+		"GET",
+	)
+
+	mux.Handle(
+		"/declaration/:type/:id",
+		http.StripPrefix("/declaration/",
+			ddmhttp.DeclarationHandler(storage, logger.With(logkeys.Handler, "declaration")),
+		),
+		"GET",
+	)
+}
 
 type ServeHTTP interface {
 	ServeHTTP(w http.ResponseWriter, r *http.Request)
 }
 
-func doReq(serve ServeHTTP, method, target string, body []byte) *http.Response {
+func doReqHeader(serve ServeHTTP, method, target string, headers http.Header, body []byte) *http.Response {
 	var buf io.Reader
 	if len(body) > 0 {
 		buf = bytes.NewBuffer(body)
 	}
 	req := httptest.NewRequest(method, target, buf)
+	for k, vs := range headers {
+		for _, v := range vs {
+			req.Header.Add(k, v)
+		}
+	}
 	w := httptest.NewRecorder()
 	serve.ServeHTTP(w, req)
 	return w.Result()
+}
+
+func doReq(serve ServeHTTP, method, target string, body []byte) *http.Response {
+	return doReqHeader(serve, method, target, nil, body)
 }
 
 func expectHTTP(t *testing.T, resp *http.Response, statusCode int) {
