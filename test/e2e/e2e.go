@@ -105,12 +105,6 @@ func TestE2E(t *testing.T, ctx context.Context, storage TestStorage) {
 
 		if rTestD.ServerToken == "" {
 			t.Error("ServerToken empty")
-		} else {
-			// set the server token to empty because we don't know what a
-			// given backend's server token may look like. as long as its
-			// not empty (checked above), should be fine for the following
-			// tests.
-			rTestD.ServerToken = ""
 		}
 
 		// setup our expected struct
@@ -120,10 +114,38 @@ func TestE2E(t *testing.T, ctx context.Context, storage TestStorage) {
 			Payload: struct{ Echo string }{
 				"test",
 			},
+			ServerToken: rTestD.ServerToken,
 		}
 
 		if !reflect.DeepEqual(eTestD, rTestD) {
-			t.Errorf("have: %v, want: %v", rTestD, eTestD)
+			t.Errorf("declarations not equal: have: %v, want: %v", rTestD, eTestD)
+		}
+
+		// touch declaration
+		resp = doReq(mux, "POST", "/v1/declarations/"+testID1+"/touch", nil)
+		expectHTTP(t, resp, 204)
+		expectNotifierSlice(t, n, true, nil)
+
+		// retrieve the newly touched declaration
+		resp = doReq(mux, "GET", "/v1/declarations/"+testID1, nil)
+		expectHTTP(t, resp, 200)
+
+		// decode the retrieved declaration
+		rTestD = &TestDeclaration{}
+		if err := json.NewDecoder(resp.Body).Decode(rTestD); err != nil {
+			t.Fatal(err)
+		}
+
+		// make sure token has changed
+		if have, notWant := rTestD.ServerToken, eTestD.ServerToken; have == notWant {
+			t.Errorf("token should have changed: have: %v, notWant: %v", have, notWant)
+		}
+
+		// make the same for comparison otherwise
+		eTestD.ServerToken = rTestD.ServerToken
+
+		if !reflect.DeepEqual(rTestD, eTestD) {
+			t.Errorf("declarations not equal: have: %v, want: %v", rTestD, eTestD)
 		}
 	})
 
