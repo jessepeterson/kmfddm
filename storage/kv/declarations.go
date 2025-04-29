@@ -155,7 +155,7 @@ func (s *KV) DeleteDeclaration(ctx context.Context, declarationID string) (chang
 			changed = true
 
 			// then check if we're in any sets
-			sets, err := getDeclarationSets(ctx, b, declarationID)
+			sets, err := getDeclarationSets(ctx, s.sets, declarationID)
 			if err != nil {
 				return err
 			}
