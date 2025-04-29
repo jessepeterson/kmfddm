@@ -4,11 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"reflect"
-	"sort"
 	"testing"
 
 	"github.com/alexedwards/flow"
 	"github.com/jessepeterson/kmfddm/http/api"
+	"github.com/jessepeterson/kmfddm/storage"
 	"github.com/micromdm/nanolib/log"
 )
 
@@ -31,41 +31,37 @@ type TestDeclaration struct {
 	}
 }
 
-type nopNotifier struct{}
-
-func (*nopNotifier) Changed(ctx context.Context, declarations []string, sets []string, ids []string) error {
-	return nil
+type TestStorage interface {
+	api.APIStorage
+	storage.EnrollmentIDRetriever
 }
 
-// stringSlicesEqual checks if two string slices are equal by sorting them.
-func stringSlicesEqual(expected, actual []string) bool {
-	if len(expected) != len(actual) {
-		return false
+func expectNotifierSlice(t *testing.T, n *captureNotifier, shouldHaveRun bool, want []string) {
+	t.Helper()
+
+	if shouldHaveRun && !n.called {
+		t.Error("notifier should have been called but was not")
+	} else if !shouldHaveRun && n.called {
+		t.Error("notifier should not have been called but was")
 	}
 
-	// Sort the string slices
-	sort.Strings(expected)
-	sort.Strings(actual)
+	have := n.getAndClear()
 
-	// Compare the sorted slices
-	for i := range expected {
-		if expected[i] != actual[i] {
-			return false
-		}
+	if !stringSlicesEqual(have, want) {
+		t.Errorf("have: %v, want: %v", have, want)
 	}
-
-	return true
 }
 
-func TestE2E(t *testing.T, ctx context.Context, storage api.APIStorage) {
+func TestE2E(t *testing.T, ctx context.Context, storage TestStorage) {
 	// setup
 	mux := flow.New()
-	n := &nopNotifier{}
+	n := &captureNotifier{store: storage}
 	api.HandleAPIv1("/v1", mux, log.NopLogger, storage, n)
 
 	// attempt to delete the not yet uploaded declaration
 	resp := doReq(mux, "DELETE", "/v1/declarations/"+testID1, nil)
 	expectHTTP(t, resp, 304)
+	expectNotifierSlice(t, n, false, nil)
 
 	// retrieve the (not yet uploaded) declaration
 	resp = doReq(mux, "GET", "/v1/declarations/"+testID1, nil)
@@ -74,11 +70,13 @@ func TestE2E(t *testing.T, ctx context.Context, storage api.APIStorage) {
 	// upload our declaration
 	resp = doReq(mux, "PUT", "/v1/declarations", []byte(testDecl1))
 	expectHTTP(t, resp, 204)
+	expectNotifierSlice(t, n, true, nil)
 
 	// upload our declaration again
 	resp = doReq(mux, "PUT", "/v1/declarations", []byte(testDecl1))
 	// status should be 304 for an identically uploaded declaration
 	expectHTTP(t, resp, 304)
+	expectNotifierSlice(t, n, false, nil)
 
 	// retrieve the declaration
 	resp = doReq(mux, "GET", "/v1/declarations/"+testID1, nil)
@@ -116,6 +114,7 @@ func TestE2E(t *testing.T, ctx context.Context, storage api.APIStorage) {
 	// delete the (not yet) set association
 	resp = doReq(mux, "DELETE", "/v1/set-declarations/golang_test_set_854CC771FACE?declaration="+testID1, nil)
 	expectHTTP(t, resp, 304)
+	expectNotifierSlice(t, n, false, nil)
 
 	// retrieve the declarations for this (not yet existing) set
 	resp = doReq(mux, "GET", "/v1/set-declarations/golang_test_set_854CC771FACE", nil)
@@ -124,22 +123,30 @@ func TestE2E(t *testing.T, ctx context.Context, storage api.APIStorage) {
 	// associate the declaration with the set
 	resp = doReq(mux, "PUT", "/v1/set-declarations/golang_test_set_854CC771FACE?declaration="+testID1, nil)
 	expectHTTP(t, resp, 204)
+	expectNotifierSlice(t, n, true, nil)
+
+	// attempt deletion of the declaration (should fail after set assoc, above)
+	resp = doReq(mux, "DELETE", "/v1/declarations/"+testID1, nil)
+	expectHTTP(t, resp, 500)
+	expectNotifierSlice(t, n, false, nil)
 
 	// retrieve the declarations for this (not yet existing) set
 	resp = doReq(mux, "GET", "/v1/set-declarations/golang_test_set_854CC771FACE", nil)
 	expectHTTPStringSlice(t, resp, 200, []string{"golang_test_decl_A711884F1270"})
 
-	// first delete the association to make sure no change
+	// first delete the enrollment association to make sure no change
 	resp = doReq(mux, "DELETE", "/v1/enrollment-sets/golang_test_enr_775871FF5E47?set=golang_test_set_854CC771FACE", nil)
 	expectHTTP(t, resp, 304)
+	expectNotifierSlice(t, n, false, nil)
 
-	// first delete the association to make sure no change
+	// get the associations to make sure
 	resp = doReq(mux, "GET", "/v1/enrollment-sets/golang_test_enr_775871FF5E47", nil)
 	expectHTTPStringSlice(t, resp, 200, nil)
 
 	// associate the set with the enrollment
 	resp = doReq(mux, "PUT", "/v1/enrollment-sets/golang_test_enr_775871FF5E47?set=golang_test_set_854CC771FACE", nil)
 	expectHTTP(t, resp, 204)
+	expectNotifierSlice(t, n, true, []string{"golang_test_enr_775871FF5E47"})
 
 	// retrieve the sets for this enrollment
 	resp = doReq(mux, "GET", "/v1/enrollment-sets/golang_test_enr_775871FF5E47", nil)
@@ -148,6 +155,7 @@ func TestE2E(t *testing.T, ctx context.Context, storage api.APIStorage) {
 	// remove the association
 	resp = doReq(mux, "DELETE", "/v1/enrollment-sets/golang_test_enr_775871FF5E47?set=golang_test_set_854CC771FACE", nil)
 	expectHTTP(t, resp, 204)
+	expectNotifierSlice(t, n, true, []string{"golang_test_enr_775871FF5E47"})
 
 	// first delete the association to make sure no change
 	resp = doReq(mux, "GET", "/v1/enrollment-sets/golang_test_enr_775871FF5E47", nil)
@@ -156,10 +164,12 @@ func TestE2E(t *testing.T, ctx context.Context, storage api.APIStorage) {
 	// remove the association again
 	resp = doReq(mux, "DELETE", "/v1/enrollment-sets/golang_test_enr_775871FF5E47?set=golang_test_set_854CC771FACE", nil)
 	expectHTTP(t, resp, 304)
+	expectNotifierSlice(t, n, false, nil)
 
 	// remove the association
 	resp = doReq(mux, "DELETE", "/v1/set-declarations/golang_test_set_854CC771FACE?declaration="+testID1, nil)
 	expectHTTP(t, resp, 204)
+	expectNotifierSlice(t, n, true, nil)
 
 	// retrieve the declarations for this (not yet existing) set
 	resp = doReq(mux, "GET", "/v1/set-declarations/golang_test_set_854CC771FACE", nil)
@@ -168,12 +178,17 @@ func TestE2E(t *testing.T, ctx context.Context, storage api.APIStorage) {
 	// remove the association again
 	resp = doReq(mux, "DELETE", "/v1/set-declarations/golang_test_set_854CC771FACE?declaration="+testID1, nil)
 	expectHTTP(t, resp, 304)
+	expectNotifierSlice(t, n, false, nil)
 
 	// delete the declaration
 	resp = doReq(mux, "DELETE", "/v1/declarations/"+testID1, nil)
 	expectHTTP(t, resp, 204)
+	// shouldn't notify here because the storage should know that
+	// we are not currently associated with any sets
+	expectNotifierSlice(t, n, false, nil)
 
 	// attempt to delete the declaration again
 	resp = doReq(mux, "DELETE", "/v1/declarations/"+testID1, nil)
 	expectHTTP(t, resp, 304)
+	expectNotifierSlice(t, n, false, nil)
 }

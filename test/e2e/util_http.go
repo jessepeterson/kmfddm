@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"sort"
 	"strings"
 	"testing"
 )
@@ -53,4 +54,24 @@ func expectHTTPStringSlice(t *testing.T, resp *http.Response, statusCode int, ex
 	if have, want := s, expected; !stringSlicesEqual(have, want) {
 		t.Errorf("have: %v, want: %v", have, want)
 	}
+}
+
+// stringSlicesEqual checks if two string slices are equal by sorting them.
+func stringSlicesEqual(expected, actual []string) bool {
+	if len(expected) != len(actual) {
+		return false
+	}
+
+	// Sort the string slices
+	sort.Strings(expected)
+	sort.Strings(actual)
+
+	// Compare the sorted slices
+	for i := range expected {
+		if expected[i] != actual[i] {
+			return false
+		}
+	}
+
+	return true
 }
