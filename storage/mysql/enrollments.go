@@ -120,17 +120,26 @@ FROM
 		return nil, err
 	}
 	defer rows.Close()
-	var retIDs []string
+	retIDMap := make(map[string]struct{})
 	var retID string
 	for rows.Next() {
 		err = rows.Scan(&retID)
 		if err != nil {
 			break
 		}
-		retIDs = append(retIDs, retID)
+		retIDMap[retID] = struct{}{}
 	}
 	if err == nil {
 		err = rows.Err()
+	}
+	// merge in the enrollment IDs directly supplied in params
+	for _, id := range ids {
+		retIDMap[id] = struct{}{}
+	}
+	// convert back to slice for return value
+	retIDs := make([]string, 0, len(retIDMap))
+	for k := range retIDMap {
+		retIDs = append(retIDs, k)
 	}
 	return retIDs, err
 }
