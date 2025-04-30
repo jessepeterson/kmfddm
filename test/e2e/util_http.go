@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/jessepeterson/kmfddm/ddm"
 	"github.com/jessepeterson/kmfddm/http/api"
 	ddmhttp "github.com/jessepeterson/kmfddm/http/ddm"
 	"github.com/jessepeterson/kmfddm/logkeys"
@@ -97,6 +98,23 @@ func expectHTTPStringSlice(t *testing.T, resp *http.Response, statusCode int, ex
 	if have, want := s, expected; !stringSlicesEqual(have, want) {
 		t.Errorf("have: %v, want: %v", have, want)
 	}
+}
+
+func expectHTTPDI(t *testing.T, resp *http.Response, statusCode int, expected *ddm.DeclarationItems) {
+	t.Helper()
+
+	expectHTTP(t, resp, statusCode)
+
+	if header := resp.Header.Get("Content-Type"); !strings.Contains(header, "application/json") {
+		t.Errorf("header does not contain application/json: %s", header)
+	}
+
+	di := &ddm.DeclarationItems{}
+	if err := json.NewDecoder(resp.Body).Decode(di); err != nil {
+		t.Fatal(err)
+	}
+
+	diEqual(t, di, expected)
 }
 
 // stringSlicesEqual checks if two string slices are equal by sorting them.

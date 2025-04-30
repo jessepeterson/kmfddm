@@ -40,6 +40,15 @@ type TestStorage interface {
 	DDMStorage
 }
 
+var emptyDI = &ddm.DeclarationItems{
+	Declarations: ddm.ManifestDeclarationItems{
+		Activations:    []ddm.ManifestDeclaration{},
+		Configurations: []ddm.ManifestDeclaration{},
+		Assets:         []ddm.ManifestDeclaration{},
+		Management:     []ddm.ManifestDeclaration{},
+	},
+}
+
 func expectNotifierSlice(t *testing.T, n *captureNotifier, shouldHaveRun bool, want []string) {
 	t.Helper()
 
@@ -150,7 +159,6 @@ func TestE2E(t *testing.T, ctx context.Context, storage TestStorage) {
 	})
 
 	t.Run("set-declaration-setup", func(t *testing.T) {
-
 		// delete the (not yet) set association
 		resp := doReq(mux, "DELETE", "/v1/set-declarations/golang_test_set_854CC771FACE?declaration="+testID1, nil)
 		expectHTTP(t, resp, 304)
@@ -177,11 +185,9 @@ func TestE2E(t *testing.T, ctx context.Context, storage TestStorage) {
 		// retrieve the declarations for this (not yet existing) set
 		resp = doReq(mux, "GET", "/v1/set-declarations/golang_test_set_854CC771FACE", nil)
 		expectHTTPStringSlice(t, resp, 200, []string{"golang_test_decl_A711884F1270"})
-
 	})
 
 	t.Run("enrollment-set-setup", func(t *testing.T) {
-
 		// first delete the enrollment association to make sure no change
 		resp := doReq(mux, "DELETE", "/v1/enrollment-sets/golang_test_enr_775871FF5E47?set=golang_test_set_854CC771FACE", nil)
 		expectHTTP(t, resp, 304)
@@ -201,21 +207,15 @@ func TestE2E(t *testing.T, ctx context.Context, storage TestStorage) {
 		expectHTTPStringSlice(t, resp, 200, []string{"golang_test_set_854CC771FACE"})
 	})
 
+	enrHdr := make(http.Header)
+	enrHdr.Add(httpddm.EnrollmentIDHeader, "golang_test_enr_775871FF5E47")
+
 	t.Run("ddm", func(t *testing.T) {
 		// at this point we have a declaration associated to a set
 		// which is associated to an enrollment.
 		// the full Tokens, Items, Declarations should work now
 
-		enrHdr := make(http.Header)
-		enrHdr.Add(httpddm.EnrollmentIDHeader, "golang_test_enr_775871FF5E47")
-
 		resp := doReqHeader(mux, "GET", "/declaration-items", enrHdr, nil)
-		expectHTTP(t, resp, 200)
-
-		di := &ddm.DeclarationItems{}
-		if err := json.NewDecoder(resp.Body).Decode(di); err != nil {
-			t.Fatal(err)
-		}
 
 		diT := &ddm.DeclarationItems{
 			Declarations: ddm.ManifestDeclarationItems{
@@ -228,7 +228,7 @@ func TestE2E(t *testing.T, ctx context.Context, storage TestStorage) {
 			},
 		}
 
-		diEqual(t, di, diT)
+		expectHTTPDI(t, resp, 200, diT)
 
 		// attempt to retrieve the wrong type
 		resp = doReqHeader(mux, "GET", "/declaration/INVALID/"+testID1, enrHdr, nil)
@@ -270,10 +270,29 @@ func TestE2E(t *testing.T, ctx context.Context, storage TestStorage) {
 		if !reflect.DeepEqual(eTestD, rTestD) {
 			t.Errorf("have: %v, want: %v", rTestD, eTestD)
 		}
+
+		// touch declaration now that we have a set and declaration association
+		resp = doReq(mux, "POST", "/v1/declarations/"+testID1+"/touch", nil)
+		expectHTTP(t, resp, 204)
+		// should now be notified of our enrollment id
+		expectNotifierSlice(t, n, true, []string{"golang_test_enr_775871FF5E47"})
+
+		// remove all sets for id.
+		resp = doReq(mux, "DELETE", "/v1/enrollment-sets-all/sets/golang_test_enr_775871FF5E47", nil)
+		expectHTTP(t, resp, 204)
+		expectNotifierSlice(t, n, true, []string{"golang_test_enr_775871FF5E47"})
+
+		// retrieve sets for enrollment (should be none)
+		resp = doReq(mux, "GET", "/v1/enrollment-sets/golang_test_enr_775871FF5E47", nil)
+		expectHTTPStringSlice(t, resp, 200, nil)
+
+		// re-associate for the below tests
+		resp = doReq(mux, "PUT", "/v1/enrollment-sets/golang_test_enr_775871FF5E47?set=golang_test_set_854CC771FACE", nil)
+		expectHTTP(t, resp, 204)
+		expectNotifierSlice(t, n, true, []string{"golang_test_enr_775871FF5E47"})
 	})
 
 	t.Run("enrollment-set-teardown", func(t *testing.T) {
-
 		// remove the association
 		resp := doReq(mux, "DELETE", "/v1/enrollment-sets/golang_test_enr_775871FF5E47?set=golang_test_set_854CC771FACE", nil)
 		expectHTTP(t, resp, 204)
@@ -288,6 +307,8 @@ func TestE2E(t *testing.T, ctx context.Context, storage TestStorage) {
 		expectHTTP(t, resp, 304)
 		expectNotifierSlice(t, n, false, nil)
 
+		resp = doReqHeader(mux, "GET", "/declaration-items", enrHdr, nil)
+		expectHTTPDI(t, resp, 200, emptyDI)
 	})
 
 	t.Run("set-declaration-teardown", func(t *testing.T) {
