@@ -78,7 +78,31 @@ func expectHTTP(t *testing.T, resp *http.Response, statusCode int) {
 	}
 
 	if have, want := resp.StatusCode, statusCode; statusCode > 0 && have != want {
-		t.Errorf("status code: have: %v, want: %v", have, want)
+		buf := new(bytes.Buffer)
+		_, err := buf.ReadFrom(resp.Body)
+		if err != nil {
+			t.Errorf("reading buffer: %v", err)
+		}
+		resp.Body = io.NopCloser(buf)
+
+		var bodyString string
+
+		if resp.StatusCode == 500 || resp.StatusCode == 400 {
+			// 400 and 500 errors often throw a JSON error
+			errorStruct := &struct {
+				Error string `json:"error"`
+			}{}
+			json.NewDecoder(buf).Decode(errorStruct)
+			if errorStruct.Error != "" {
+				bodyString = "error: " + errorStruct.Error
+			}
+		}
+
+		if bodyString == "" {
+			bodyString = "body: " + buf.String()
+		}
+
+		t.Errorf("status code: have: %v, want: %v, %s", have, want, bodyString)
 	}
 }
 
