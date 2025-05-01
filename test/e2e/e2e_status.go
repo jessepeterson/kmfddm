@@ -64,7 +64,7 @@ func testStatus(t *testing.T, _ context.Context, mux http.Handler, _ storage.Sta
 	}
 
 	// clear out any timestamps as they're dynamically generated
-	for i, _ := range values {
+	for i := range values {
 		values[i].Timestamp = time.Time{}
 	}
 
