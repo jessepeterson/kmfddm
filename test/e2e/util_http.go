@@ -22,6 +22,7 @@ import (
 type DDMStorage interface {
 	storage.TokensDeclarationItemsStorage
 	storage.DeclarationJSONRetriever
+	storage.StatusStorer
 }
 
 func handleDDM(mux api.Mux, logger log.Logger, storage DDMStorage) {
@@ -44,13 +45,15 @@ func handleDDM(mux api.Mux, logger log.Logger, storage DDMStorage) {
 		),
 		"GET",
 	)
+
+	mux.Handle(
+		"/status",
+		ddmhttp.StatusReportHandler(storage, logger.With(logkeys.Handler, "status")),
+		"PUT",
+	)
 }
 
-type ServeHTTP interface {
-	ServeHTTP(w http.ResponseWriter, r *http.Request)
-}
-
-func doReqHeader(serve ServeHTTP, method, target string, headers http.Header, body []byte) *http.Response {
+func doReqHeader(serve http.Handler, method, target string, headers http.Header, body []byte) *http.Response {
 	var buf io.Reader
 	if len(body) > 0 {
 		buf = bytes.NewBuffer(body)
@@ -66,7 +69,7 @@ func doReqHeader(serve ServeHTTP, method, target string, headers http.Header, bo
 	return w.Result()
 }
 
-func doReq(serve ServeHTTP, method, target string, body []byte) *http.Response {
+func doReq(serve http.Handler, method, target string, body []byte) *http.Response {
 	return doReqHeader(serve, method, target, nil, body)
 }
 

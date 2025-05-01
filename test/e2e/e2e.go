@@ -12,6 +12,7 @@ import (
 	"github.com/jessepeterson/kmfddm/http/api"
 	httpddm "github.com/jessepeterson/kmfddm/http/ddm"
 	"github.com/jessepeterson/kmfddm/storage"
+	"github.com/micromdm/nanolib/http/trace"
 	"github.com/micromdm/nanolib/log"
 )
 
@@ -38,6 +39,7 @@ type TestStorage interface {
 	api.APIStorage
 	storage.EnrollmentIDRetriever
 	DDMStorage
+	storage.StatusStorer
 }
 
 var emptyDI = &ddm.DeclarationItems{
@@ -67,10 +69,14 @@ func expectNotifierSlice(t *testing.T, n *captureNotifier, shouldHaveRun bool, w
 
 func TestE2E(t *testing.T, ctx context.Context, storage TestStorage) {
 	// setup
-	mux := flow.New()
+	flowMux := flow.New()
 	n := &captureNotifier{store: storage}
-	api.HandleAPIv1("/v1", mux, log.NopLogger, storage, n)
-	handleDDM(mux, log.NopLogger, storage)
+	logger := log.NopLogger
+	api.HandleAPIv1("/v1", flowMux, logger, storage, n)
+	handleDDM(flowMux, logger, storage)
+
+	var mux http.Handler = flowMux
+	mux = trace.NewTraceLoggingHandler(mux, logger.With("handler", "log"), func(*http.Request) string { return "go_test_trace_id" })
 
 	t.Run("declaration-setup", func(t *testing.T) {
 
@@ -344,5 +350,9 @@ func TestE2E(t *testing.T, ctx context.Context, storage TestStorage) {
 		resp = doReq(mux, "DELETE", "/v1/declarations/"+testID1, nil)
 		expectHTTP(t, resp, 304)
 		expectNotifierSlice(t, n, false, nil)
+	})
+
+	t.Run("status", func(t *testing.T) {
+		testStatus(t, ctx, mux, storage)
 	})
 }
