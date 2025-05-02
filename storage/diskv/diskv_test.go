@@ -11,7 +11,7 @@ import (
 )
 
 func TestDiskv(t *testing.T) {
-	s := New(t.TempDir(), func() hash.Hash { return xxhash.New() })
+	s := New("/tmp/dbkv", func() hash.Hash { return xxhash.New() })
 	ctx := context.Background()
 
 	t.Run("TestBasic", func(t *testing.T) {

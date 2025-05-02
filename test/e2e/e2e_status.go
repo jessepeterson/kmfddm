@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"os"
+	"reflect"
 	"sort"
 	"testing"
 	"time"
@@ -119,7 +120,7 @@ func testStatus(t *testing.T, _ context.Context, mux http.Handler, _ storage.Sta
 	// }
 	// fmt.Println("====")
 
-	// if !reflect.DeepEqual(values, eValues) {
-	// 	t.Errorf("values: have: (%d) %v, want: (%d) %v", len(values), values, len(eValues), eValues)
-	// }
+	if !reflect.DeepEqual(values, eValues) {
+		t.Errorf("values: have: (%d) %v, want: (%d) %v", len(values), values, len(eValues), eValues)
+	}
 }

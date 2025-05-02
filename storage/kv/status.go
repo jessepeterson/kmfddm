@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/jessepeterson/kmfddm/ddm"
@@ -31,6 +30,7 @@ const (
 	keySfxStaDclJso = "json"
 	keySfxStaDclTS  = "ts"
 
+	keySfxStaValPth = "pt"
 	keySfxStaValTyp = "vt"
 	keySfxStaValCty = "ct"
 	keySfxStaValVal = "va"
@@ -124,23 +124,27 @@ func (s *KV) StoreDeclarationStatus(ctx context.Context, enrollmentID string, st
 	// write the status values
 	err = kv.PerformCRUDBucketTxn(ctx, s.status, func(ctx context.Context, b kv.CRUDBucket) error {
 		for _, value := range status.Values {
+			pkHash := s.newHash()
+			pkHash.Write([]byte(value.Path + value.ContainerType + value.ValueType + string(value.Value)))
+			pk := fmt.Sprintf("%x", pkHash.Sum(nil))
 			err = kv.SetMap(ctx, b, map[string][]byte{
-				join(keyPfxStaVal, enrollmentID, keySfxStaValCty, value.Path): []byte(value.ContainerType),
-				join(keyPfxStaVal, enrollmentID, keySfxStaValTyp, value.Path): []byte(value.ValueType),
-				join(keyPfxStaVal, enrollmentID, keySfxStaValVal, value.Path): value.Value,
-				join(keyPfxStaVal, enrollmentID, keySfxStaValTS, value.Path):  fromTime(now),
+				join(keyPfxStaVal, enrollmentID, keySfxStaValPth, pk): []byte(value.Path),
+				join(keyPfxStaVal, enrollmentID, keySfxStaValCty, pk): []byte(value.ContainerType),
+				join(keyPfxStaVal, enrollmentID, keySfxStaValTyp, pk): []byte(value.ValueType),
+				join(keyPfxStaVal, enrollmentID, keySfxStaValVal, pk): value.Value,
+				join(keyPfxStaVal, enrollmentID, keySfxStaValTS, pk):  fromTime(now),
 			})
 			if err != nil {
 				return err
 			}
 
 			if status.ID != "" {
-				err = b.Set(ctx, join(keyPfxStaVal, enrollmentID, keySfxStaValID, value.Path), []byte(status.ID))
+				err = b.Set(ctx, join(keyPfxStaVal, enrollmentID, keySfxStaValID, pk), []byte(status.ID))
 				if err != nil {
 					return err
 				}
 			} else {
-				err = b.Delete(ctx, join(keyPfxStaVal, enrollmentID, keySfxStaValID, value.Path))
+				err = b.Delete(ctx, join(keyPfxStaVal, enrollmentID, keySfxStaValID, pk))
 				if err != nil {
 					return err
 				}
@@ -151,6 +155,7 @@ func (s *KV) StoreDeclarationStatus(ctx context.Context, enrollmentID string, st
 	if err != nil {
 		return err
 	}
+	// write the status errors
 	return kv.PerformCRUDBucketTxn(ctx, s.status, func(ctx context.Context, b kv.CRUDBucket) error {
 		for _, statusError := range status.Errors {
 			idx, err := bumpIdx(ctx, b, join(keyPfxStaErr, enrollmentID))
@@ -337,38 +342,33 @@ func (s *KV) RetrieveStatusValues(ctx context.Context, enrollmentIDs []string, p
 	r := make(map[string][]storage.StatusValue)
 	for _, id := range enrollmentIDs {
 
-		var paths []string
-		// first retrieve all of the status value keys
-		for key := range s.status.KeysPrefix(ctx, join(keyPfxStaVal, id)+keySep, nil) {
-			if strings.HasPrefix(key, join(keyPfxStaVal, id, keySfxStaValVal)+keySep) {
-				// check that one of them meets the "value" pattern
-				// and append it to our list of status value paths
-				paths = append(paths, key[len(join(keyPfxStaVal, id, keySfxStaValVal)+keySep):])
-			}
-		}
+		rawKeys := kv.AllKeysPrefix(ctx, s.status, join(keyPfxStaVal, id, keySfxStaValPth)+keySep)
 
 		var values []storage.StatusValue
-		for _, path := range paths {
-			// then actually loop through the paths to retrieve all the metadata
+
+		for _, k := range rawKeys {
+			pk := k[len(join(keyPfxStaVal, id, keySfxStaValPth)+keySep):]
+
 			pMap, err := kv.GetMap(ctx, s.status, []string{
-				join(keyPfxStaVal, id, keySfxStaValVal, path),
+				join(keyPfxStaVal, id, keySfxStaValPth, pk),
+				join(keyPfxStaVal, id, keySfxStaValVal, pk),
 				// not used in query, but stored
-				// join(keyPfxStaVal, id, keySfxStaValTyp, path),
-				// join(keyPfxStaVal, id, keySfxStaValCty, path),
-				join(keyPfxStaVal, id, keySfxStaValTS, path),
+				// join(keyPfxStaVal, id, keySfxStaValTyp, pk),
+				// join(keyPfxStaVal, id, keySfxStaValCty, pk),
+				join(keyPfxStaVal, id, keySfxStaValTS, pk),
 			})
 			if err != nil {
 				return nil, err
 			}
 			v := storage.StatusValue{
-				Path:  path,
-				Value: string(pMap[join(keyPfxStaVal, id, keySfxStaValVal, path)]),
+				Path:  string(pMap[join(keyPfxStaVal, id, keySfxStaValPth, pk)]),
+				Value: string(pMap[join(keyPfxStaVal, id, keySfxStaValVal, pk)]),
 			}
 
-			v.Timestamp, _ = toTime(pMap[join(keyPfxStaVal, id, keySfxStaValTS, path)])
+			v.Timestamp, _ = toTime(pMap[join(keyPfxStaVal, id, keySfxStaValTS, pk)])
 
 			// retrieve the optional status ID
-			if statusID, err := s.status.Get(ctx, join(keyPfxStaVal, id, keySfxStaValID, path)); err != nil && !errors.Is(err, kv.ErrKeyNotFound) {
+			if statusID, err := s.status.Get(ctx, join(keyPfxStaVal, id, keySfxStaValID, pk)); err != nil && !errors.Is(err, kv.ErrKeyNotFound) {
 				return nil, err
 			} else if err == nil {
 				v.StatusID = string(statusID)
@@ -376,6 +376,7 @@ func (s *KV) RetrieveStatusValues(ctx context.Context, enrollmentIDs []string, p
 
 			values = append(values, v)
 		}
+
 		if len(values) > 0 {
 			r[id] = values
 		}
