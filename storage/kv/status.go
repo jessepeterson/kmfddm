@@ -302,7 +302,9 @@ func (s *KV) RetrieveStatusErrors(ctx context.Context, enrollmentIDs []string, o
 				join(pfx, keySfxStaErrPth),
 				join(pfx, keySfxStaErrTS),
 			})
-			if err != nil {
+			if errors.Is(err, kv.ErrKeyNotFound) {
+				continue
+			} else if err != nil {
 				return nil, fmt.Errorf("error retrieving nth stored error: %d for id: %s: %w", i, id, err)
 			}
 

@@ -14,6 +14,13 @@ import (
 	"github.com/jessepeterson/kmfddm/storage"
 )
 
+type errorJSONS struct {
+	Path      string          `json:"path"`
+	Error     json.RawMessage `json:"error"`
+	Timestamp time.Time       `json:"timestamp"`
+	StatusID  string          `json:"status_id,omitempty"`
+}
+
 func testStatus(t *testing.T, _ context.Context, mux http.Handler, _ storage.StatusStorer) {
 	// statusBytes, err := os.ReadFile("../../storage/test/testdata/status.D0.error.json")
 	statusBytes, err := os.ReadFile("../../storage/test/testdata/status.1st.json")
@@ -22,7 +29,7 @@ func testStatus(t *testing.T, _ context.Context, mux http.Handler, _ storage.Sta
 	}
 
 	enrHdr := make(http.Header)
-	enrHdr.Add(httpddm.EnrollmentIDHeader, "golang_test_enr_87C029C236E0")
+	enrHdr.Set(httpddm.EnrollmentIDHeader, "golang_test_enr_87C029C236E0")
 
 	resp := doReqHeader(mux, "PUT", "/status", enrHdr, statusBytes)
 	expectHTTP(t, resp, 200)
@@ -122,5 +129,44 @@ func testStatus(t *testing.T, _ context.Context, mux http.Handler, _ storage.Sta
 
 	if !reflect.DeepEqual(values, eValues) {
 		t.Errorf("values: have: (%d) %v, want: (%d) %v", len(values), values, len(eValues), eValues)
+	}
+
+	statusBytes, err = os.ReadFile("../../storage/test/testdata/status.D0.error.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	enrHdr.Set(httpddm.EnrollmentIDHeader, "golang_test_enr_E4E7C11ECD86")
+
+	resp = doReqHeader(mux, "PUT", "/status", enrHdr, statusBytes)
+	expectHTTP(t, resp, 200)
+
+	resp = doReq(mux, "GET", "/v1/status-errors/golang_test_enr_E4E7C11ECD86", nil)
+	expectHTTP(t, resp, 200)
+
+	errorJSON := make(map[string][]errorJSONS)
+
+	err = json.NewDecoder(resp.Body).Decode(&errorJSON)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for k := range errorJSON {
+		for i := range errorJSON[k] {
+			errorJSON[k][i].Timestamp = time.Time{}
+			errorJSON[k][i].StatusID = ""
+		}
+	}
+	// error from "testdata/status.D0.error.json"
+	myError := map[string][]errorJSONS{
+		"golang_test_enr_E4E7C11ECD86": {{
+			Path:  ".StatusItems.management.declarations.configurations",
+			Error: []byte(`{"active":false,"identifier":"com.example.test","reasons":[{"code":"Info.NotReferencedByActivation","description":"Configuration “com.example.test:7c6d85989e823101” is not referenced by an activation.","details":{"Identifier":"com.example.test","ServerToken":"7c6d85989e823101"}}],"server-token":"7c6d85989e823101","valid":"unknown"}`),
+			// StatusID: "go_test_trace_id",
+		}},
+	}
+
+	if have, want := myError, errorJSON; !reflect.DeepEqual(have, want) {
+		t.Errorf("error: have: (%d) %v, want: (%d) %v", len(have), have, len(want), want)
 	}
 }
