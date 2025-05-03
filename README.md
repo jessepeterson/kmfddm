@@ -24,6 +24,9 @@ Please read this README before proceeding to the quickstart guide. It will lay s
 - [Quickstart](docs/quickstart.md)  
 A guide to get KMFDDM up and running quickly.
 
+- [Operations Guide](docs/operations-guide.md)  
+A brief overview of the various switches, options, and ways of working with the KMFDDM server.
+
 ## Getting the latest version
 
 * Release `.zip` files containing the server and scripts should be attached to every [GitHub release](https://github.com/jessepeterson/kmfddm/releases).
