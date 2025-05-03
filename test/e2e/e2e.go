@@ -67,7 +67,7 @@ func expectNotifierSlice(t *testing.T, n *captureNotifier, shouldHaveRun bool, w
 	}
 }
 
-func TestE2E(t *testing.T, ctx context.Context, storage TestStorage) {
+func TestE2E(t *testing.T, _ context.Context, storage TestStorage) {
 	// setup
 	flowMux := flow.New()
 	n := &captureNotifier{store: storage}
@@ -353,6 +353,6 @@ func TestE2E(t *testing.T, ctx context.Context, storage TestStorage) {
 	})
 
 	t.Run("status", func(t *testing.T) {
-		testStatus(t, ctx, mux, storage)
+		testStatus(t, mux)
 	})
 }

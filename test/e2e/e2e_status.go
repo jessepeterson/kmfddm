@@ -1,7 +1,6 @@
 package e2e
 
 import (
-	"context"
 	"encoding/json"
 	"net/http"
 	"os"
@@ -10,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/jessepeterson/kmfddm/ddm"
 	httpddm "github.com/jessepeterson/kmfddm/http/ddm"
 	"github.com/jessepeterson/kmfddm/storage"
 )
@@ -21,7 +21,9 @@ type errorJSONS struct {
 	StatusID  string          `json:"status_id,omitempty"`
 }
 
-func testStatus(t *testing.T, _ context.Context, mux http.Handler, _ storage.StatusStorer) {
+func testStatus(t *testing.T, mux http.Handler) {
+	// submit status for golang_test_enr_87C029C236E0
+
 	// statusBytes, err := os.ReadFile("../../storage/test/testdata/status.D0.error.json")
 	statusBytes, err := os.ReadFile("../../storage/test/testdata/status.1st.json")
 	if err != nil {
@@ -33,6 +35,8 @@ func testStatus(t *testing.T, _ context.Context, mux http.Handler, _ storage.Sta
 
 	resp := doReqHeader(mux, "PUT", "/status", enrHdr, statusBytes)
 	expectHTTP(t, resp, 200)
+
+	// test declaration status values
 
 	resp = doReq(mux, "GET", "/v1/status-values/golang_test_enr_87C029C236E0", nil)
 	expectHTTP(t, resp, 200)
@@ -102,7 +106,7 @@ func testStatus(t *testing.T, _ context.Context, mux http.Handler, _ storage.Sta
 
 	}
 
-	// clear out any timestamps as they're dynamically generated
+	// clear out any timestamps (transient by nature)
 	for i := range values {
 		values[i].Timestamp = time.Time{}
 	}
@@ -131,6 +135,8 @@ func testStatus(t *testing.T, _ context.Context, mux http.Handler, _ storage.Sta
 		t.Errorf("values: have: (%d) %v, want: (%d) %v", len(values), values, len(eValues), eValues)
 	}
 
+	// submit status for golang_test_enr_E4E7C11ECD86
+
 	statusBytes, err = os.ReadFile("../../storage/test/testdata/status.D0.error.json")
 	if err != nil {
 		t.Fatal(err)
@@ -140,6 +146,8 @@ func testStatus(t *testing.T, _ context.Context, mux http.Handler, _ storage.Sta
 
 	resp = doReqHeader(mux, "PUT", "/status", enrHdr, statusBytes)
 	expectHTTP(t, resp, 200)
+
+	// test declaration errors
 
 	resp = doReq(mux, "GET", "/v1/status-errors/golang_test_enr_E4E7C11ECD86", nil)
 	expectHTTP(t, resp, 200)
@@ -168,5 +176,70 @@ func testStatus(t *testing.T, _ context.Context, mux http.Handler, _ storage.Sta
 
 	if have, want := myError, errorJSON; !reflect.DeepEqual(have, want) {
 		t.Errorf("error: have: (%d) %v, want: (%d) %v", len(have), have, len(want), want)
+	}
+
+	// test declaration status
+
+	resp = doReq(mux, "GET", "/v1/declaration-status/golang_test_enr_E4E7C11ECD86", nil)
+	expectHTTP(t, resp, 200)
+
+	// x, _ := io.ReadAll(resp.Body)
+	// fmt.Println(string(x))
+
+	dStatus := make(map[string][]ddm.DeclarationQueryStatus)
+
+	err = json.NewDecoder(resp.Body).Decode(&dStatus)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// clear out returned values that are transient or optional
+	// to make our tests idempotent and work across backends
+	// that do not implement the optional fields
+	for k := range dStatus {
+		for i := range dStatus[k] {
+			dStatus[k][i].ServerToken = ""
+			dStatus[k][i].StatusReceived = time.Time{}
+			dStatus[k][i].StatusID = ""
+
+			// should not technically be set?
+			dStatus[k][i].ReasonsJSON = nil
+			dStatus[k][i].ManifestType = ""
+		}
+	}
+
+	// from the testdata file
+	reasonsJSON := `[
+              {
+                "details" : {
+                  "Identifier" : "com.example.test",
+                  "ServerToken" : "7c6d85989e823101"
+                },
+                "description" : "Configuration “com.example.test:7c6d85989e823101” is not referenced by an activation.",
+                "code" : "Info.NotReferencedByActivation"
+              }
+            ]`
+	var reasons interface{}
+	err = json.Unmarshal([]byte(reasonsJSON), &reasons)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	eStatus := map[string][]ddm.DeclarationQueryStatus{
+		"golang_test_enr_E4E7C11ECD86": {
+			{
+				Current: false,
+				DeclarationStatus: ddm.DeclarationStatus{
+					Valid:      "unknown",
+					Active:     false,
+					Identifier: "com.example.test",
+				},
+				Reasons: reasons,
+			},
+		},
+	}
+
+	if have, want := dStatus, eStatus; !reflect.DeepEqual(have, want) {
+		t.Errorf("declatation status: have: (%d) %v, want: (%d) %v", len(have), have, len(want), want)
 	}
 }
