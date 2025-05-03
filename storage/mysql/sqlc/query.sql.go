@@ -159,6 +159,44 @@ func (q *Queries) GetManifestItems(ctx context.Context, enrollmentID string) ([]
 	return items, nil
 }
 
+const putDeclarationStatus = `-- name: PutDeclarationStatus :exec
+INSERT INTO status_declarations (
+    enrollment_id,
+    item_type,
+    declaration_identifier,
+    active,
+    valid,
+    server_token,
+    reasons,
+    status_id
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+`
+
+type PutDeclarationStatusParams struct {
+	EnrollmentID          string
+	ItemType              string
+	DeclarationIdentifier string
+	Active                bool
+	Valid                 string
+	ServerToken           string
+	Reasons               json.RawMessage
+	StatusID              sql.NullString
+}
+
+func (q *Queries) PutDeclarationStatus(ctx context.Context, arg PutDeclarationStatusParams) error {
+	_, err := q.db.ExecContext(ctx, putDeclarationStatus,
+		arg.EnrollmentID,
+		arg.ItemType,
+		arg.DeclarationIdentifier,
+		arg.Active,
+		arg.Valid,
+		arg.ServerToken,
+		arg.Reasons,
+		arg.StatusID,
+	)
+	return err
+}
+
 const removeAllEnrollmentSets = `-- name: RemoveAllEnrollmentSets :execresult
 DELETE FROM
     enrollment_sets
@@ -168,4 +206,16 @@ WHERE
 
 func (q *Queries) RemoveAllEnrollmentSets(ctx context.Context, enrollmentID string) (sql.Result, error) {
 	return q.db.ExecContext(ctx, removeAllEnrollmentSets, enrollmentID)
+}
+
+const removeDeclarationStatus = `-- name: RemoveDeclarationStatus :exec
+DELETE FROM
+    status_declarations
+WHERE
+    enrollment_id = ?
+`
+
+func (q *Queries) RemoveDeclarationStatus(ctx context.Context, enrollmentID string) error {
+	_, err := q.db.ExecContext(ctx, removeDeclarationStatus, enrollmentID)
+	return err
 }

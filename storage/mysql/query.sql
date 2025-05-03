@@ -61,3 +61,21 @@ WHERE
     d.identifier = ? AND
     es.enrollment_id = ? AND
     d.type LIKE ?;
+
+-- name: RemoveDeclarationStatus :exec
+DELETE FROM
+    status_declarations
+WHERE
+    enrollment_id = ?;
+
+-- name: PutDeclarationStatus :exec
+INSERT INTO status_declarations (
+    enrollment_id,
+    item_type,
+    declaration_identifier,
+    active,
+    valid,
+    server_token,
+    reasons,
+    status_id
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?);
