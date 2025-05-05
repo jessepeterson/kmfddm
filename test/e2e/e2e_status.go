@@ -22,15 +22,15 @@ type errorJSONS struct {
 }
 
 func testStatus(t *testing.T, mux http.Handler) {
+	enrHdr := make(http.Header)
+
 	// submit status for golang_test_enr_87C029C236E0
 
-	// statusBytes, err := os.ReadFile("../../storage/test/testdata/status.D0.error.json")
 	statusBytes, err := os.ReadFile("../../storage/test/testdata/status.1st.json")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	enrHdr := make(http.Header)
 	enrHdr.Set(httpddm.EnrollmentIDHeader, "golang_test_enr_87C029C236E0")
 
 	resp := doReqHeader(mux, "PUT", "/status", enrHdr, statusBytes)
@@ -106,15 +106,13 @@ func testStatus(t *testing.T, mux http.Handler) {
 
 	}
 
-	// clear out any timestamps (transient by nature)
+	// clear out any timestamps and optional Status ID fields (transient by nature)
 	for i := range values {
 		values[i].Timestamp = time.Time{}
-	}
-
-	// clear out the technically optional StatusID field
-	for i := range values {
 		values[i].StatusID = ""
 	}
+
+	// clear out the optional StatusID fields
 	for i := range eValues {
 		eValues[i].StatusID = ""
 	}
@@ -159,12 +157,14 @@ func testStatus(t *testing.T, mux http.Handler) {
 		t.Fatal(err)
 	}
 
+	// clear any transient timestamp or optional status ID fields
 	for k := range errorJSON {
 		for i := range errorJSON[k] {
 			errorJSON[k][i].Timestamp = time.Time{}
 			errorJSON[k][i].StatusID = ""
 		}
 	}
+
 	// error from "testdata/status.D0.error.json"
 	myError := map[string][]errorJSONS{
 		"golang_test_enr_E4E7C11ECD86": {{
@@ -183,9 +183,6 @@ func testStatus(t *testing.T, mux http.Handler) {
 	resp = doReq(mux, "GET", "/v1/declaration-status/golang_test_enr_E4E7C11ECD86", nil)
 	expectHTTP(t, resp, 200)
 
-	// x, _ := io.ReadAll(resp.Body)
-	// fmt.Println(string(x))
-
 	dStatus := make(map[string][]ddm.DeclarationQueryStatus)
 
 	err = json.NewDecoder(resp.Body).Decode(&dStatus)
@@ -202,7 +199,7 @@ func testStatus(t *testing.T, mux http.Handler) {
 			dStatus[k][i].StatusReceived = time.Time{}
 			dStatus[k][i].StatusID = ""
 
-			// should not technically be set?
+			// should not be set?
 			dStatus[k][i].ReasonsJSON = nil
 			dStatus[k][i].ManifestType = ""
 		}
