@@ -7,3 +7,7 @@ sql:
       go:
         package: "sqlc"
         out: "sqlc"
+        overrides:
+          - column: "status_declarations.updated_at"
+            go_type:
+              type: "string"

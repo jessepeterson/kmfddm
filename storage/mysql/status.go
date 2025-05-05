@@ -11,55 +11,35 @@ import (
 
 	"github.com/jessepeterson/kmfddm/ddm"
 	"github.com/jessepeterson/kmfddm/storage"
+	"github.com/jessepeterson/kmfddm/storage/mysql/sqlc"
 )
 
 func (s *MySQLStorage) storeStatusDeclarations(ctx context.Context, enrollmentID, statusID string, declarations []ddm.DeclarationStatus) error {
-	if len(declarations) < 1 {
-		return nil
-	}
-	argSQL := strings.Repeat(", (?, ?, ?, ?, ?, ?, ?, ?)", len(declarations))[1:]
-	const argLen = 8
-	args := make([]interface{}, len(declarations)*argLen)
-	for i, d := range declarations {
-		args[i*argLen] = enrollmentID
-		args[i*argLen+1] = d.ManifestType
-		args[i*argLen+2] = d.Identifier
-		args[i*argLen+3] = d.Active
-		args[i*argLen+4] = d.Valid
-		args[i*argLen+5] = d.ServerToken
-		args[i*argLen+6] = d.ReasonsJSON
-		args[i*argLen+7] = sql.NullString{
-			String: statusID,
-			Valid:  len(statusID) > 0,
+	return tx(ctx, s.db, s.q, func(ctx context.Context, tx *sql.Tx, qtx *sqlc.Queries) error {
+		err := qtx.RemoveDeclarationStatus(ctx, enrollmentID)
+		if err != nil {
+			return err
 		}
-	}
-	_, err := s.db.ExecContext(
-		ctx, `
-INSERT INTO status_declarations
-    (
-        enrollment_id,
-        item_type,
-        declaration_identifier,
-        active,
-        valid,
-        server_token,
-        reasons,
-        status_id
-    )
-VALUES
-    `+argSQL+` AS new
-ON DUPLICATE KEY
-UPDATE
-    item_type = new.item_type,
-    active = new.active,
-    valid = new.valid,
-    server_token = new.server_token,
-    reasons = new.reasons,
-    status_id = new.status_id;`,
-		args...,
-	)
-
-	return err
+		for _, ds := range declarations {
+			err = qtx.PutDeclarationStatus(ctx, sqlc.PutDeclarationStatusParams{
+				EnrollmentID:          enrollmentID,
+				ItemType:              ds.ManifestType,
+				DeclarationIdentifier: ds.Identifier,
+				Active:                ds.Active,
+				Valid:                 ds.Valid,
+				ServerToken:           ds.ServerToken,
+				Reasons:               ds.ReasonsJSON,
+				StatusID: sql.NullString{
+					String: statusID,
+					Valid:  len(statusID) > 0,
+				},
+			})
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	})
 }
 
 func (s *MySQLStorage) storeStatusValues(ctx context.Context, enrollmentID, statusID string, values []ddm.StatusValue) error {
@@ -245,80 +225,26 @@ func (s *MySQLStorage) RetrieveDeclarationStatus(ctx context.Context, enrollment
 	if len(enrollmentIDs) < 1 {
 		return nil, errors.New("no enrollment IDs provided")
 	}
-	idSQL := strings.Repeat(", ?", len(enrollmentIDs))[2:]
-	valSQL := make([]interface{}, len(enrollmentIDs))
-	for i, id := range enrollmentIDs {
-		valSQL[i] = id
-	}
-	// intent is to query only the declaration statuses from the given
-	// enrollment ids and only those that are currently actively
-	// enabled and managed via an enrollment's configured sets
-	rows, err := s.db.QueryContext(
-		ctx, `
-SELECT
-    statusd.enrollment_id,
-    statusd.declaration_identifier,
-    statusd.active,
-    statusd.valid,
-    COALESCE(statusd.reasons, 'null'),
-    statusd.server_token,
-    statusd.updated_at,
-    statusd.server_token = d.server_token AS current,
-    statusd.status_id
-FROM
-    status_declarations statusd
-    INNER JOIN declarations d
-        ON statusd.declaration_identifier = d.identifier
-    INNER JOIN set_declarations sd
-        ON d.identifier = sd.declaration_identifier
-    INNER JOIN enrollment_sets es
-        ON sd.set_name = es.set_name AND statusd.enrollment_id = es.enrollment_id
-WHERE
-    statusd.enrollment_id IN (`+idSQL+`)
-ORDER BY
-    statusd.enrollment_id;`,
-		valSQL...,
-	)
+
+	rows, err := s.q.GetDeclarationStatus(ctx, enrollmentIDs)
 	if err != nil {
 		return nil, err
 	}
 	resp := make(map[string][]ddm.DeclarationQueryStatus)
-	defer rows.Close()
-	for rows.Next() {
-		var id, updatedAt string
-		var reasonJSON []byte
-		var status ddm.DeclarationQueryStatus
-		var statusID sql.NullString
-		err = rows.Scan(
-			&id,
-			&status.Identifier,
-			&status.Active,
-			&status.Valid,
-			&reasonJSON,
-			&status.ServerToken,
-			&updatedAt,
-			&status.Current,
-			&statusID,
-		)
-		if err != nil {
-			break
+	for _, row := range rows {
+		dqs := ddm.DeclarationQueryStatus{
+			DeclarationStatus: ddm.DeclarationStatus{
+				Identifier:  row.DeclarationIdentifier,
+				Active:      row.Active,
+				Valid:       row.Valid,
+				ServerToken: row.ServerToken,
+				ReasonsJSON: row.Reasons,
+			},
+			Current: row.Current,
 		}
-		status.StatusID = statusID.String
-		status.StatusReceived, err = time.Parse(mysqlTimeFormat, updatedAt)
-		if err != nil {
-			break
-		}
-		err = json.Unmarshal(reasonJSON, &status.Reasons)
-		if err != nil {
-			err = fmt.Errorf("parsing reason JSON: %w", err)
-			break
-		}
-		el := resp[id]
-		el = append(el, status)
-		resp[id] = el
-	}
-	if err == nil {
-		err = rows.Err()
+		dqs.StatusReceived, _ = time.Parse(mysqlTimeFormat, row.UpdatedAt)
+		_ = json.Unmarshal(row.Reasons, &dqs.Reasons)
+		resp[row.EnrollmentID] = append(resp[row.EnrollmentID], dqs)
 	}
 	return resp, err
 }
