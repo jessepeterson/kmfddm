@@ -208,6 +208,11 @@ func TestE2E(t *testing.T, _ context.Context, storage TestStorage) {
 		expectHTTP(t, resp, 204)
 		expectNotifierSlice(t, n, true, []string{"golang_test_enr_775871FF5E47"})
 
+		// associate the set with a second enrollment
+		resp = doReq(mux, "PUT", "/v1/enrollment-sets/golang_test_enr_DE4CE4C5E5F0?set=golang_test_set_854CC771FACE", nil)
+		expectHTTP(t, resp, 204)
+		expectNotifierSlice(t, n, true, []string{"golang_test_enr_DE4CE4C5E5F0"})
+
 		// retrieve the sets for this enrollment
 		resp = doReq(mux, "GET", "/v1/enrollment-sets/golang_test_enr_775871FF5E47", nil)
 		expectHTTPStringSlice(t, resp, 200, []string{"golang_test_set_854CC771FACE"})
@@ -281,7 +286,7 @@ func TestE2E(t *testing.T, _ context.Context, storage TestStorage) {
 		resp = doReq(mux, "POST", "/v1/declarations/"+testID1+"/touch", nil)
 		expectHTTP(t, resp, 204)
 		// should now be notified of our enrollment id
-		expectNotifierSlice(t, n, true, []string{"golang_test_enr_775871FF5E47"})
+		expectNotifierSlice(t, n, true, []string{"golang_test_enr_775871FF5E47", "golang_test_enr_DE4CE4C5E5F0"})
 
 		// remove all sets for id.
 		resp = doReq(mux, "DELETE", "/v1/enrollment-sets-all/sets/golang_test_enr_775871FF5E47", nil)
@@ -312,6 +317,11 @@ func TestE2E(t *testing.T, _ context.Context, storage TestStorage) {
 		resp = doReq(mux, "DELETE", "/v1/enrollment-sets/golang_test_enr_775871FF5E47?set=golang_test_set_854CC771FACE", nil)
 		expectHTTP(t, resp, 304)
 		expectNotifierSlice(t, n, false, nil)
+
+		// remove the second association
+		resp = doReq(mux, "DELETE", "/v1/enrollment-sets/golang_test_enr_DE4CE4C5E5F0?set=golang_test_set_854CC771FACE", nil)
+		expectHTTP(t, resp, 204)
+		expectNotifierSlice(t, n, true, []string{"golang_test_enr_DE4CE4C5E5F0"})
 
 		resp = doReqHeader(mux, "GET", "/declaration-items", enrHdr, nil)
 		expectHTTPDI(t, resp, 200, emptyDI)
