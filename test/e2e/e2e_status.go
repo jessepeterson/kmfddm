@@ -35,7 +35,7 @@ func testStatus(t *testing.T, mux http.Handler, n *captureNotifier) {
 
 	// submit status for golang_test_enr_87C029C236E0
 
-	statusBytes, err := os.ReadFile("../../storage/test/testdata/status.1st.json")
+	statusBytes, err := os.ReadFile("../../test/e2e/testdata/status.1st.json")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -144,7 +144,7 @@ func testStatus(t *testing.T, mux http.Handler, n *captureNotifier) {
 
 	// submit status for golang_test_enr_E4E7C11ECD86
 
-	statusBytes, err = os.ReadFile("../../storage/test/testdata/status.D0.error.json")
+	statusBytes, err = os.ReadFile("../../test/e2e/testdata/status.D0.error.json")
 	if err != nil {
 		t.Fatal(err)
 	}
