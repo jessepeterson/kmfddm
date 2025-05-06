@@ -243,7 +243,9 @@ func (s *MySQLStorage) RetrieveDeclarationStatus(ctx context.Context, enrollment
 			Current: row.Current,
 		}
 		dqs.StatusReceived, _ = time.Parse(mysqlTimeFormat, row.UpdatedAt)
-		_ = json.Unmarshal(row.Reasons, &dqs.Reasons)
+		if len(row.Reasons) > 0 {
+			_ = json.Unmarshal(row.Reasons, &dqs.Reasons)
+		}
 		resp[row.EnrollmentID] = append(resp[row.EnrollmentID], dqs)
 	}
 	return resp, err
