@@ -90,7 +90,7 @@ func (s *MySQLStorage) RetrieveEnrollmentIDs(ctx context.Context, declarations [
 	}
 	if len(sets) > 0 {
 		r, p := qAndP(sets)
-		q := "sd.set_name IN (" + r + ")"
+		q := "es.set_name IN (" + r + ")"
 		params = append(params, p...)
 		where = append(where, q)
 	}
@@ -108,11 +108,11 @@ func (s *MySQLStorage) RetrieveEnrollmentIDs(ctx context.Context, declarations [
 SELECT DISTINCT
     es.enrollment_id
 FROM
-    declarations d
-    INNER JOIN set_declarations sd
-        ON d.identifier = sd.declaration_identifier
-    INNER JOIN enrollment_sets es
+    enrollment_sets es
+    LEFT JOIN set_declarations sd
         ON sd.set_name = es.set_name
+    LEFT JOIN declarations d
+        ON d.identifier = sd.declaration_identifier
     WHERE `+strings.Join(where, " OR "),
 		params...,
 	)

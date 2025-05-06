@@ -1,6 +1,7 @@
 package e2e
 
 import (
+	"bytes"
 	"encoding/json"
 	"net/http"
 	"os"
@@ -14,6 +15,14 @@ import (
 	"github.com/jessepeterson/kmfddm/storage"
 )
 
+const testDecl2 = `{
+	"Type": "com.apple.configuration.management.test",
+	"Payload": {
+		"Echo": "KMFDDM!"
+	},
+	"Identifier": "com.example.test"
+}`
+
 type errorJSONS struct {
 	Path      string          `json:"path"`
 	Error     json.RawMessage `json:"error"`
@@ -21,7 +30,7 @@ type errorJSONS struct {
 	StatusID  string          `json:"status_id,omitempty"`
 }
 
-func testStatus(t *testing.T, mux http.Handler) {
+func testStatus(t *testing.T, mux http.Handler, n *captureNotifier) {
 	enrHdr := make(http.Header)
 
 	// submit status for golang_test_enr_87C029C236E0
@@ -185,6 +194,7 @@ func testStatus(t *testing.T, mux http.Handler) {
 
 	dStatus := make(map[string][]ddm.DeclarationQueryStatus)
 
+	// decode delcaration status
 	err = json.NewDecoder(resp.Body).Decode(&dStatus)
 	if err != nil {
 		t.Fatal(err)
@@ -239,4 +249,122 @@ func testStatus(t *testing.T, mux http.Handler) {
 	if have, want := dStatus, eStatus; !reflect.DeepEqual(have, want) {
 		t.Errorf("declatation status: have: (%d) %v, want: (%d) %v", len(have), have, len(want), want)
 	}
+
+	//
+	// test current=true
+	//
+
+	if n == nil {
+		t.Fatal("nil notifier")
+	}
+
+	// upload our declaration
+	resp = doReq(mux, "PUT", "/v1/declarations", []byte(testDecl2))
+	expectHTTP(t, resp, 204)
+	expectNotifierSlice(t, n, true, nil)
+
+	// associate the set with the enrollment
+	resp = doReq(mux, "PUT", "/v1/enrollment-sets/golang_test_enr_730E7C49E900?set=golang_test_set_793BBBD50EE9", nil)
+	expectHTTP(t, resp, 204)
+	expectNotifierSlice(t, n, true, []string{"golang_test_enr_730E7C49E900"})
+
+	// associate the declaration with the set
+	resp = doReq(mux, "PUT", "/v1/set-declarations/golang_test_set_793BBBD50EE9?declaration=com.example.test", nil)
+	expectHTTP(t, resp, 204)
+	expectNotifierSlice(t, n, true, []string{"golang_test_enr_730E7C49E900"})
+
+	// retrieve the declaration to fetch the current server token
+	resp = doReq(mux, "GET", "/v1/declarations/com.example.test", nil)
+	expectHTTP(t, resp, 200)
+
+	// decode the retrieved declaration
+	rTestD := &TestDeclaration{}
+	if err := json.NewDecoder(resp.Body).Decode(rTestD); err != nil {
+		t.Fatal(err)
+	}
+
+	// replace the server token from "testdata/status.D0.error.json"
+	// with whatever the backend has
+	replacedStatusBytes := bytes.Replace(
+		statusBytes,
+		[]byte("7c6d85989e823101"),
+		[]byte(rTestD.ServerToken),
+		-1,
+	)
+
+	enrHdr.Set(httpddm.EnrollmentIDHeader, "golang_test_enr_730E7C49E900")
+
+	resp = doReqHeader(mux, "PUT", "/status", enrHdr, replacedStatusBytes)
+	expectHTTP(t, resp, 200)
+
+	// retrieve the declaration status for both identifiers
+	resp = doReq(mux, "GET", "/v1/declaration-status/golang_test_enr_E4E7C11ECD86,golang_test_enr_730E7C49E900", nil)
+	expectHTTP(t, resp, 200)
+
+	dStatus = make(map[string][]ddm.DeclarationQueryStatus)
+
+	// decode delcaration status
+	err = json.NewDecoder(resp.Body).Decode(&dStatus)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// clear out unnecessary (to this test) fields
+	for k := range dStatus {
+		for i := range dStatus[k] {
+			dStatus[k][i].Reasons = nil
+			dStatus[k][i].StatusID = ""
+			dStatus[k][i].StatusReceived = time.Time{}
+
+			dStatus[k][i].ManifestType = ""
+			dStatus[k][i].ReasonsJSON = nil
+		}
+	}
+
+	eStatus = map[string][]ddm.DeclarationQueryStatus{
+		"golang_test_enr_E4E7C11ECD86": {
+			{
+				Current: false,
+				DeclarationStatus: ddm.DeclarationStatus{
+					Valid:       "unknown",
+					Active:      false,
+					Identifier:  "com.example.test",
+					ServerToken: "7c6d85989e823101",
+				},
+			},
+		},
+		"golang_test_enr_730E7C49E900": {
+			{
+				Current: true, // the main reason for this test is this true value
+				DeclarationStatus: ddm.DeclarationStatus{
+					Valid:       "unknown",
+					Active:      false,
+					Identifier:  "com.example.test",
+					ServerToken: rTestD.ServerToken,
+				},
+			},
+		},
+	}
+
+	if have, want := dStatus, eStatus; !reflect.DeepEqual(have, want) {
+		t.Errorf("declatation status: have: (%d) %v, want: (%d) %v", len(have), have, len(want), want)
+	}
+
+	// remove the declaration-set association
+	resp = doReq(mux, "DELETE", "/v1/set-declarations/golang_test_set_793BBBD50EE9?declaration=com.example.test", nil)
+	expectHTTP(t, resp, 204)
+	expectNotifierSlice(t, n, true, []string{"golang_test_enr_730E7C49E900"})
+
+	// remove the set-enrollment association
+	resp = doReq(mux, "DELETE", "/v1/enrollment-sets/golang_test_enr_730E7C49E900?set=golang_test_set_793BBBD50EE9", nil)
+	expectHTTP(t, resp, 204)
+	expectNotifierSlice(t, n, true, []string{"golang_test_enr_730E7C49E900"})
+
+	// delete the declaration
+	resp = doReq(mux, "DELETE", "/v1/declarations/com.example.test", nil)
+	expectHTTP(t, resp, 204)
+	// shouldn't notify here because the storage should know that
+	// we are not currently associated with any sets
+	expectNotifierSlice(t, n, false, nil)
+
 }
