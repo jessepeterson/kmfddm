@@ -243,44 +243,6 @@ func (s *File) RetrieveDeclarationStatus(_ context.Context, enrollmentIDs []stri
 	defer s.mu.RUnlock()
 	ret := make(map[string][]ddm.DeclarationQueryStatus)
 	for _, enrollmentID := range enrollmentIDs {
-		di := new(ddm.DeclarationItems)
-
-		f, err := os.Open(s.declarationItemsFilename(enrollmentID))
-		if errors.Is(err, os.ErrNotExist) {
-			// no declaration items for this enrollment (yet)
-			continue
-		} else if err != nil {
-			return nil, fmt.Errorf("opening declaration items: %w", err)
-		}
-		defer f.Close()
-
-		if err = json.NewDecoder(f).Decode(di); err != nil {
-			return nil, fmt.Errorf("decoding declaration items json: %w", err)
-		}
-
-		if di == nil || (len(di.Declarations.Activations) < 1 && len(di.Declarations.Assets) < 1 && len(di.Declarations.Configurations) < 1 && len(di.Declarations.Management) < 1) {
-			// no declarations or empty response; move on.
-			continue
-		}
-
-		// deconstruct the declaration items into a slice of configured declarations
-		var manifestDeclarations []ddm.ManifestDeclaration
-		manifestDeclarations = append(manifestDeclarations, di.Declarations.Activations...)
-		manifestDeclarations = append(manifestDeclarations, di.Declarations.Assets...)
-		manifestDeclarations = append(manifestDeclarations, di.Declarations.Configurations...)
-		manifestDeclarations = append(manifestDeclarations, di.Declarations.Management...)
-
-		// generate the "placeholder" output for all of our declaration items
-		manifestMap := make(map[string]ddm.DeclarationQueryStatus)
-		for _, manifestDeclaration := range manifestDeclarations {
-			manifestMap[manifestDeclaration.Identifier] = ddm.DeclarationQueryStatus{
-				DeclarationStatus: ddm.DeclarationStatus{
-					Identifier:  manifestDeclaration.Identifier,
-					ServerToken: manifestDeclaration.ServerToken,
-				},
-			}
-		}
-
 		csvFile, err := os.Open(s.csvFilename(csvFilenameDeclarations, enrollmentID))
 		if err != nil && !errors.Is(err, os.ErrNotExist) {
 			return nil, err
@@ -288,6 +250,7 @@ func (s *File) RetrieveDeclarationStatus(_ context.Context, enrollmentIDs []stri
 		defer csvFile.Close()
 		reader := csv.NewReader(csvFile)
 
+		ddmStatuses := []ddm.DeclarationQueryStatus{}
 		for {
 			// read a record
 			record, err := reader.Read()
@@ -325,15 +288,7 @@ func (s *File) RetrieveDeclarationStatus(_ context.Context, enrollmentIDs []stri
 				return nil, fmt.Errorf("parse bool: %w", err)
 			}
 
-			_, ok := manifestMap[record[1]]
-			if !ok {
-				// we only want to report on those declarations that are configured
-				// i.e. set in our declartion-items
-				continue
-			}
-
-			// replace placeholder with a "full" declaration query status
-			manifestMap[record[1]] = ddm.DeclarationQueryStatus{
+			ddmStatus := ddm.DeclarationQueryStatus{
 				DeclarationStatus: ddm.DeclarationStatus{
 					Identifier:   record[1],
 					Active:       active,
@@ -343,14 +298,56 @@ func (s *File) RetrieveDeclarationStatus(_ context.Context, enrollmentIDs []stri
 				},
 				Reasons:        ddmError,
 				StatusReceived: ts,
-				Current:        record[4] == manifestMap[record[1]].ServerToken,
+				// Current:        record[4] == manifestMap[record[1]].ServerToken,
 			}
+
+			var manifestDeclarations []ddm.ManifestDeclaration
+
+			di := new(ddm.DeclarationItems)
+			f, err := os.Open(s.declarationItemsFilename(enrollmentID))
+			if errors.Is(err, os.ErrNotExist) {
+				// no declaration items for this enrollment (yet)
+				// 	continue
+				goto appendDDMStatus
+			} else if err != nil {
+				return nil, fmt.Errorf("opening declaration items: %w", err)
+			}
+			defer f.Close()
+
+			if err = json.NewDecoder(f).Decode(di); err != nil {
+				return nil, fmt.Errorf("decoding declaration items json: %w", err)
+			}
+
+			if len(di.Declarations.Activations) < 1 && len(di.Declarations.Assets) < 1 && len(di.Declarations.Configurations) < 1 && len(di.Declarations.Management) < 1 {
+				// no declarations or empty response; move on.
+				goto appendDDMStatus
+			}
+
+			// // deconstruct the declaration items into a slice of configured declarations
+			// var manifestDeclarations []ddm.ManifestDeclaration
+			manifestDeclarations = append(manifestDeclarations, di.Declarations.Activations...)
+			manifestDeclarations = append(manifestDeclarations, di.Declarations.Assets...)
+			manifestDeclarations = append(manifestDeclarations, di.Declarations.Configurations...)
+			manifestDeclarations = append(manifestDeclarations, di.Declarations.Management...)
+
+			for _, md := range manifestDeclarations {
+				if md.Identifier == ddmStatus.Identifier && md.ServerToken == ddmStatus.ServerToken {
+					ddmStatus.Current = true
+					break
+				}
+			}
+
+		appendDDMStatus:
+
+			// replace placeholder with a "full" declaration query status
+			ddmStatuses = append(ddmStatuses, ddmStatus)
+
 		}
 		// turn back into a list
-		ddmStatuses := make([]ddm.DeclarationQueryStatus, 0, len(manifestMap))
-		for k := range manifestMap {
-			ddmStatuses = append(ddmStatuses, manifestMap[k])
-		}
+		// ddmStatuses := make([]ddm.DeclarationQueryStatus, 0, len(manifestMap))
+		// for k := range manifestMap {
+		// 	ddmStatuses = append(ddmStatuses, manifestMap[k])
+		// }
 		ret[enrollmentID] = ddmStatuses
 	}
 	return ret, nil

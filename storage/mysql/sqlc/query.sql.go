@@ -9,6 +9,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"strings"
 )
 
 const getDDMDeclaration = `-- name: GetDDMDeclaration :one
@@ -115,6 +116,86 @@ func (q *Queries) GetDeclarationReferences(ctx context.Context, declarationIdent
 	return items, nil
 }
 
+const getDeclarationStatus = `-- name: GetDeclarationStatus :many
+SELECT
+    sd.enrollment_id,
+    sd.declaration_identifier,
+    sd.active,
+    sd.valid,
+    sd.reasons,
+    sd.server_token,
+    sd.updated_at,
+    sd.status_id,
+    sd.server_token = COALESCE(d.server_token, '') AS current
+FROM
+    status_declarations sd
+    LEFT JOIN declarations d
+        ON sd.declaration_identifier = d.identifier
+    LEFT JOIN set_declarations setd
+        ON d.identifier = setd.declaration_identifier
+    LEFT JOIN enrollment_sets es
+        ON setd.set_name = es.set_name AND sd.enrollment_id = es.enrollment_id
+WHERE
+    sd.enrollment_id IN (/*SLICE:ids*/?)
+ORDER BY
+    sd.enrollment_id
+`
+
+type GetDeclarationStatusRow struct {
+	EnrollmentID          string
+	DeclarationIdentifier string
+	Active                bool
+	Valid                 string
+	Reasons               json.RawMessage
+	ServerToken           string
+	UpdatedAt             string
+	StatusID              sql.NullString
+	Current               bool
+}
+
+func (q *Queries) GetDeclarationStatus(ctx context.Context, ids []string) ([]GetDeclarationStatusRow, error) {
+	query := getDeclarationStatus
+	var queryParams []interface{}
+	if len(ids) > 0 {
+		for _, v := range ids {
+			queryParams = append(queryParams, v)
+		}
+		query = strings.Replace(query, "/*SLICE:ids*/?", strings.Repeat(",?", len(ids))[1:], 1)
+	} else {
+		query = strings.Replace(query, "/*SLICE:ids*/?", "NULL", 1)
+	}
+	rows, err := q.db.QueryContext(ctx, query, queryParams...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetDeclarationStatusRow
+	for rows.Next() {
+		var i GetDeclarationStatusRow
+		if err := rows.Scan(
+			&i.EnrollmentID,
+			&i.DeclarationIdentifier,
+			&i.Active,
+			&i.Valid,
+			&i.Reasons,
+			&i.ServerToken,
+			&i.UpdatedAt,
+			&i.StatusID,
+			&i.Current,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getManifestItems = `-- name: GetManifestItems :many
 SELECT DISTINCT
     d.identifier,
@@ -159,6 +240,44 @@ func (q *Queries) GetManifestItems(ctx context.Context, enrollmentID string) ([]
 	return items, nil
 }
 
+const putDeclarationStatus = `-- name: PutDeclarationStatus :exec
+INSERT INTO status_declarations (
+    enrollment_id,
+    item_type,
+    declaration_identifier,
+    active,
+    valid,
+    server_token,
+    reasons,
+    status_id
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+`
+
+type PutDeclarationStatusParams struct {
+	EnrollmentID          string
+	ItemType              string
+	DeclarationIdentifier string
+	Active                bool
+	Valid                 string
+	ServerToken           string
+	Reasons               json.RawMessage
+	StatusID              sql.NullString
+}
+
+func (q *Queries) PutDeclarationStatus(ctx context.Context, arg PutDeclarationStatusParams) error {
+	_, err := q.db.ExecContext(ctx, putDeclarationStatus,
+		arg.EnrollmentID,
+		arg.ItemType,
+		arg.DeclarationIdentifier,
+		arg.Active,
+		arg.Valid,
+		arg.ServerToken,
+		arg.Reasons,
+		arg.StatusID,
+	)
+	return err
+}
+
 const removeAllEnrollmentSets = `-- name: RemoveAllEnrollmentSets :execresult
 DELETE FROM
     enrollment_sets
@@ -168,4 +287,16 @@ WHERE
 
 func (q *Queries) RemoveAllEnrollmentSets(ctx context.Context, enrollmentID string) (sql.Result, error) {
 	return q.db.ExecContext(ctx, removeAllEnrollmentSets, enrollmentID)
+}
+
+const removeDeclarationStatus = `-- name: RemoveDeclarationStatus :exec
+DELETE FROM
+    status_declarations
+WHERE
+    enrollment_id = ?
+`
+
+func (q *Queries) RemoveDeclarationStatus(ctx context.Context, enrollmentID string) error {
+	_, err := q.db.ExecContext(ctx, removeDeclarationStatus, enrollmentID)
+	return err
 }

@@ -51,7 +51,7 @@ type StatusDeclaration struct {
 	Reasons               json.RawMessage
 	StatusID              sql.NullString
 	CreatedAt             time.Time
-	UpdatedAt             time.Time
+	UpdatedAt             string
 }
 
 type StatusError struct {

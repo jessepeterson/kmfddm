@@ -4,6 +4,7 @@ package mysql
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"hash"
 
 	"github.com/jessepeterson/kmfddm/storage/mysql/sqlc"
@@ -131,4 +132,23 @@ func (s *MySQLStorage) singleStringColumn(ctx context.Context, sql string, args 
 		err = rows.Err()
 	}
 	return strs, err
+}
+
+// tx wraps g in transactions using db.
+// If g returns an err the transaction will be rolled back; otherwise committed.
+func tx(ctx context.Context, db *sql.DB, q *sqlc.Queries, g func(ctx context.Context, tx *sql.Tx, qtx *sqlc.Queries) error) error {
+	tx, err := db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("tx begin: %w", err)
+	}
+	if err = g(ctx, tx, q.WithTx(tx)); err != nil {
+		if rbErr := tx.Rollback(); rbErr != nil {
+			return fmt.Errorf("tx rollback: %w; while trying to handle error: %v", rbErr, err)
+		}
+		return fmt.Errorf("tx rolled back: %w", err)
+	}
+	if err = tx.Commit(); err != nil {
+		return fmt.Errorf("tx commit: %w", err)
+	}
+	return nil
 }
