@@ -38,21 +38,20 @@ UPDATE
 
 // RetrieveDeclaration retrieves a declaration.
 // See also the storage package for documentation on the storage interfaces.
-func (s *MySQLStorage) RetrieveDeclaration(ctx context.Context, declarationID string) (d *ddm.Declaration, err error) {
+func (s *MySQLStorage) RetrieveDeclaration(ctx context.Context, declarationID string) (*ddm.Declaration, error) {
 	qd, err := s.q.GetDeclaration(ctx, declarationID)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, fmt.Errorf("%w: %v", storage.ErrDeclarationNotFound, err)
 	} else if err != nil {
 		return nil, err
 	}
-	d = &ddm.Declaration{
+	return &ddm.Declaration{
 		Identifier:  qd.Identifier,
 		Type:        qd.Type,
 		ServerToken: qd.ServerToken,
 		Payload:     qd.Payload,
 		Raw:         qd.Declaration,
-	}
-	return
+	}, nil
 }
 
 // RetrieveDeclarationModTime retrieves the last modification time of the declaration.

@@ -61,13 +61,13 @@ func (s *File) writeDeclarationFiles(d *ddm.Declaration, forceNewSalt bool) (boo
 	}
 
 	// unmarshal the raw declaration
-	var declaration map[string]interface{}
+	var declaration ddm.Declaration
 	if err = json.Unmarshal(d.Raw, &declaration); err != nil {
 		return false, err
 	}
 
 	// remove the servertoken to make the marshaling idempotent
-	delete(declaration, "ServerToken")
+	declaration.ServerToken = ""
 
 	// re-marshal (without a servertoken)
 	dBytes, err := json.Marshal(&declaration)
@@ -91,7 +91,7 @@ func (s *File) writeDeclarationFiles(d *ddm.Declaration, forceNewSalt bool) (boo
 	}
 	token = dHash
 
-	declaration["ServerToken"] = token
+	declaration.ServerToken = token
 
 	// marshal the declaration (with the new token)
 	dBytes, err = json.Marshal(&declaration)

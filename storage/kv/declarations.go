@@ -198,21 +198,7 @@ func (s *KV) RetrieveDeclaration(ctx context.Context, declarationID string) (*dd
 		Type:        string(dMap[join(keyPfxDcl, declarationID, keyDeclarationType)]),
 		Payload:     dMap[join(keyPfxDcl, declarationID, keyDeclarationPayload)],
 	}
-
-	// assemble a faux declaration for JSON marshalling
-	dm := &struct {
-		ServerToken string
-		Identifier  string
-		Type        string
-		Payload     json.RawMessage
-	}{
-		ServerToken: d.ServerToken,
-		Identifier:  d.Identifier,
-		Type:        d.Type,
-		Payload:     d.Payload,
-	}
-	d.Raw, err = json.MarshalIndent(dm, "", "\t")
-
+	d.Raw, err = json.MarshalIndent(d, "", "\t")
 	return d, err
 }
 
