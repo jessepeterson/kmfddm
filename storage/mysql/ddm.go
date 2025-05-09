@@ -3,12 +3,10 @@ package mysql
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"errors"
 	"fmt"
 
 	"github.com/jessepeterson/kmfddm/ddm"
-	"github.com/jessepeterson/kmfddm/ddm/build"
 	"github.com/jessepeterson/kmfddm/storage"
 	"github.com/jessepeterson/kmfddm/storage/mysql/sqlc"
 )
@@ -51,44 +49,14 @@ func (s *MySQLStorage) RetrieveDeclarationItems(ctx context.Context, enrollmentI
 	return decls, nil
 }
 
-func (s *MySQLStorage) build(ctx context.Context, b build.Builder, enrollmentID string) error {
-	items, err := s.q.GetManifestItems(ctx, enrollmentID)
-	if err != nil {
-		return err
-	}
-	for _, i := range items {
-		// note that we're selecting and assembling a very minimal Declaration
-		// here. just enough to work with the builder interface. check the
-		// builder implementation to make sure it doesn't need anything more
-		// than what we're giving it.
-		b.Add(&ddm.Declaration{
-			Identifier:  i.Identifier,
-			Type:        i.Type,
-			ServerToken: i.ServerToken,
-		})
-	}
-	b.Finalize()
-	return nil
-}
-
 // RetrieveDeclarationItemsJSON generates Declaration Items for enrollmentID.
 // See also the storage package for documentation on the storage interfaces.
 func (s *MySQLStorage) RetrieveDeclarationItemsJSON(ctx context.Context, enrollmentID string) ([]byte, error) {
-	di := build.NewDIBuilder(s.newHash)
-	err := s.build(ctx, di, enrollmentID)
-	if err != nil {
-		return nil, err
-	}
-	return json.Marshal(&di.DeclarationItems)
+	return storage.DeclarationItemsJSON(ctx, s, enrollmentID, s.newHash)
 }
 
 // RetrieveTokensJSON generates Sync Tokens for enrollmentID.
 // See also the storage package for documentation on the storage interfaces.
 func (s *MySQLStorage) RetrieveTokensJSON(ctx context.Context, enrollmentID string) ([]byte, error) {
-	b := build.NewTokensBuilder(s.newHash)
-	err := s.build(ctx, b, enrollmentID)
-	if err != nil {
-		return nil, err
-	}
-	return json.Marshal(&b.TokensResponse)
+	return storage.TokensJSON(ctx, s, enrollmentID, s.newHash)
 }
