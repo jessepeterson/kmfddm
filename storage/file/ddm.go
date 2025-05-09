@@ -49,7 +49,7 @@ func (s *File) RetrieveDeclarationItems(ctx context.Context, enrollmentID string
 
 			// clear out unused fields. decls will (likely) only be used
 			// for generating DI/tokens so actual data is unecessary.
-			d.PayloadJSON = nil
+			d.Payload = nil
 			d.Raw = nil
 
 			decls = append(decls, d)

@@ -31,7 +31,7 @@ const (
 
 func genServerToken(d *ddm.Declaration, touch string, created []byte, newHash func() hash.Hash) string {
 	h := newHash()
-	h.Write(append(append(d.PayloadJSON, created...), []byte(d.Identifier+d.Type+touch)...))
+	h.Write(append(append(d.Payload, created...), []byte(d.Identifier+d.Type+touch)...))
 	return fmt.Sprintf("%x", h.Sum(nil))
 }
 
@@ -97,7 +97,7 @@ func (s *KV) StoreDeclaration(ctx context.Context, d *ddm.Declaration) (changed 
 			join(keyPfxDcl, d.Identifier, keyDeclarationModified):    encodeTime(now),
 			join(keyPfxDcl, d.Identifier, keyDeclarationServerToken): []byte(serverToken),
 			join(keyPfxDcl, d.Identifier, keyDeclarationType):        []byte(d.Type),
-			join(keyPfxDcl, d.Identifier, keyDeclarationPayload):     d.PayloadJSON,
+			join(keyPfxDcl, d.Identifier, keyDeclarationPayload):     d.Payload,
 		})
 	})
 	return
@@ -127,9 +127,9 @@ func (s *KV) TouchDeclaration(ctx context.Context, declarationID string) error {
 
 		// assemble enough of a declaration to compute the new server token
 		d := &ddm.Declaration{
-			Identifier:  declarationID,
-			Type:        string(dMap[join(keyPfxDcl, declarationID, keyDeclarationType)]),
-			PayloadJSON: dMap[join(keyPfxDcl, declarationID, keyDeclarationPayload)],
+			Identifier: declarationID,
+			Type:       string(dMap[join(keyPfxDcl, declarationID, keyDeclarationType)]),
+			Payload:    dMap[join(keyPfxDcl, declarationID, keyDeclarationPayload)],
 		}
 
 		// save the changes back to the kv store
@@ -196,7 +196,7 @@ func (s *KV) RetrieveDeclaration(ctx context.Context, declarationID string) (*dd
 		ServerToken: string(dMap[join(keyPfxDcl, declarationID, keyDeclarationServerToken)]),
 		Identifier:  declarationID,
 		Type:        string(dMap[join(keyPfxDcl, declarationID, keyDeclarationType)]),
-		PayloadJSON: dMap[join(keyPfxDcl, declarationID, keyDeclarationPayload)],
+		Payload:     dMap[join(keyPfxDcl, declarationID, keyDeclarationPayload)],
 	}
 
 	// assemble a faux declaration for JSON marshalling
@@ -209,7 +209,7 @@ func (s *KV) RetrieveDeclaration(ctx context.Context, declarationID string) (*dd
 		ServerToken: d.ServerToken,
 		Identifier:  d.Identifier,
 		Type:        d.Type,
-		Payload:     d.PayloadJSON,
+		Payload:     d.Payload,
 	}
 	d.Raw, err = json.MarshalIndent(dm, "", "\t")
 

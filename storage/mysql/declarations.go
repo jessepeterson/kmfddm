@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/jessepeterson/kmfddm/ddm"
@@ -15,11 +14,7 @@ import (
 // StoreDeclaration stores a declaration and returns whether it changed or not.
 // See also the storage package for documentation on the storage interfaces.
 func (s *MySQLStorage) StoreDeclaration(ctx context.Context, d *ddm.Declaration) (bool, error) {
-	tx, err := s.db.BeginTx(ctx, nil)
-	if err != nil {
-		return false, err
-	}
-	result, err := tx.ExecContext(
+	result, err := s.db.ExecContext(
 		ctx,
 		`
 INSERT INTO declarations
@@ -33,40 +28,12 @@ UPDATE
 	server_token = SHA1(CONCAT(new.identifier, new.type, new.payload, created_at, touched_ct));`,
 		d.Identifier,
 		d.Type,
-		d.PayloadJSON,
+		d.Payload,
 	)
-	var changed bool
-	if err == nil {
-		changed, err = resultChangedRows(result)
-	}
-	if err == nil {
-		// i don't like this delete+re-insert pattern
-		_, err = tx.ExecContext(
-			ctx,
-			`DELETE FROM declaration_references WHERE declaration_identifier = ?;`,
-			d.Identifier,
-		)
-		if err == nil && len(d.IdentifierRefs) > 0 {
-			vals := make([]interface{}, len(d.IdentifierRefs)*2)
-			for i, id := range d.IdentifierRefs {
-				vals[i*2] = d.Identifier
-				vals[i*2+1] = id
-			}
-			sqlVals := strings.Repeat(", (?, ?)", len(d.IdentifierRefs))[1:]
-			_, err = tx.ExecContext(
-				ctx,
-				`INSERT INTO declaration_references (declaration_identifier, declaration_reference) VALUES`+sqlVals,
-				vals...,
-			)
-		}
-	}
 	if err != nil {
-		if rbErr := tx.Rollback(); rbErr != nil {
-			return false, fmt.Errorf("rollback error: %w; while trying to handle error: %v", rbErr, err)
-		}
 		return false, err
 	}
-	return changed, tx.Commit()
+	return resultChangedRows(result)
 }
 
 // RetrieveDeclaration retrieves a declaration.
@@ -82,10 +49,9 @@ func (s *MySQLStorage) RetrieveDeclaration(ctx context.Context, declarationID st
 		Identifier:  qd.Identifier,
 		Type:        qd.Type,
 		ServerToken: qd.ServerToken,
-		PayloadJSON: qd.Payload,
+		Payload:     qd.Payload,
 		Raw:         qd.Declaration,
 	}
-	d.IdentifierRefs, err = s.q.GetDeclarationReferences(ctx, declarationID)
 	return
 }
 
