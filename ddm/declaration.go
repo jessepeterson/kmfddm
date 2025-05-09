@@ -8,6 +8,9 @@ import (
 
 var ErrInvalidDeclaration = errors.New("invalid declaration")
 
+// Declaration represents an Apple Declarative Management declaration.
+// See https://developer.apple.com/documentation/devicemanagement/declarationbase
+// See https://github.com/apple/device-management/blob/release/declarative/declarations/declarationbase.yaml
 type Declaration struct {
 	Identifier  string          `json:"Identifier"`
 	Type        string          `json:"Type"`
