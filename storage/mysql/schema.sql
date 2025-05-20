@@ -19,26 +19,6 @@ CREATE TABLE declarations (
     INDEX (type)
 );
 
-CREATE TABLE declaration_references (
-    declaration_identifier VARCHAR(255) NOT NULL,
-    declaration_reference VARCHAR(255) NOT NULL,
-
-    PRIMARY KEY (declaration_identifier, declaration_reference),
-
-    CHECK (declaration_identifier != ''),
-    CHECK (declaration_reference != ''),
-
-    FOREIGN KEY (declaration_identifier)
-        REFERENCES declarations (identifier)
-        ON DELETE CASCADE,
-
-    FOREIGN KEY (declaration_reference)
-        REFERENCES declarations (identifier),
-
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP NOT NULL
-);
-
 CREATE TABLE set_declarations (
     set_name               VARCHAR(255) NOT NULL,
     declaration_identifier VARCHAR(255) NOT NULL,

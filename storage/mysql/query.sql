@@ -35,14 +35,6 @@ FROM
 WHERE
     d.identifier = ?;
 
--- name: GetDeclarationReferences :many
-SELECT
-    declaration_reference
-FROM
-    declaration_references
-WHERE
-    declaration_identifier = ?;
-
 -- name: GetDDMDeclaration :one
 SELECT
     JSON_OBJECT(

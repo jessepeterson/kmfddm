@@ -84,38 +84,6 @@ func (q *Queries) GetDeclaration(ctx context.Context, identifier string) (GetDec
 	return i, err
 }
 
-const getDeclarationReferences = `-- name: GetDeclarationReferences :many
-SELECT
-    declaration_reference
-FROM
-    declaration_references
-WHERE
-    declaration_identifier = ?
-`
-
-func (q *Queries) GetDeclarationReferences(ctx context.Context, declarationIdentifier string) ([]string, error) {
-	rows, err := q.db.QueryContext(ctx, getDeclarationReferences, declarationIdentifier)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []string
-	for rows.Next() {
-		var declaration_reference string
-		if err := rows.Scan(&declaration_reference); err != nil {
-			return nil, err
-		}
-		items = append(items, declaration_reference)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const getDeclarationStatus = `-- name: GetDeclarationStatus :many
 SELECT
     sd.enrollment_id,

@@ -37,7 +37,7 @@ func TestShard(t *testing.T) {
 
 	p := &shardPayload{}
 
-	if err = json.Unmarshal(d.PayloadJSON, p); err != nil {
+	if err = json.Unmarshal(d.Payload, p); err != nil {
 		t.Fatal(err)
 	}
 
