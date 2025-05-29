@@ -6,7 +6,7 @@ COPY kmfddm-$TARGETOS-$TARGETARCH /app/kmfddm
 
 EXPOSE 9002
 
-VOLUME ["/app/db"]
+VOLUME ["/app/dbkv", "/app/db"]
 
 WORKDIR /app
 

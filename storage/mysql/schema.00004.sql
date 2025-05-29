@@ -1,0 +1,1 @@
+DROP TABLE declaration_references;
