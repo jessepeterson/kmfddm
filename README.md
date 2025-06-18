@@ -122,9 +122,6 @@ In the case of modifications:
   - Devices are automatically notified (that is, sent the `DeclarationManagement` MDM command) when associations or declaration content changes.
   - This includes transitively notifying devices for whom dependencies change.
   - For single enrollment notifications we include the device tokens directly in the `DeclarativeManagement` command.
-- Declaration reference tracking.
-  - We prevent declarations that reference non-existent declarations, keeping them all consistent (referential integrity).
-  - However, this does not extend to set associations; that's up to you to keep valid.
 - Status channel data "cache."
   - We store enrollment declaration status and errors for later retreival and insepction.
   - We store all non-declaration, non-error data as "values" for later retrieval and insepction. This is useful to inspect what declarations or status subscriptions are supported by an enrollment.
@@ -137,7 +134,7 @@ In the case of modifications:
 - Enrollment ID set associations are "forever."
   - Once you assign an enrollment ID to a set it is forever assigned until you unassign it.
   - If a device is unenrolled or otherwise becomes unmanaged in NanoMDM it will still receive notifications (queued MDM commands) from KMFDDM.
-  - You "unenroll" a device from KMFDDM by dissociating the enrollment ID from any sets via the API. Keep in mind this does not turn of DDM for an enrollment — this merely stops future notifications.
+  - You "unenroll" a device from KMFDDM by dissociating the enrollment ID from any sets via the API. Keep in mind this does not turn off DDM for an enrollment — this merely stops future notifications.
   - This will also notify the device that it has 0 declartions to manage anymore. This is as good as DDM "unenrollment" can get.
 - You can trivially create invalid sets of declarations.
   - Not much vetting is done as far as references to declarations from other declarations *within sets*. I.e. you can add a declaration to a set that references another declaration that *is not* in that set. This would end up as an error reported by enrollments if another set did not contain that missing declaration.
