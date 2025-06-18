@@ -3,6 +3,7 @@ package notifier
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/jessepeterson/kmfddm/logkeys"
 	"github.com/jessepeterson/kmfddm/storage"
@@ -21,7 +22,12 @@ type EnrollmentIDFinder interface {
 type Enqueuer interface {
 	// EnqueueDMCommand enqueues a DeclarativeManagement command to ids optionally using tokensJSON.
 	EnqueueDMCommand(ctx context.Context, ids []string, tokensJSON []byte) error
-	// SupportsMultiCommands() bool
+
+	// SupportsMultiCommands reports whether the enqueuer supports
+	// multi-targeted commands.
+	// These are commands that can be sent to multiple devices (i.e. using
+	// the same enrollment ID).
+	SupportsMultiCommands() bool
 }
 
 // Notifier enqueues DM commands to enrollments based on changes.
@@ -87,8 +93,15 @@ func (n *Notifier) Changed(ctx context.Context, declarations []string, sets []st
 		"tokens", tokens,
 	)
 
-	// TODO: consider checking enqueuer for SupportsMultiCommands and
-	// sending individual EnqueueDMCommands (i.e.) n.sendTokens
+	if len(ids) > 1 && !n.enqueuer.SupportsMultiCommands() {
+		for i, id := range ids {
+			if err = n.enqueuer.EnqueueDMCommand(ctx, []string{id}, nil); err != nil {
+				return fmt.Errorf("enqueueing command %d/%d to %s: %w", i+1, len(ids), id, err)
+			}
+		}
+		return nil
+	}
+
 	return n.enqueuer.EnqueueDMCommand(ctx, ids, tokensJSON)
 }
 

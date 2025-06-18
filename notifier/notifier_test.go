@@ -9,12 +9,17 @@ import (
 type testEnqueuer struct {
 	lastIDs    []string
 	lastTokens []byte
+	noMulti    bool
 }
 
 func (e *testEnqueuer) EnqueueDMCommand(ctx context.Context, ids []string, tokensJSON []byte) error {
 	e.lastIDs = ids
 	e.lastTokens = tokensJSON
 	return nil
+}
+
+func (e *testEnqueuer) SupportsMultiCommands() bool {
+	return !e.noMulti
 }
 
 type testStore struct {
@@ -56,4 +61,20 @@ func TestNotifier(t *testing.T) {
 	if len(e.lastTokens) > 0 {
 		t.Error("tokens should not be present")
 	}
+
+	// set multi-targeted commands to true
+	e.noMulti = true
+	// resend a notifier
+	err = n.Changed(context.Background(), nil, nil, []string{"id1", "id2"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	// check the *last* ID to make sure its the only one queued individually
+	if !reflect.DeepEqual([]string{"id2"}, e.lastIDs) {
+		t.Error("not deep equal")
+	}
+	if len(e.lastTokens) > 0 {
+		t.Error("tokens should not be present")
+	}
+
 }
