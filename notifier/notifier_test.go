@@ -1,6 +1,7 @@
 package notifier
 
 import (
+	"bytes"
 	"context"
 	"reflect"
 	"testing"
@@ -59,10 +60,10 @@ func TestNotifier(t *testing.T) {
 		t.Error("not deep equal")
 	}
 	if len(e.lastTokens) > 0 {
-		t.Error("tokens should not be present")
+		t.Errorf("tokens should not be present: %s", e.lastTokens)
 	}
 
-	// set multi-targeted commands to true
+	// set NO multi-targeted commands to true (i.e. disable multi-target)
 	e.noMulti = true
 	// resend a notifier
 	err = n.Changed(context.Background(), nil, nil, []string{"id1", "id2"})
@@ -73,8 +74,10 @@ func TestNotifier(t *testing.T) {
 	if !reflect.DeepEqual([]string{"id2"}, e.lastIDs) {
 		t.Error("not deep equal")
 	}
-	if len(e.lastTokens) > 0 {
-		t.Error("tokens should not be present")
+	// because the tokens are sent individually now (no multi)
+	// we should see some tokens
+	if !bytes.Equal(e.lastTokens, []byte("hello")) {
+		t.Errorf("tokens should be present and equal: %s", e.lastTokens)
 	}
 
 }

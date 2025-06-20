@@ -73,36 +73,42 @@ func (n *Notifier) Changed(ctx context.Context, declarations []string, sets []st
 		return nil
 	}
 
-	var tokensJSON []byte
-	var tokens bool
-
-	if len(ids) == 1 && n.sendTokens {
-		tokensJSON, err = n.store.RetrieveTokensJSON(ctx, ids[0])
-		if err != nil {
-			return err
-		}
-		if len(tokensJSON) > 0 {
-			tokens = true
-		}
-	}
-
 	ctxlog.Logger(ctx, n.logger).Debug(
 		logkeys.Message, "enqueueing command",
 		logkeys.GenericCount, len(ids),
 		logkeys.FirstEnrollmentID, ids[0],
-		"tokens", tokens,
+		"tokens", n.sendTokens,
 	)
 
-	if len(ids) > 1 && !n.enqueuer.SupportsMultiCommands() {
-		for i, id := range ids {
-			if err = n.enqueuer.EnqueueDMCommand(ctx, []string{id}, nil); err != nil {
-				return fmt.Errorf("enqueueing command %d/%d to %s: %w", i+1, len(ids), id, err)
+	enqueue := func(ids []string) error {
+		var tokensJSON []byte
+		var err error
+		if len(ids) == 1 && n.sendTokens {
+			tokensJSON, err = n.store.RetrieveTokensJSON(ctx, ids[0])
+			if err != nil {
+				return fmt.Errorf("retrieving tokens JSON: %w", err)
 			}
 		}
+
+		if err = n.enqueuer.EnqueueDMCommand(ctx, ids, tokensJSON); err != nil {
+			return fmt.Errorf("enqueueing DM command: %w", err)
+		}
+
 		return nil
 	}
 
-	return n.enqueuer.EnqueueDMCommand(ctx, ids, tokensJSON)
+	if !n.enqueuer.SupportsMultiCommands() {
+		// consider making this some kind of worker pool?
+		for i, id := range ids {
+			if err = enqueue([]string{id}); err != nil {
+				return fmt.Errorf("enqueueing command %d/%d: %w", i+1, len(ids), err)
+			}
+		}
+
+		return nil
+	}
+
+	return enqueue(ids)
 }
 
 // MakeCommand returns a raw MDM command in plist form using uuid and optionally tokensJSON.
