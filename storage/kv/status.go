@@ -227,7 +227,9 @@ func (s *KV) RetrieveDeclarationStatus(ctx context.Context, enrollmentIDs []stri
 			join(keyPfxStaDcl, id, keySfxStaDclIdx),
 			join(keyPfxStaDcl, id, keySfxStaDclTS),
 		})
-		if err != nil {
+		if errors.Is(err, kv.ErrKeyNotFound) {
+			continue
+		} else if err != nil {
 			return nil, err
 		}
 
@@ -239,9 +241,11 @@ func (s *KV) RetrieveDeclarationStatus(ctx context.Context, enrollmentIDs []stri
 		}
 
 		var dcls []ddm.DeclarationStatus
-		err = json.Unmarshal(dMap[join(keyPfxStaDcl, id, keySfxStaDclJso)], &dcls)
-		if err != nil {
-			return nil, err
+		if len(dMap[join(keyPfxStaDcl, id, keySfxStaDclJso)]) > 0 {
+			err = json.Unmarshal(dMap[join(keyPfxStaDcl, id, keySfxStaDclJso)], &dcls)
+			if err != nil {
+				return nil, err
+			}
 		}
 
 		ts, err := toTime(dMap[join(keyPfxStaDcl, id, keySfxStaDclTS)])
@@ -268,9 +272,11 @@ func (s *KV) RetrieveDeclarationStatus(ctx context.Context, enrollmentIDs []stri
 				}
 			}
 
-			err := json.Unmarshal(ds.ReasonsJSON, &dqs.Reasons)
-			if err != nil {
-				return nil, err
+			if len(ds.ReasonsJSON) > 0 {
+				err := json.Unmarshal(ds.ReasonsJSON, &dqs.Reasons)
+				if err != nil {
+					return nil, err
+				}
 			}
 
 			dqss = append(dqss, dqs)

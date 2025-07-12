@@ -187,6 +187,25 @@ func testStatus(t *testing.T, mux http.Handler, n *captureNotifier) {
 		t.Errorf("error: have: (%d) %v, want: (%d) %v", len(have), have, len(want), want)
 	}
 
+	// test declaration status for enrollment with no status yet
+	resp = doReq(mux, "GET", "/v1/declaration-status/golang_test_enr_4A5B529A3174", nil)
+	expectHTTP(t, resp, 200)
+
+	errorResp := &struct {
+		Error string `json:"error"`
+	}{}
+
+	// decode delcaration status
+	err = json.NewDecoder(resp.Body).Decode(errorResp)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// should expect empty/no error
+	if have, want := errorResp.Error, ""; have != want {
+		t.Errorf("error: have: %q, want: %q", have, want)
+	}
+
 	// test declaration status
 
 	resp = doReq(mux, "GET", "/v1/declaration-status/golang_test_enr_E4E7C11ECD86", nil)
