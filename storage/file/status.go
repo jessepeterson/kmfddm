@@ -244,7 +244,9 @@ func (s *File) RetrieveDeclarationStatus(_ context.Context, enrollmentIDs []stri
 	ret := make(map[string][]ddm.DeclarationQueryStatus)
 	for _, enrollmentID := range enrollmentIDs {
 		csvFile, err := os.Open(s.csvFilename(csvFilenameDeclarations, enrollmentID))
-		if err != nil && !errors.Is(err, os.ErrNotExist) {
+		if errors.Is(err, os.ErrNotExist) {
+			continue
+		} else if err != nil {
 			return nil, err
 		}
 		defer csvFile.Close()
