@@ -19,6 +19,7 @@ import (
 	"github.com/jessepeterson/kmfddm/storage/shard"
 
 	"github.com/alexedwards/flow"
+	"github.com/micromdm/nanolib/envflag"
 	nanohttp "github.com/micromdm/nanolib/http"
 	"github.com/micromdm/nanolib/http/trace"
 	"github.com/micromdm/nanolib/log/stdlogfmt"
@@ -37,7 +38,7 @@ func main() {
 		flDebug   = flag.Bool("debug", false, "log debug messages")
 		flListen  = flag.String("listen", ":9002", "HTTP listen address")
 		flAPIKey  = flag.String("api", "", "API key for API endpoints")
-		flVersion = flag.Bool("version", false, "print version")
+		flVersion = flag.Bool("version", false, "print version and exit")
 		flStorage = flag.String("storage", "filekv", "storage backend")
 		flDSN     = flag.String("storage-dsn", "", "storage data source name")
 		flOptions = flag.String("storage-options", "", "storage backend options")
@@ -51,7 +52,7 @@ func main() {
 		flCORSOrigin = flag.String("cors-origin", "", "CORS Origin; for browser-based API access")
 		flMicro      = flag.Bool("micromdm", false, "Use MicroMDM command API calling conventions")
 	)
-	flag.Parse()
+	envflag.Parse("KMFDDM_", []string{"version"})
 
 	if *flVersion {
 		fmt.Println(version)
