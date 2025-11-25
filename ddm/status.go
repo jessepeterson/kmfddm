@@ -1,6 +1,7 @@
 package ddm
 
 import (
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -18,12 +19,12 @@ const (
 // DeclarationStatus is a representation of the status of declarations.
 // See https://developer.apple.com/documentation/devicemanagement/statusmanagementdeclarationsdeclarationobject
 type DeclarationStatus struct {
-	Identifier   string `json:"identifier"`
-	Active       bool   `json:"active"`
-	Valid        string `json:"valid"`
-	ServerToken  string `json:"server-token"`
-	ManifestType string `json:",omitempty"`
-	ReasonsJSON  []byte `json:",omitempty"`
+	Identifier   string          `json:"identifier"`
+	Active       bool            `json:"active"`
+	Valid        string          `json:"valid"`
+	ServerToken  string          `json:"server-token"`
+	ManifestType string          `json:",omitempty"`
+	ReasonsJSON  json.RawMessage `json:",omitempty"`
 }
 
 // DeclarationQueryStatus is additional detail given to the as-reported DeclarationStatus.

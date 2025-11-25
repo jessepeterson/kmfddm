@@ -114,7 +114,7 @@ type GetDeclarationStatusRow struct {
 	DeclarationIdentifier string
 	Active                bool
 	Valid                 string
-	Reasons               json.RawMessage
+	Reasons               []byte
 	ServerToken           string
 	UpdatedAt             string
 	StatusID              sql.NullString
@@ -228,7 +228,7 @@ type PutDeclarationStatusParams struct {
 	Active                bool
 	Valid                 string
 	ServerToken           string
-	Reasons               json.RawMessage
+	Reasons               []byte
 	StatusID              sql.NullString
 }
 

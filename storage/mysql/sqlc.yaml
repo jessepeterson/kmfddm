@@ -11,3 +11,7 @@ sql:
           - column: "status_declarations.updated_at"
             go_type:
               type: "string"
+          - column: "status_declarations.reasons"
+            # sql scaning a *json.RawMessage column fails
+            go_type:
+              type: "[]byte"

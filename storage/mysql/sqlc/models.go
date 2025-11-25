@@ -20,13 +20,6 @@ type Declaration struct {
 	ServerToken string
 }
 
-type DeclarationReference struct {
-	DeclarationIdentifier string
-	DeclarationReference  string
-	CreatedAt             time.Time
-	UpdatedAt             time.Time
-}
-
 type EnrollmentSet struct {
 	EnrollmentID string
 	SetName      string
@@ -48,7 +41,7 @@ type StatusDeclaration struct {
 	Valid                 string
 	ServerToken           string
 	ItemType              string
-	Reasons               json.RawMessage
+	Reasons               []byte
 	StatusID              sql.NullString
 	CreatedAt             time.Time
 	UpdatedAt             string
