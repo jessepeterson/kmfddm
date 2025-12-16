@@ -14,7 +14,13 @@ import (
 	"github.com/jessepeterson/kmfddm/storage/mysql/sqlc"
 )
 
+// storeStatusDeclarations will completely remove and replace the set of declaration status for an enrollmentID with declarations.
+// Exits early if no declarations are present.
 func (s *MySQLStorage) storeStatusDeclarations(ctx context.Context, enrollmentID, statusID string, declarations []ddm.DeclarationStatus) error {
+	if len(declarations) < 1 {
+		// do not delete existing declaration status if no status are included.
+		return nil
+	}
 	return tx(ctx, s.db, s.q, func(ctx context.Context, tx *sql.Tx, qtx *sqlc.Queries) error {
 		err := qtx.RemoveDeclarationStatus(ctx, enrollmentID)
 		if err != nil {
