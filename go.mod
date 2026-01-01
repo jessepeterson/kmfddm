@@ -10,7 +10,7 @@ require (
 	github.com/micromdm/nanolib v0.5.0
 	github.com/micromdm/plist v0.2.1
 	github.com/peterbourgon/diskv/v3 v3.0.1
-	github.com/valyala/fastjson v1.6.4
+	github.com/valyala/fastjson v1.6.7
 )
 
 require (
