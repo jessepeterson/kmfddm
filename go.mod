@@ -1,6 +1,6 @@
 module github.com/jessepeterson/kmfddm
 
-go 1.19
+go 1.24
 
 require (
 	github.com/alexedwards/flow v0.0.0-20220806114457-cf11be9e0e03
@@ -10,7 +10,7 @@ require (
 	github.com/micromdm/nanolib v0.5.1
 	github.com/micromdm/plist v0.2.2
 	github.com/peterbourgon/diskv/v3 v3.0.1
-	github.com/valyala/fastjson v1.6.7
+	github.com/valyala/fastjson v1.6.10
 )
 
 require (
