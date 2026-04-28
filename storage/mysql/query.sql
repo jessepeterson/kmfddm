@@ -95,3 +95,10 @@ WHERE
     sd.enrollment_id IN (sqlc.slice('ids'))
 ORDER BY
     sd.enrollment_id;
+
+-- name: DeleteStatusReports :exec
+DELETE FROM
+    status_reports
+WHERE
+    enrollment_id = ?
+    AND row_count >= ?;

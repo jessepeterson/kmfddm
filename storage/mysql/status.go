@@ -185,12 +185,10 @@ VALUES
 	}
 
 	if s.stsDel > 0 {
-		_, err = tx.ExecContext(
-			ctx,
-			`DELETE FROM status_errors WHERE enrollment_id = ? AND row_count >= ?`,
-			enrollmentID,
-			s.stsDel,
-		)
+		err = s.q.WithTx(tx).DeleteStatusReports(ctx, sqlc.DeleteStatusReportsParams{
+			EnrollmentID: enrollmentID,
+			RowCount:     int32(s.stsDel),
+		})
 	}
 
 	if err != nil {
@@ -206,9 +204,12 @@ VALUES
 // StoreDeclarationStatus stores the status report from enrollmentID.
 // See also the storage package for documentation on the storage interfaces.
 func (s *MySQLStorage) StoreDeclarationStatus(ctx context.Context, enrollmentID string, status *ddm.StatusReport) error {
-	err := s.storeStatusReport(ctx, enrollmentID, status.ID, status.Raw)
-	if err != nil {
-		return fmt.Errorf("storing status report: %w", err)
+	var err error
+	if !s.noSts {
+		err = s.storeStatusReport(ctx, enrollmentID, status.ID, status.Raw)
+		if err != nil {
+			return fmt.Errorf("storing status report: %w", err)
+		}
 	}
 	err = s.storeStatusDeclarations(ctx, enrollmentID, status.ID, status.Declarations)
 	if err != nil {

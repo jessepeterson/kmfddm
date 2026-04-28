@@ -19,6 +19,7 @@ type MySQLStorage struct {
 	newHash func() hash.Hash
 	errDel  uint
 	stsDel  uint
+	noSts   bool
 }
 
 type config struct {
@@ -27,6 +28,7 @@ type config struct {
 	db     *sql.DB
 	errDel uint
 	stsDel uint
+	noSts  bool
 }
 
 type Option func(*config)
@@ -69,6 +71,13 @@ func WithStatusReportDeletion(count uint) Option {
 	}
 }
 
+// WithoutStatusReports disables saving of status reports altogether.
+func WithoutStatusReports() Option {
+	return func(c *config) {
+		c.noSts = true
+	}
+}
+
 // New creates and initializes a new MySQL storage backend.
 // New attempts to Ping the database after opening to verify connectivity.
 func New(newHash func() hash.Hash, opts ...Option) (*MySQLStorage, error) {
@@ -95,6 +104,7 @@ func New(newHash func() hash.Hash, opts ...Option) (*MySQLStorage, error) {
 		newHash: newHash,
 		errDel:  cfg.errDel,
 		stsDel:  cfg.stsDel,
+		noSts:   cfg.noSts,
 	}, nil
 }
 

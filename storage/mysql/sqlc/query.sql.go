@@ -12,6 +12,24 @@ import (
 	"strings"
 )
 
+const deleteStatusReports = `-- name: DeleteStatusReports :exec
+DELETE FROM
+    status_reports
+WHERE
+    enrollment_id = ?
+    AND row_count >= ?
+`
+
+type DeleteStatusReportsParams struct {
+	EnrollmentID string
+	RowCount     int32
+}
+
+func (q *Queries) DeleteStatusReports(ctx context.Context, arg DeleteStatusReportsParams) error {
+	_, err := q.db.ExecContext(ctx, deleteStatusReports, arg.EnrollmentID, arg.RowCount)
+	return err
+}
+
 const getDDMDeclaration = `-- name: GetDDMDeclaration :one
 SELECT
     JSON_OBJECT(
