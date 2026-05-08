@@ -38,7 +38,10 @@ func PutEnrollmentSetHandler(store storage.EnrollmentSetStorer, notifier Notifie
 				return false, "", errors.New("empty set name")
 			}
 			changed, err := store.StoreEnrollmentSet(ctx, resource, setName)
-			if err == nil && changed && notify {
+			// notify when explicitly requested regardless of whether the association changed
+			// re-enrollment with same UDID yields changed=false but the
+			// device still needs a DeclarativeManagement command to sync its set
+			if err == nil && notify {
 				err = notifier.Changed(ctx, nil, nil, []string{resource})
 				if err != nil {
 					err = fmt.Errorf("notify enrollment: %w", err)
