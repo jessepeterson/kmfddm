@@ -104,7 +104,7 @@ $ ./tools/ideclr.py -i com.example.test test 'KMFDDM'
 }
 ```
 
-Here we've used the `-i` siwtch to `ideclr.py` to provide a custom identifier. We've specified the "test" sub-command which represents the `com.apple.configuration.management.test` declaration type — a *configuration* declaration. We'll proceed with this declaration. Let's upload it:
+Here we've used the `-i` switch to `ideclr.py` to provide a custom identifier. We've specified the "test" sub-command which represents the `com.apple.configuration.management.test` declaration type — a *configuration* declaration. We'll proceed with this declaration. Let's upload it:
 
 ```sh
 $ ./tools/ideclr.py -i com.example.test test 'KMFDDM' | ./tools/api-declaration-put.sh -
