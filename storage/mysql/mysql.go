@@ -13,14 +13,16 @@ import (
 
 const mysqlTimeFormat = "2006-01-02 15:04:05"
 
-// Recycle pooled connections well before the shortest idle timeout in the
-// network path (the istio-proxy sidecar reaps idle TCP connections at ~1h,
-// Aurora's wait_timeout is longer). Without this, database/sql hands out
-// long-idle connections that the far end has already closed, producing
-// "broken pipe" writes and "closing bad idle connection: EOF" errors.
+// Default connection pool recycling. Pooled connections are recycled well
+// before the shortest idle timeout in the network path (the istio-proxy
+// sidecar reaps idle TCP connections at ~1h, Aurora's wait_timeout is longer).
+// Without this, database/sql hands out long-idle connections that the far end
+// has already closed, producing "broken pipe" writes and "closing bad idle
+// connection: EOF" errors. Override per-deployment with WithConnMaxLifetime /
+// WithConnMaxIdleTime when the path's idle timeout differs.
 const (
-	connMaxLifetime = 3 * time.Minute
-	connMaxIdleTime = 1 * time.Minute
+	defaultConnMaxLifetime = 3 * time.Minute
+	defaultConnMaxIdleTime = 1 * time.Minute
 )
 
 // MySQLStorage implements a MySQL storage backend.
@@ -34,12 +36,14 @@ type MySQLStorage struct {
 }
 
 type config struct {
-	driver string
-	dsn    string
-	db     *sql.DB
-	errDel uint
-	stsDel uint
-	noSts  bool
+	driver          string
+	dsn             string
+	db              *sql.DB
+	errDel          uint
+	stsDel          uint
+	noSts           bool
+	connMaxLifetime time.Duration
+	connMaxIdleTime time.Duration
 }
 
 type Option func(*config)
@@ -89,13 +93,35 @@ func WithoutStatusReports() Option {
 	}
 }
 
+// WithConnMaxLifetime sets the maximum amount of time a connection may be
+// reused. It should be shorter than the shortest idle timeout in the network
+// path to the database. A non-positive value keeps connections forever.
+func WithConnMaxLifetime(d time.Duration) Option {
+	return func(c *config) {
+		c.connMaxLifetime = d
+	}
+}
+
+// WithConnMaxIdleTime sets the maximum amount of time a connection may be idle
+// before it is closed. A non-positive value never closes connections due to
+// idle time.
+func WithConnMaxIdleTime(d time.Duration) Option {
+	return func(c *config) {
+		c.connMaxIdleTime = d
+	}
+}
+
 // New creates and initializes a new MySQL storage backend.
 // New attempts to Ping the database after opening to verify connectivity.
 func New(newHash func() hash.Hash, opts ...Option) (*MySQLStorage, error) {
 	if newHash == nil {
 		panic("nil hasher")
 	}
-	cfg := config{driver: "mysql"}
+	cfg := config{
+		driver:          "mysql",
+		connMaxLifetime: defaultConnMaxLifetime,
+		connMaxIdleTime: defaultConnMaxIdleTime,
+	}
 	for _, opt := range opts {
 		opt(&cfg)
 	}
@@ -106,8 +132,8 @@ func New(newHash func() hash.Hash, opts ...Option) (*MySQLStorage, error) {
 			return nil, err
 		}
 	}
-	cfg.db.SetConnMaxLifetime(connMaxLifetime)
-	cfg.db.SetConnMaxIdleTime(connMaxIdleTime)
+	cfg.db.SetConnMaxLifetime(cfg.connMaxLifetime)
+	cfg.db.SetConnMaxIdleTime(cfg.connMaxIdleTime)
 	if err = cfg.db.Ping(); err != nil {
 		return nil, err
 	}
