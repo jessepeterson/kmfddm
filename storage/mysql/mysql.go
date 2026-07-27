@@ -6,11 +6,22 @@ import (
 	"database/sql"
 	"fmt"
 	"hash"
+	"time"
 
 	"github.com/jessepeterson/kmfddm/storage/mysql/sqlc"
 )
 
 const mysqlTimeFormat = "2006-01-02 15:04:05"
+
+// Recycle pooled connections well before the shortest idle timeout in the
+// network path (the istio-proxy sidecar reaps idle TCP connections at ~1h,
+// Aurora's wait_timeout is longer). Without this, database/sql hands out
+// long-idle connections that the far end has already closed, producing
+// "broken pipe" writes and "closing bad idle connection: EOF" errors.
+const (
+	connMaxLifetime = 3 * time.Minute
+	connMaxIdleTime = 1 * time.Minute
+)
 
 // MySQLStorage implements a MySQL storage backend.
 type MySQLStorage struct {
@@ -95,6 +106,8 @@ func New(newHash func() hash.Hash, opts ...Option) (*MySQLStorage, error) {
 			return nil, err
 		}
 	}
+	cfg.db.SetConnMaxLifetime(connMaxLifetime)
+	cfg.db.SetConnMaxIdleTime(connMaxIdleTime)
 	if err = cfg.db.Ping(); err != nil {
 		return nil, err
 	}
