@@ -101,8 +101,14 @@ Options are specified as a comma-separated list of "key=value" pairs. The mysql 
   * This option sets the maximum number of errors to keep in the database per enrollment ID. A default of zero means to store unlimited errors in the database for each enrollment.
 * `delete_status_reports=N`
   * This option sets the maximum number of errors to keep in the database per enrollment ID. A default of zero means to store unlimited errors in the database for each enrollment.
+* `conn_max_lifetime=duration`
+  * This option sets the maximum amount of time a pooled connection may be reused. The value is a [Go duration string](https://pkg.go.dev/time#ParseDuration) such as `30s`, `3m`, or `1h`. It defaults to `3m`. A value of `0` keeps connections forever.
+* `conn_max_idle_time=duration`
+  * This option sets the maximum amount of time a pooled connection may sit idle before it is closed. The value is a duration string, as above. It defaults to `1m`. A value of `0` never closes connections due to idle time.
 
 *Example:* `-storage mysql -storage-dsn kmfddm:kmfddm/mymdmdb -storage-options delete_errors=20,delete_status_reports=5`
+
+*Example:* `-storage mysql -storage-dsn kmfddm:kmfddm/mymdmdb -storage-options conn_max_lifetime=30s,conn_max_idle_time=15s`
 
 #### in-memory storage backend
 
