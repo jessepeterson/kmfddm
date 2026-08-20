@@ -6,6 +6,7 @@ import (
 	"hash"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/jessepeterson/kmfddm/logkeys"
 	"github.com/jessepeterson/kmfddm/storage"
@@ -90,6 +91,22 @@ func setupMySQLStorage(dsn string, options map[string]string, logger log.Logger)
 			}
 			opts = append(opts, mysql.WithStatusReportDeletion(uint(n)))
 			logger.Debug(logkeys.Message, reportDeleteOption, logkeys.GenericCount, int(n))
+		case "conn_max_lifetime":
+			const connMaxLifetimeOption = "connection max lifetime option"
+			d, err := time.ParseDuration(v)
+			if err != nil {
+				return nil, fmt.Errorf("invalid value for %s: %w", connMaxLifetimeOption, err)
+			}
+			opts = append(opts, mysql.WithConnMaxLifetime(d))
+			logger.Debug(logkeys.Message, connMaxLifetimeOption, "duration", d.String())
+		case "conn_max_idle_time":
+			const connMaxIdleTimeOption = "connection max idle time option"
+			d, err := time.ParseDuration(v)
+			if err != nil {
+				return nil, fmt.Errorf("invalid value for %s: %w", connMaxIdleTimeOption, err)
+			}
+			opts = append(opts, mysql.WithConnMaxIdleTime(d))
+			logger.Debug(logkeys.Message, connMaxIdleTimeOption, "duration", d.String())
 		default:
 			return nil, fmt.Errorf("invalid option: %q", k)
 		}

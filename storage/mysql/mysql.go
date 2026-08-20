@@ -6,11 +6,21 @@ import (
 	"database/sql"
 	"fmt"
 	"hash"
+	"time"
 
 	"github.com/jessepeterson/kmfddm/storage/mysql/sqlc"
 )
 
 const mysqlTimeFormat = "2006-01-02 15:04:05"
+
+// Connection pool recycling is left at database/sql's defaults unless
+// configured. Pooled connections should be recycled well before the shortest
+// idle timeout in the network path (the istio-proxy sidecar reaps idle TCP
+// connections at ~1h, Aurora's wait_timeout is longer). Without recycling,
+// database/sql hands out long-idle connections that the far end has already
+// closed, producing "broken pipe" writes and "closing bad idle connection:
+// EOF" errors. Set WithConnMaxLifetime / WithConnMaxIdleTime per-deployment to
+// enable recycling for the path's idle timeout.
 
 // MySQLStorage implements a MySQL storage backend.
 type MySQLStorage struct {
@@ -23,12 +33,14 @@ type MySQLStorage struct {
 }
 
 type config struct {
-	driver string
-	dsn    string
-	db     *sql.DB
-	errDel uint
-	stsDel uint
-	noSts  bool
+	driver          string
+	dsn             string
+	db              *sql.DB
+	errDel          uint
+	stsDel          uint
+	noSts           bool
+	connMaxLifetime time.Duration
+	connMaxIdleTime time.Duration
 }
 
 type Option func(*config)
@@ -78,13 +90,33 @@ func WithoutStatusReports() Option {
 	}
 }
 
+// WithConnMaxLifetime sets the maximum amount of time a connection may be
+// reused. It should be shorter than the shortest idle timeout in the network
+// path to the database. A non-positive value keeps connections forever.
+func WithConnMaxLifetime(d time.Duration) Option {
+	return func(c *config) {
+		c.connMaxLifetime = d
+	}
+}
+
+// WithConnMaxIdleTime sets the maximum amount of time a connection may be idle
+// before it is closed. A non-positive value never closes connections due to
+// idle time.
+func WithConnMaxIdleTime(d time.Duration) Option {
+	return func(c *config) {
+		c.connMaxIdleTime = d
+	}
+}
+
 // New creates and initializes a new MySQL storage backend.
 // New attempts to Ping the database after opening to verify connectivity.
 func New(newHash func() hash.Hash, opts ...Option) (*MySQLStorage, error) {
 	if newHash == nil {
 		panic("nil hasher")
 	}
-	cfg := config{driver: "mysql"}
+	cfg := config{
+		driver: "mysql",
+	}
 	for _, opt := range opts {
 		opt(&cfg)
 	}
@@ -94,6 +126,12 @@ func New(newHash func() hash.Hash, opts ...Option) (*MySQLStorage, error) {
 		if err != nil {
 			return nil, err
 		}
+	}
+	if cfg.connMaxLifetime != 0 {
+		cfg.db.SetConnMaxLifetime(cfg.connMaxLifetime)
+	}
+	if cfg.connMaxIdleTime != 0 {
+		cfg.db.SetConnMaxIdleTime(cfg.connMaxIdleTime)
 	}
 	if err = cfg.db.Ping(); err != nil {
 		return nil, err
