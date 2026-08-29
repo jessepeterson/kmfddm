@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sort"
 
 	"github.com/jessepeterson/kmfddm/ddm"
 	"github.com/jessepeterson/kmfddm/storage"
@@ -103,9 +104,18 @@ func (s *KV) RetrieveDeclarationItems(ctx context.Context, enrollmentID string) 
 		}
 	}
 
+	declarationIDs := make([]string, 0, len(dMap))
+	for declarationID := range dMap {
+		declarationIDs = append(declarationIDs, declarationID)
+	}
+
+	// the declarations token is a hash of the declarations in the order they
+	// are returned here, so that order needs to be the same every time.
+	sort.Strings(declarationIDs)
+
 	var declarations []*ddm.Declaration
 
-	for declarationID := range dMap {
+	for _, declarationID := range declarationIDs {
 		dValues, err := kv.GetMap(ctx, s.declarations, []string{
 			join(keyPfxDcl, declarationID, keyDeclarationServerToken),
 			join(keyPfxDcl, declarationID, keyDeclarationType),
