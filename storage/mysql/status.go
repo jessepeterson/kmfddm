@@ -233,6 +233,12 @@ func (s *MySQLStorage) RetrieveDeclarationStatus(ctx context.Context, enrollment
 		return nil, errors.New("no enrollment IDs provided")
 	}
 
+	// storeStatusDeclarations removes and replaces an enrollment's rows for
+	// every status report, so they are already scoped to that enrollment's
+	// latest report. This query must not join set_declarations or
+	// enrollment_sets to scope them any further: those tables contribute no
+	// columns and only multiply each row by the number of sets carrying the
+	// declaration.
 	rows, err := s.q.GetDeclarationStatus(ctx, enrollmentIDs)
 	if err != nil {
 		return nil, err

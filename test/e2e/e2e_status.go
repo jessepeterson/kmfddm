@@ -369,6 +369,63 @@ func testStatus(t *testing.T, mux http.Handler, n *captureNotifier) {
 		t.Errorf("declatation status: have: (%d) %v, want: (%d) %v", len(have), have, len(want), want)
 	}
 
+	// test that a declaration in multiple sets is not duplicated. associate
+	// the declaration with a second set, deliberately leaving the enrollment's
+	// own set membership alone: only the declaration gains a set here, which
+	// must not affect the enrollment's status at all.
+	resp = doReq(mux, "PUT", "/v1/set-declarations/golang_test_set_9F1C0A4B22D7?declaration=com.example.test", nil)
+	expectHTTP(t, resp, 204)
+	expectNotifierSlice(t, n, true, nil)
+
+	// retrieve the declaration status again
+	resp = doReq(mux, "GET", "/v1/declaration-status/golang_test_enr_730E7C49E900", nil)
+	expectHTTP(t, resp, 200)
+
+	dStatus = make(map[string][]ddm.DeclarationQueryStatus)
+
+	// decode delcaration status
+	err = json.NewDecoder(resp.Body).Decode(&dStatus)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// clear out unnecessary (to this test) fields
+	for k := range dStatus {
+		for i := range dStatus[k] {
+			dStatus[k][i].Reasons = nil
+			dStatus[k][i].StatusID = ""
+			dStatus[k][i].StatusReceived = time.Time{}
+
+			dStatus[k][i].ManifestType = ""
+			dStatus[k][i].ReasonsJSON = nil
+		}
+	}
+
+	// identical to the expectation above: the second set carrying the
+	// declaration must not add a row (nor change current).
+	eStatus = map[string][]ddm.DeclarationQueryStatus{
+		"golang_test_enr_730E7C49E900": {
+			{
+				Current: true,
+				DeclarationStatus: ddm.DeclarationStatus{
+					Valid:       "unknown",
+					Active:      false,
+					Identifier:  "com.example.test",
+					ServerToken: rTestD.ServerToken,
+				},
+			},
+		},
+	}
+
+	if have, want := dStatus, eStatus; !reflect.DeepEqual(have, want) {
+		t.Errorf("declatation status: have: (%d) %v, want: (%d) %v", len(have), have, len(want), want)
+	}
+
+	// remove the second declaration-set association
+	resp = doReq(mux, "DELETE", "/v1/set-declarations/golang_test_set_9F1C0A4B22D7?declaration=com.example.test", nil)
+	expectHTTP(t, resp, 204)
+	expectNotifierSlice(t, n, true, nil)
+
 	// remove the declaration-set association
 	resp = doReq(mux, "DELETE", "/v1/set-declarations/golang_test_set_793BBBD50EE9?declaration=com.example.test", nil)
 	expectHTTP(t, resp, 204)
