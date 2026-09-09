@@ -87,10 +87,6 @@ FROM
     status_declarations sd
     LEFT JOIN declarations d
         ON sd.declaration_identifier = d.identifier
-    LEFT JOIN set_declarations setd
-        ON d.identifier = setd.declaration_identifier
-    LEFT JOIN enrollment_sets es
-        ON setd.set_name = es.set_name AND sd.enrollment_id = es.enrollment_id
 WHERE
     sd.enrollment_id IN (sqlc.slice('ids'))
 ORDER BY
