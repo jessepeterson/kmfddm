@@ -4,7 +4,22 @@ import (
 	"context"
 	"errors"
 	"testing"
+
+	"github.com/jessepeterson/kmfddm/ddm"
 )
+
+var errTest = errors.New("test error")
+
+// ErrStore is a storage backend where every retrieval fails with errTest.
+type ErrStore struct{}
+
+func (s *ErrStore) RetrieveDeclarationItems(_ context.Context, _ string) ([]*ddm.Declaration, error) {
+	return nil, errTest
+}
+
+func (s *ErrStore) RetrieveEnrollmentDeclarationJSON(_ context.Context, _, _, _ string) ([]byte, error) {
+	return nil, errTest
+}
 
 const testDecl2 = `{
     "Type": "com.apple.configuration.management.test",
@@ -111,6 +126,34 @@ func TestMulti(t *testing.T) {
 			}
 		}
 
+	})
+
+	t.Run("error", func(t *testing.T) {
+		ok, err := NewMockStore([]byte(testDecl), "abc", "baz")
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		for _, test := range []struct {
+			name   string
+			stores []EnrollmentDeclarationDataStorage
+		}{
+			{"first", []EnrollmentDeclarationDataStorage{&ErrStore{}, ok}},
+			{"second", []EnrollmentDeclarationDataStorage{ok, &ErrStore{}}},
+		} {
+			t.Run(test.name, func(t *testing.T) {
+				decls, err := NewMulti(test.stores...).RetrieveDeclarationItems(ctx, "baz")
+				if !errors.Is(err, errTest) {
+					t.Errorf("incorrect error type: %v", err)
+				}
+				// the declaration items are authoritative for an enrollment:
+				// handing back the stores that did succeed would tell it to
+				// unload the declarations of the store that did not.
+				if decls != nil {
+					t.Errorf("declarations should be nil: %v", decls)
+				}
+			})
+		}
 	})
 }
 

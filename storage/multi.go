@@ -3,6 +3,7 @@ package storage
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/jessepeterson/kmfddm/ddm"
 )
@@ -21,17 +22,18 @@ func NewMulti(s ...EnrollmentDeclarationDataStorage) *Multi {
 }
 
 // RetrieveDeclarationItems combines the declarations for enrollmentID from each backing store.
+// If any backing store errors no declarations are returned: a partial set of
+// declaration items would instruct an enrollment to unload the missing declarations.
 func (s *Multi) RetrieveDeclarationItems(ctx context.Context, enrollmentID string) ([]*ddm.Declaration, error) {
 	var allDecls []*ddm.Declaration
-	var err error
-	for _, s := range s.storage {
-		decls, err := s.RetrieveDeclarationItems(ctx, enrollmentID)
+	for i, store := range s.storage {
+		decls, err := store.RetrieveDeclarationItems(ctx, enrollmentID)
 		if err != nil {
-			break
+			return nil, fmt.Errorf("retrieving declaration items from store %d: %w", i, err)
 		}
 		allDecls = append(allDecls, decls...)
 	}
-	return allDecls, err
+	return allDecls, nil
 }
 
 // RetrieveEnrollmentDeclarationJSON returns a JSON declaration for
