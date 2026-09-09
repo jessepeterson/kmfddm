@@ -84,3 +84,45 @@ jobs:
         with:
           name: release-zips
           path: "*.zip"
+  mysql-test:
+    runs-on: 'ubuntu-latest'
+    needs: format-build-test
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_RANDOM_ROOT_PASSWORD: yes
+          MYSQL_DATABASE: kmfddm
+          MYSQL_USER: kmfddm
+          MYSQL_PASSWORD: kmfddm
+        ports:
+          - 3800:3306
+        options: --health-cmd="mysqladmin ping" --health-interval=5s --health-timeout=2s --health-retries=3
+    defaults:
+      run:
+        shell: bash
+    env:
+      MYSQL_PWD: kmfddm
+      PORT: 3800
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e  # v7.0.0
+        with:
+          go-version: '1.23.x'
+
+      - name: verify mysql
+        run: |
+          while ! mysqladmin ping --host=localhost --port=$PORT --protocol=TCP --silent; do
+            sleep 1
+          done
+
+      - name: mysql schema
+        run: |
+          mysql --version
+          mysql --user=kmfddm --host=localhost --port=$PORT --protocol=TCP kmfddm < ./storage/mysql/schema.sql
+
+      - name: setup test dsn
+        run: echo "KMFDDM_MYSQL_STORAGE_TEST_DSN=kmfddm:kmfddm@tcp(localhost:$PORT)/kmfddm" >> $GITHUB_ENV
+
+      - run: go test -v ./storage/mysql/...
