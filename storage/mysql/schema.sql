@@ -99,32 +99,30 @@ CREATE TABLE status_values (
 );
 
 CREATE TABLE status_errors (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+
     enrollment_id   VARCHAR(255) NOT NULL,
 
     path VARCHAR(255) NOT NULL,
     error JSON NOT NULL,
 
     status_id VARCHAR(255) NULL,
-    row_count INT DEFAULT 0 NOT NULL,
-
-    INDEX (enrollment_id),
 
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP NOT NULL,
 
     INDEX (created_at),
-    INDEX (enrollment_id, row_count)
+    INDEX (enrollment_id, id)
 );
 
 CREATE TABLE status_reports (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+
     enrollment_id   VARCHAR(255) NOT NULL,
 
     status_report JSON,
 
     status_id VARCHAR(255) NULL,
-    row_count INT DEFAULT 0 NOT NULL,
-
-    INDEX (enrollment_id),
 
     CHECK (enrollment_id != ''),
     CHECK (status_report != '' AND status_report != 'null'),
@@ -133,5 +131,5 @@ CREATE TABLE status_reports (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP NOT NULL,
 
     INDEX (created_at),
-    INDEX (enrollment_id, row_count)
+    INDEX (enrollment_id, id)
 );

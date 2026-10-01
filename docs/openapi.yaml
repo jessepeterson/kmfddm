@@ -401,7 +401,7 @@ paths:
               schema:
                 type: string
             X-Status-Report-Index:
-              description: The status report "index". A reverse-chronological identifier, per enrollment ID, for this status report. I.e. index zero (`0`) is the last status report seen from a client.
+              description: The status report "index". A reverse-chronological identifier, per enrollment ID, for this status report. I.e. index zero (`0`) is the last status report seen from a client. Note that the `filekv` and `inmem` storage backends instead return the report's absolute position, where zero (`0`) is the first status report stored for the enrollment.
               schema:
                 type: integer
                 example: 0

@@ -28,4 +28,20 @@ func TestMySQL(t *testing.T) {
 		e2e.TestE2E(t, ctx, storage)
 	})
 
+	// keepErrors splits the errors of a status report
+	const keepReports, keepErrors = 3, 2
+	retentionStorage, err := New(
+		func() hash.Hash { return fnv.New128() },
+		WithDSN(testDSN),
+		WithStatusReportDeletion(keepReports),
+		WithErrorDeletion(keepErrors),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Run("TestStatusRetention", func(t *testing.T) {
+		e2e.TestStatusRetention(t, ctx, retentionStorage, keepReports, keepErrors)
+	})
+
 }

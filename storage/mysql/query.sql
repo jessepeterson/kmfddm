@@ -92,9 +92,99 @@ WHERE
 ORDER BY
     sd.enrollment_id;
 
+-- name: InsertStatusError :exec
+INSERT INTO status_errors (
+    enrollment_id,
+    path,
+    error,
+    status_id
+) VALUES (?, ?, ?, ?);
+
+-- Keeps only the newest (offset) errors for the enrollment.
+-- The derived table is required: MySQL cannot select from the DELETE target
+-- table in a subquery unless it is materialized (which LIMIT ensures).
+-- name: DeleteStatusErrors :exec
+DELETE FROM
+    status_errors
+WHERE
+    status_errors.enrollment_id = ?
+    AND status_errors.id <= (
+        SELECT id FROM (
+            SELECT se.id FROM status_errors se
+            WHERE se.enrollment_id = ?
+            ORDER BY se.id DESC
+            LIMIT 1 OFFSET ?
+        ) cutoff
+    );
+
+-- name: SelectStatusErrors :many
+SELECT
+    enrollment_id,
+    path,
+    error,
+    status_id,
+    created_at
+FROM
+    status_errors
+WHERE
+    enrollment_id IN (sqlc.slice('ids'))
+ORDER BY
+    enrollment_id, id
+LIMIT ?, ?;
+
+-- name: InsertStatusReport :exec
+INSERT INTO status_reports (
+    enrollment_id,
+    status_id,
+    status_report
+) VALUES (?, ?, ?);
+
+-- Keeps only the newest (offset) status reports for the enrollment.
+-- The derived table is required: MySQL cannot select from the DELETE target
+-- table in a subquery unless it is materialized (which LIMIT ensures).
 -- name: DeleteStatusReports :exec
 DELETE FROM
     status_reports
 WHERE
+    status_reports.enrollment_id = ?
+    AND status_reports.id <= (
+        SELECT id FROM (
+            SELECT sr.id FROM status_reports sr
+            WHERE sr.enrollment_id = ?
+            ORDER BY sr.id DESC
+            LIMIT 1 OFFSET ?
+        ) cutoff
+    );
+
+-- Index 0 is the most recent status report for the enrollment.
+-- name: SelectStatusReportByIndex :one
+SELECT
+    status_id,
+    created_at,
+    status_report
+FROM
+    status_reports
+WHERE
     enrollment_id = ?
-    AND row_count >= ?;
+ORDER BY
+    id DESC
+LIMIT 1 OFFSET ?;
+
+-- name: SelectStatusReportByStatusID :one
+SELECT
+    sr.status_id,
+    sr.created_at,
+    sr.status_report,
+    (
+        SELECT COUNT(*) FROM status_reports
+        WHERE status_reports.enrollment_id = sr.enrollment_id
+            AND status_reports.id > sr.id
+    ) AS idx
+FROM
+    status_reports sr
+WHERE
+    sr.enrollment_id = ?
+    AND sr.status_id = ?
+ORDER BY
+    sr.id DESC
+LIMIT 1;

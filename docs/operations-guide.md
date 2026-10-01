@@ -99,8 +99,9 @@ Options are specified as a comma-separated list of "key=value" pairs. The mysql 
 
 * `delete_errors=N`
   * This option sets the maximum number of errors to keep in the database per enrollment ID. A default of zero means to store unlimited errors in the database for each enrollment.
+  * Note this counts individual errors, not status reports: a single status report can contain many errors (one for each declaration that is neither active nor valid, plus any top-level status report errors). The most recent N errors are kept, so a status report with more than N errors only has its last N kept, and the errors of earlier status reports are deleted.
 * `delete_status_reports=N`
-  * This option sets the maximum number of errors to keep in the database per enrollment ID. A default of zero means to store unlimited errors in the database for each enrollment.
+  * This option sets the maximum number of raw status reports to keep in the database per enrollment ID. A default of zero means to store unlimited status reports in the database for each enrollment.
 * `conn_max_lifetime=duration`
   * This option sets the maximum amount of time a pooled connection may be reused. The value is a [Go duration string](https://pkg.go.dev/time#ParseDuration) such as `30s`, `3m`, or `1h`. When unset, connection lifetime is left at database/sql's default (connections are reused indefinitely). A value of `0` keeps connections forever.
 * `conn_max_idle_time=duration`

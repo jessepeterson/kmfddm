@@ -67,8 +67,9 @@ func WithDB(db *sql.DB) Option {
 	}
 }
 
-// WithErrorDeletion sets the maximum number of error event rows to keep
-// per enrollment ID.
+// WithErrorDeletion sets the maximum number of errors to keep per
+// enrollment ID. Note this counts errors, not status reports: a single
+// status report can contain many errors.
 func WithErrorDeletion(count uint) Option {
 	return func(c *config) {
 		c.errDel = count
@@ -144,6 +145,14 @@ func New(newHash func() hash.Hash, opts ...Option) (*MySQLStorage, error) {
 		stsDel:  cfg.stsDel,
 		noSts:   cfg.noSts,
 	}, nil
+}
+
+// nullEmptyString returns a NULL string if s is empty.
+func nullEmptyString(s string) sql.NullString {
+	return sql.NullString{
+		String: s,
+		Valid:  s != "",
+	}
 }
 
 // resultChangedRows tries to tell us if if the record changed. Note that

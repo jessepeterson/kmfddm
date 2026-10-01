@@ -7,15 +7,14 @@ package sqlc
 import (
 	"database/sql"
 	"encoding/json"
-	"time"
 )
 
 type Declaration struct {
 	Identifier  string
 	Type        string
 	Payload     json.RawMessage
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
+	CreatedAt   string
+	UpdatedAt   string
 	TouchedCt   int32
 	ServerToken string
 }
@@ -23,15 +22,15 @@ type Declaration struct {
 type EnrollmentSet struct {
 	EnrollmentID string
 	SetName      string
-	CreatedAt    time.Time
-	UpdatedAt    time.Time
+	CreatedAt    string
+	UpdatedAt    string
 }
 
 type SetDeclaration struct {
 	SetName               string
 	DeclarationIdentifier string
-	CreatedAt             time.Time
-	UpdatedAt             time.Time
+	CreatedAt             string
+	UpdatedAt             string
 }
 
 type StatusDeclaration struct {
@@ -43,27 +42,27 @@ type StatusDeclaration struct {
 	ItemType              string
 	Reasons               []byte
 	StatusID              sql.NullString
-	CreatedAt             time.Time
+	CreatedAt             string
 	UpdatedAt             string
 }
 
 type StatusError struct {
+	ID           uint64
 	EnrollmentID string
 	Path         string
-	Error        json.RawMessage
+	Error        []byte
 	StatusID     sql.NullString
-	RowCount     int32
-	CreatedAt    time.Time
-	UpdatedAt    time.Time
+	CreatedAt    string
+	UpdatedAt    string
 }
 
 type StatusReport struct {
+	ID           uint64
 	EnrollmentID string
-	StatusReport json.RawMessage
+	StatusReport []byte
 	StatusID     sql.NullString
-	RowCount     int32
-	CreatedAt    time.Time
-	UpdatedAt    time.Time
+	CreatedAt    string
+	UpdatedAt    string
 }
 
 type StatusValue struct {
@@ -73,6 +72,6 @@ type StatusValue struct {
 	ValueType     string
 	Value         string
 	StatusID      sql.NullString
-	CreatedAt     time.Time
-	UpdatedAt     time.Time
+	CreatedAt     string
+	UpdatedAt     string
 }

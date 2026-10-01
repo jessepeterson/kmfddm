@@ -8,10 +8,29 @@ sql:
         package: "sqlc"
         out: "sqlc"
         overrides:
-          - column: "status_declarations.updated_at"
-            go_type:
-              type: "string"
           - column: "status_declarations.reasons"
             # sql scaning a *json.RawMessage column fails
             go_type:
               type: "[]byte"
+          - column: "status_errors.error"
+            go_type:
+              type: "[]byte"
+          - column: "status_reports.status_report"
+            go_type:
+              type: "[]byte"
+          # parseTime=true is assumed to not be set on the MySQL driver
+          # DSN, so timestamp and datetime columns arrive as strings.
+          - db_type: "timestamp"
+            go_type:
+              type: "string"
+          - db_type: "timestamp"
+            nullable: true
+            go_type:
+              type: "sql.NullString"
+          - db_type: "datetime"
+            go_type:
+              type: "string"
+          - db_type: "datetime"
+            nullable: true
+            go_type:
+              type: "sql.NullString"
