@@ -12,21 +12,61 @@ import (
 	"strings"
 )
 
+const deleteStatusErrors = `-- name: DeleteStatusErrors :exec
+DELETE FROM
+    status_errors
+WHERE
+    status_errors.enrollment_id = ?
+    AND status_errors.id <= (
+        SELECT id FROM (
+            SELECT se.id FROM status_errors se
+            WHERE se.enrollment_id = ?
+            ORDER BY se.id DESC
+            LIMIT 1 OFFSET ?
+        ) cutoff
+    )
+`
+
+type DeleteStatusErrorsParams struct {
+	EnrollmentID   string
+	EnrollmentID_2 string
+	Offset         int32
+}
+
+// Keeps only the newest (offset) errors for the enrollment.
+// The derived table is required: MySQL cannot select from the DELETE target
+// table in a subquery unless it is materialized (which LIMIT ensures).
+func (q *Queries) DeleteStatusErrors(ctx context.Context, arg DeleteStatusErrorsParams) error {
+	_, err := q.db.ExecContext(ctx, deleteStatusErrors, arg.EnrollmentID, arg.EnrollmentID_2, arg.Offset)
+	return err
+}
+
 const deleteStatusReports = `-- name: DeleteStatusReports :exec
 DELETE FROM
     status_reports
 WHERE
-    enrollment_id = ?
-    AND row_count >= ?
+    status_reports.enrollment_id = ?
+    AND status_reports.id <= (
+        SELECT id FROM (
+            SELECT sr.id FROM status_reports sr
+            WHERE sr.enrollment_id = ?
+            ORDER BY sr.id DESC
+            LIMIT 1 OFFSET ?
+        ) cutoff
+    )
 `
 
 type DeleteStatusReportsParams struct {
-	EnrollmentID string
-	RowCount     int32
+	EnrollmentID   string
+	EnrollmentID_2 string
+	Offset         int32
 }
 
+// Keeps only the newest (offset) status reports for the enrollment.
+// The derived table is required: MySQL cannot select from the DELETE target
+// table in a subquery unless it is materialized (which LIMIT ensures).
 func (q *Queries) DeleteStatusReports(ctx context.Context, arg DeleteStatusReportsParams) error {
-	_, err := q.db.ExecContext(ctx, deleteStatusReports, arg.EnrollmentID, arg.RowCount)
+	_, err := q.db.ExecContext(ctx, deleteStatusReports, arg.EnrollmentID, arg.EnrollmentID_2, arg.Offset)
 	return err
 }
 
@@ -222,6 +262,51 @@ func (q *Queries) GetManifestItems(ctx context.Context, enrollmentID string) ([]
 	return items, nil
 }
 
+const insertStatusError = `-- name: InsertStatusError :exec
+INSERT INTO status_errors (
+    enrollment_id,
+    path,
+    error,
+    status_id
+) VALUES (?, ?, ?, ?)
+`
+
+type InsertStatusErrorParams struct {
+	EnrollmentID string
+	Path         string
+	Error        []byte
+	StatusID     sql.NullString
+}
+
+func (q *Queries) InsertStatusError(ctx context.Context, arg InsertStatusErrorParams) error {
+	_, err := q.db.ExecContext(ctx, insertStatusError,
+		arg.EnrollmentID,
+		arg.Path,
+		arg.Error,
+		arg.StatusID,
+	)
+	return err
+}
+
+const insertStatusReport = `-- name: InsertStatusReport :exec
+INSERT INTO status_reports (
+    enrollment_id,
+    status_id,
+    status_report
+) VALUES (?, ?, ?)
+`
+
+type InsertStatusReportParams struct {
+	EnrollmentID string
+	StatusID     sql.NullString
+	StatusReport []byte
+}
+
+func (q *Queries) InsertStatusReport(ctx context.Context, arg InsertStatusReportParams) error {
+	_, err := q.db.ExecContext(ctx, insertStatusReport, arg.EnrollmentID, arg.StatusID, arg.StatusReport)
+	return err
+}
+
 const putDeclarationStatus = `-- name: PutDeclarationStatus :exec
 INSERT INTO status_declarations (
     enrollment_id,
@@ -281,4 +366,152 @@ WHERE
 func (q *Queries) RemoveDeclarationStatus(ctx context.Context, enrollmentID string) error {
 	_, err := q.db.ExecContext(ctx, removeDeclarationStatus, enrollmentID)
 	return err
+}
+
+const selectStatusErrors = `-- name: SelectStatusErrors :many
+SELECT
+    enrollment_id,
+    path,
+    error,
+    status_id,
+    created_at
+FROM
+    status_errors
+WHERE
+    enrollment_id IN (/*SLICE:ids*/?)
+ORDER BY
+    enrollment_id, id
+LIMIT ?, ?
+`
+
+type SelectStatusErrorsParams struct {
+	Ids    []string
+	Offset int32
+	Limit  int32
+}
+
+type SelectStatusErrorsRow struct {
+	EnrollmentID string
+	Path         string
+	Error        []byte
+	StatusID     sql.NullString
+	CreatedAt    string
+}
+
+func (q *Queries) SelectStatusErrors(ctx context.Context, arg SelectStatusErrorsParams) ([]SelectStatusErrorsRow, error) {
+	query := selectStatusErrors
+	var queryParams []interface{}
+	if len(arg.Ids) > 0 {
+		for _, v := range arg.Ids {
+			queryParams = append(queryParams, v)
+		}
+		query = strings.Replace(query, "/*SLICE:ids*/?", strings.Repeat(",?", len(arg.Ids))[1:], 1)
+	} else {
+		query = strings.Replace(query, "/*SLICE:ids*/?", "NULL", 1)
+	}
+	queryParams = append(queryParams, arg.Offset)
+	queryParams = append(queryParams, arg.Limit)
+	rows, err := q.db.QueryContext(ctx, query, queryParams...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []SelectStatusErrorsRow
+	for rows.Next() {
+		var i SelectStatusErrorsRow
+		if err := rows.Scan(
+			&i.EnrollmentID,
+			&i.Path,
+			&i.Error,
+			&i.StatusID,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const selectStatusReportByIndex = `-- name: SelectStatusReportByIndex :one
+SELECT
+    status_id,
+    created_at,
+    status_report
+FROM
+    status_reports
+WHERE
+    enrollment_id = ?
+ORDER BY
+    id DESC
+LIMIT 1 OFFSET ?
+`
+
+type SelectStatusReportByIndexParams struct {
+	EnrollmentID string
+	Offset       int32
+}
+
+type SelectStatusReportByIndexRow struct {
+	StatusID     sql.NullString
+	CreatedAt    string
+	StatusReport []byte
+}
+
+// Index 0 is the most recent status report for the enrollment.
+func (q *Queries) SelectStatusReportByIndex(ctx context.Context, arg SelectStatusReportByIndexParams) (SelectStatusReportByIndexRow, error) {
+	row := q.db.QueryRowContext(ctx, selectStatusReportByIndex, arg.EnrollmentID, arg.Offset)
+	var i SelectStatusReportByIndexRow
+	err := row.Scan(&i.StatusID, &i.CreatedAt, &i.StatusReport)
+	return i, err
+}
+
+const selectStatusReportByStatusID = `-- name: SelectStatusReportByStatusID :one
+SELECT
+    sr.status_id,
+    sr.created_at,
+    sr.status_report,
+    (
+        SELECT COUNT(*) FROM status_reports
+        WHERE status_reports.enrollment_id = sr.enrollment_id
+            AND status_reports.id > sr.id
+    ) AS idx
+FROM
+    status_reports sr
+WHERE
+    sr.enrollment_id = ?
+    AND sr.status_id = ?
+ORDER BY
+    sr.id DESC
+LIMIT 1
+`
+
+type SelectStatusReportByStatusIDParams struct {
+	EnrollmentID string
+	StatusID     sql.NullString
+}
+
+type SelectStatusReportByStatusIDRow struct {
+	StatusID     sql.NullString
+	CreatedAt    string
+	StatusReport []byte
+	Idx          int64
+}
+
+func (q *Queries) SelectStatusReportByStatusID(ctx context.Context, arg SelectStatusReportByStatusIDParams) (SelectStatusReportByStatusIDRow, error) {
+	row := q.db.QueryRowContext(ctx, selectStatusReportByStatusID, arg.EnrollmentID, arg.StatusID)
+	var i SelectStatusReportByStatusIDRow
+	err := row.Scan(
+		&i.StatusID,
+		&i.CreatedAt,
+		&i.StatusReport,
+		&i.Idx,
+	)
+	return i, err
 }

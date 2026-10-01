@@ -31,14 +31,21 @@ type StoredStatusReport struct {
 	Raw       []byte    // the raw JSON bytes of the status report
 	Timestamp time.Time // the date the status report was saved
 	StatusID  string    // optional unique identifier of report. defined when report was saved.
-	Index     int       // optional "index" for this enrollment's status reports.
+
+	// Index is the optional "index" of this report among the enrollment's
+	// status reports. Its meaning depends on the storage backend: see the
+	// backend's RetrieveStatusReport documentation.
+	Index int
 }
 
 // StatusReportQuery specifies search criteria for finding specific status reports for enrollments.
 type StatusReportQuery struct {
 	EnrollmentID string
 	StatusID     *string
-	Index        *int
+
+	// Index is reverse-chronological: 0 is the most recent status report,
+	// 1 the one received before that, and so on.
+	Index *int
 }
 
 // Valid performs basic sanity checks for querying for status reports.
@@ -73,5 +80,9 @@ type StatusValuesRetriever interface {
 }
 
 type StatusReportRetriever interface {
+	// RetrieveStatusReport retrieves the status report matching q.
+	// A nil report and nil error means no report matched. Backends
+	// differ in which queries they support and in the meaning of the
+	// returned report's Index: see each backend's documentation.
 	RetrieveStatusReport(ctx context.Context, q StatusReportQuery) (*StoredStatusReport, error)
 }
