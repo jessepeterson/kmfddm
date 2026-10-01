@@ -92,113 +92,61 @@ func (s *MySQLStorage) storeStatusErrors(ctx context.Context, enrollmentID, stat
 	if len(errors) < 1 {
 		return nil
 	}
-
-	tx, err := s.db.BeginTx(ctx, nil)
-	if err != nil {
-		return err
-	}
-
-	_, err = tx.ExecContext(
-		ctx,
-		`UPDATE status_errors SET row_count = row_count + 1 WHERE enrollment_id = ?;`,
-		enrollmentID,
-	)
-
-	if err == nil {
-		argSQL := strings.Repeat(", (?, ?, ?, ?)", len(errors))[2:]
-		const argLen = 4
-		args := make([]interface{}, len(errors)*argLen)
-		for i, e := range errors {
-			args[i*argLen] = enrollmentID
-			args[i*argLen+1] = e.Path
-			args[i*argLen+2] = e.ErrorJSON
-			args[i*argLen+3] = sql.NullString{
-				String: statusID,
-				Valid:  len(statusID) > 0,
+	err := tx(ctx, s.db, s.q, func(ctx context.Context, _ *sql.Tx, qtx *sqlc.Queries) error {
+		for _, e := range errors {
+			err := qtx.InsertStatusError(ctx, sqlc.InsertStatusErrorParams{
+				EnrollmentID: enrollmentID,
+				Path:         e.Path,
+				Error:        e.ErrorJSON,
+				StatusID:     nullEmptyString(statusID),
+			})
+			if err != nil {
+				return err
 			}
 		}
-		_, err = tx.ExecContext(
-			ctx, `
-INSERT INTO status_errors
-    (
-        enrollment_id,
-        path,
-        error,
-        status_id
-    )
-VALUES
-    `+argSQL+`;`,
-			args...,
-		)
-	}
-
-	if s.errDel > 0 {
-		_, err = tx.ExecContext(
-			ctx,
-			`DELETE FROM status_errors WHERE enrollment_id = ? AND row_count >= ?`,
-			enrollmentID,
-			s.errDel,
-		)
-	}
-
-	if err != nil {
-		if rbErr := tx.Rollback(); rbErr != nil {
-			return fmt.Errorf("rollback error: %w; while trying to handle error: %v", rbErr, err)
-		}
+		return nil
+	})
+	if err != nil || s.errDel < 1 {
 		return err
 	}
-
-	return tx.Commit()
+	// deletion is separate from (and after) storing the errors: if it
+	// fails the next status report will delete them.
+	err = s.q.DeleteStatusErrors(ctx, sqlc.DeleteStatusErrorsParams{
+		EnrollmentID:   enrollmentID,
+		EnrollmentID_2: enrollmentID,
+		Offset:         int32(s.errDel),
+	})
+	if err != nil {
+		return fmt.Errorf("deleting status errors: %w", err)
+	}
+	return nil
 }
 
 func (s *MySQLStorage) storeStatusReport(ctx context.Context, enrollmentID, statusID string, raw []byte) error {
 	if len(raw) < 1 {
 		return errors.New("empty raw status report")
 	}
-
-	tx, err := s.db.BeginTx(ctx, nil)
-	if err != nil {
-		return err
-	}
-
-	_, err = tx.ExecContext(
-		ctx,
-		`UPDATE status_reports SET row_count = row_count + 1 WHERE enrollment_id = ?;`,
-		enrollmentID,
-	)
-
-	if err == nil {
-		_, err = tx.ExecContext(
-			ctx, `
-INSERT INTO status_reports
-    (
-        enrollment_id,
-        status_id,
-        status_report
-    )
-VALUES
-    (?, ?, ?);`,
-			enrollmentID,
-			statusID,
-			raw,
-		)
-	}
-
-	if s.stsDel > 0 {
-		err = s.q.WithTx(tx).DeleteStatusReports(ctx, sqlc.DeleteStatusReportsParams{
+	err := tx(ctx, s.db, s.q, func(ctx context.Context, _ *sql.Tx, qtx *sqlc.Queries) error {
+		return qtx.InsertStatusReport(ctx, sqlc.InsertStatusReportParams{
 			EnrollmentID: enrollmentID,
-			RowCount:     int32(s.stsDel),
+			StatusID:     nullEmptyString(statusID),
+			StatusReport: raw,
 		})
-	}
-
-	if err != nil {
-		if rbErr := tx.Rollback(); rbErr != nil {
-			return fmt.Errorf("rollback error: %w; while trying to handle error: %v", rbErr, err)
-		}
+	})
+	if err != nil || s.stsDel < 1 {
 		return err
 	}
-
-	return tx.Commit()
+	// deletion is separate from (and after) storing the report: if it
+	// fails the next status report will delete them.
+	err = s.q.DeleteStatusReports(ctx, sqlc.DeleteStatusReportsParams{
+		EnrollmentID:   enrollmentID,
+		EnrollmentID_2: enrollmentID,
+		Offset:         int32(s.stsDel),
+	})
+	if err != nil {
+		return fmt.Errorf("deleting status reports: %w", err)
+	}
+	return nil
 }
 
 // StoreDeclarationStatus stores the status report from enrollmentID.
@@ -267,52 +215,25 @@ func (s *MySQLStorage) RetrieveDeclarationStatus(ctx context.Context, enrollment
 // RetrieveStatusErrors retrieves the reported status errors for enrollmentIDs.
 // See also the storage package for documentation on the storage interfaces.
 func (s *MySQLStorage) RetrieveStatusErrors(ctx context.Context, enrollmentIDs []string, offset, limit int) (map[string][]storage.StatusError, error) {
-	idSQL := strings.Repeat(", ?", len(enrollmentIDs))[2:]
-	args := make([]interface{}, len(enrollmentIDs), len(enrollmentIDs)+2)
-	for i, id := range enrollmentIDs {
-		args[i] = id
-	}
-	args = append(args, offset, limit)
-	rows, err := s.db.QueryContext(
-		ctx, `
-SELECT
-    enrollment_id,
-    path,
-    error,
-	status_id,
-	created_at
-FROM
-    status_errors
-WHERE
-    enrollment_id IN (`+idSQL+`)
-ORDER BY
-    enrollment_id, created_at
-LIMIT ?, ?;`,
-		args...,
-	)
+	rows, err := s.q.SelectStatusErrors(ctx, sqlc.SelectStatusErrorsParams{
+		Ids:    enrollmentIDs,
+		Offset: int32(offset),
+		Limit:  int32(limit),
+	})
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
 	resp := make(map[string][]storage.StatusError)
-	var id, dbTimestamp string
-	var dbErrorJSON []byte
-	var statusID sql.NullString
-	for rows.Next() {
-		sErr := storage.StatusError{}
-		err = rows.Scan(&id, &sErr.Path, &dbErrorJSON, &statusID, &dbTimestamp)
-		if err != nil {
-			break
+	for _, row := range rows {
+		sErr := storage.StatusError{
+			Path:     row.Path,
+			StatusID: row.StatusID.String,
 		}
-		_ = json.Unmarshal(dbErrorJSON, &sErr.Error)
-		sErr.StatusID = statusID.String
-		sErr.Timestamp, _ = time.Parse(mysqlTimeFormat, dbTimestamp)
-		resp[id] = append(resp[id], sErr)
+		_ = json.Unmarshal(row.Error, &sErr.Error)
+		sErr.Timestamp, _ = time.Parse(mysqlTimeFormat, row.CreatedAt)
+		resp[row.EnrollmentID] = append(resp[row.EnrollmentID], sErr)
 	}
-	if err == nil {
-		err = rows.Err()
-	}
-	return resp, err
+	return resp, nil
 }
 
 // RetrieveStatusValues retrieves the status values for enrollmentIDs.
@@ -375,54 +296,54 @@ ORDER BY
 	return resp, err
 }
 
-// RetrieveStatusValues retrieves the status report for an enrollment ID.
-// The search can be filtered with properties on q.
+// RetrieveStatusReport retrieves the status report for an enrollment ID.
+// The search can be filtered with properties on q. Index 0 is the most
+// recent status report. If both Index and StatusID are specified then the
+// report at Index must also have StatusID. A nil report is returned if none
+// is found. The returned report's Index is likewise reverse-chronological
+// (0 is the most recent), including when searching by StatusID.
 // See also the storage package for documentation on the storage interfaces.
 func (s *MySQLStorage) RetrieveStatusReport(ctx context.Context, q storage.StatusReportQuery) (*storage.StoredStatusReport, error) {
 	if err := q.Valid(); err != nil {
 		return nil, err
 	}
-	args := []interface{}{q.EnrollmentID}
-	where := ""
-	if q.Index != nil {
-		where = "row_count = ?"
-		args = append(args, *q.Index)
-	}
-	if q.StatusID != nil {
-		if where != "" {
-			where += " AND"
-		}
-		where += "status_id = ?"
-		args = append(args, *q.StatusID)
-	}
-	if where == "" {
-		return nil, errors.New("invalid query")
-	}
 	report := new(storage.StoredStatusReport)
-	var dbTimestamp string
-	err := s.db.QueryRowContext(
-		ctx,
-		`
-SELECT
-    status_id,
-	created_at,
-	row_count,
-    status_report
-FROM
-    status_reports
-WHERE
-    enrollment_id = ? AND `+where+`
-LIMIT 1;`,
-		args...,
-	).Scan(
-		&report.StatusID,
-		&dbTimestamp,
-		&report.Index,
-		&report.Raw,
-	)
-	if err != nil {
-		return report, err
+	var createdAt string
+	if q.Index != nil {
+		if *q.Index < 0 {
+			return nil, fmt.Errorf("index out of range: too low (%d)", *q.Index)
+		}
+		row, err := s.q.SelectStatusReportByIndex(ctx, sqlc.SelectStatusReportByIndexParams{
+			EnrollmentID: q.EnrollmentID,
+			Offset:       int32(*q.Index),
+		})
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		} else if err != nil {
+			return nil, err
+		}
+		if q.StatusID != nil && *q.StatusID != "" && *q.StatusID != row.StatusID.String {
+			return nil, nil
+		}
+		report.StatusID = row.StatusID.String
+		report.Index = *q.Index
+		report.Raw = row.StatusReport
+		createdAt = row.CreatedAt
+	} else {
+		row, err := s.q.SelectStatusReportByStatusID(ctx, sqlc.SelectStatusReportByStatusIDParams{
+			EnrollmentID: q.EnrollmentID,
+			StatusID:     nullEmptyString(*q.StatusID),
+		})
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		} else if err != nil {
+			return nil, err
+		}
+		report.StatusID = row.StatusID.String
+		report.Index = int(row.Idx)
+		report.Raw = row.StatusReport
+		createdAt = row.CreatedAt
 	}
-	report.Timestamp, _ = time.Parse(mysqlTimeFormat, dbTimestamp)
-	return report, err
+	report.Timestamp, _ = time.Parse(mysqlTimeFormat, createdAt)
+	return report, nil
 }

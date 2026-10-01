@@ -365,4 +365,8 @@ func TestE2E(t *testing.T, _ context.Context, storage TestStorage) {
 	t.Run("status", func(t *testing.T) {
 		testStatus(t, mux, n)
 	})
+
+	t.Run("status-history", func(t *testing.T) {
+		testStatusHistory(t, mux)
+	})
 }

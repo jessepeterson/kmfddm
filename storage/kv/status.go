@@ -393,6 +393,10 @@ func (s *KV) RetrieveStatusValues(ctx context.Context, enrollmentIDs []string, p
 }
 
 // RetrieveStatusReport retrieves an enrollment's raw status report that matches q.
+// Only searching by q.Index is supported, which is reverse-chronological
+// (0 is the most recent). However the returned report's Index is its
+// absolute position: 0 is the first status report stored for the
+// enrollment, increasing with each report.
 func (s *KV) RetrieveStatusReport(ctx context.Context, q storage.StatusReportQuery) (*storage.StoredStatusReport, error) {
 	if q.EnrollmentID == "" {
 		return nil, errors.New("empty enrollment ID")
