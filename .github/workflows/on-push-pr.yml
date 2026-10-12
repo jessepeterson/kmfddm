@@ -129,12 +129,9 @@ jobs:
   pgsql-test:
     runs-on: 'ubuntu-latest'
     needs: format-build-test
-    strategy:
-      matrix:
-        postgres-version: ['11', '17']
     services:
       postgres:
-        image: postgres:${{ matrix.postgres-version }}
+        image: postgres:17
         env:
           POSTGRES_DB: kmfddm
           POSTGRES_USER: kmfddm
