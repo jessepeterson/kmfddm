@@ -1,0 +1,33 @@
+{
+  "StatusItems" : {
+    "management" : {
+      "declarations" : {
+        "activations" : [
+
+        ],
+        "configurations" : [
+          {
+            "active" : "true",
+            "identifier" : "com.example.badtype",
+            "valid" : "valid",
+            "server-token" : "9f2b1a4c-3d5e-6f70-8192-a3b4c5d6e7f8"
+          }
+        ],
+        "assets" : [
+
+        ],
+        "management" : [
+
+        ]
+      }
+    },
+    "device" : {
+      "identifier" : {
+        "udid" : "BADTYPE00-1111-2222-3333-444455556666"
+      }
+    }
+  },
+  "Errors" : [
+
+  ]
+}

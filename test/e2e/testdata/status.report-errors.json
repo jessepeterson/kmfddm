@@ -1,0 +1,42 @@
+{
+  "StatusItems" : {
+    "management" : {
+      "declarations" : {
+        "activations" : [
+
+        ],
+        "configurations" : [
+
+        ],
+        "assets" : [
+
+        ],
+        "management" : [
+
+        ]
+      }
+    },
+    "device" : {
+      "identifier" : {
+        "udid" : "AAAABBBB-1111-2222-3333-CCCCDDDD4444"
+      }
+    }
+  },
+  "Errors" : [
+    {
+      "StatusItem" : "management.declarations",
+      "Reasons" : [
+        {
+          "Code" : "Error.ConfigurationCannotBeApplied",
+          "Description" : "Configuration cannot be applied",
+          "Details" : {
+            "Identifier" : "com.example.configuration"
+          }
+        }
+      ]
+    },
+    {
+      "StatusItem" : "device.operating-system.version"
+    }
+  ]
+}

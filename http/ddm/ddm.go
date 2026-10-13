@@ -3,11 +3,13 @@ package ddm
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
 
 	"github.com/jessepeterson/kmfddm/ddm"
+	ddmstatus "github.com/jessepeterson/kmfddm/ddm/status"
 	"github.com/jessepeterson/kmfddm/logkeys"
 	"github.com/jessepeterson/kmfddm/storage"
 
@@ -113,42 +115,48 @@ func TokensOrDeclarationItemsHandler(store storage.TokensDeclarationItemsStorage
 	}
 }
 
-// StatusReportHandler creates a handler that stores the DDM status report.
-func StatusReportHandler(store storage.StatusStorer, hLogger log.Logger) http.HandlerFunc {
-	if store == nil || hLogger == nil {
-		panic("nil store or logger")
+// StatusReportHandler creates a handler that parses the DDM status report sent
+// by a DDM client and passes it to h.
+func NewStatusReportHandler(h ddm.StatusHandler, logger log.Logger) http.HandlerFunc {
+	if h == nil || logger == nil {
+		panic("nil status report handler or logger")
 	}
+
 	return func(w http.ResponseWriter, r *http.Request) {
-		ctx, logger, enrollmentID, err := contextEnrollmentID(r, hLogger)
+		ctx, logger, enrollmentID, err := contextEnrollmentID(r, logger)
 		if err != nil {
 			ErrorAndLog(w, http.StatusBadRequest, logger, "getting enrollment id", err)
 			return
 		}
+
 		bodyBytes, err := io.ReadAll(r.Body)
 		if err != nil {
 			ErrorAndLog(w, http.StatusInternalServerError, logger, "reading body", err)
 			return
 		}
-		unhandled, status, err := ddm.ParseStatus(bodyBytes)
-		if err != nil {
+
+		status := &ddm.StatusReport{
+			ID:     trace.GetTraceID(ctx),
+			Raw:    bodyBytes,
+			Status: new(ddmstatus.StatusReport),
+		}
+
+		logger = logger.With(logkeys.StatusID, status.ID)
+
+		// Note that a JSON type mismatch anywhere fails this unmarshal,
+		// and with it the whole report: nothing below runs.
+		if err = json.Unmarshal(bodyBytes, status.Status); err != nil {
 			ErrorAndLog(w, http.StatusInternalServerError, logger, "parsing status report", err)
 			return
 		}
-		status.ID = trace.GetTraceID(ctx)
-		logger = logger.With(
-			logkeys.DeclarationCount, len(status.Declarations),
-			logkeys.ErrorCount, len(status.Errors),
-			logkeys.ValueCount, len(status.Values),
-			"status_id", status.ID,
-		)
-		for _, u := range unhandled {
-			logger.Debug(logkeys.Message, "unhandled status path", "path", u)
-		}
-		err = store.StoreDeclarationStatus(ctx, enrollmentID, status)
-		if err != nil {
-			ErrorAndLog(w, http.StatusInternalServerError, logger, "storing declaration status", err)
+
+		logger = logger.With(logkeys.FullReport, status.IsFullReport())
+
+		if err = h.HandleStatusReport(ctx, enrollmentID, status); err != nil {
+			ErrorAndLog(w, http.StatusInternalServerError, logger, "handling status report", err)
 			return
 		}
-		logger.Debug(logkeys.Message, "stored declaration status")
+
+		logger.Debug(logkeys.Message, "handled status report")
 	}
 }
