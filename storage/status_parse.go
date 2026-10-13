@@ -217,16 +217,32 @@ func (r *StatusReport) parseDeclarations() {
 		return
 	}
 	d := management.Declarations
+	// The generated arrays are slices of pointers, and a JSON null in the
+	// report unmarshals to a nil element without error. Skip those rather
+	// than dereference them: a null entry is a client sending nothing, not
+	// one we can describe.
 	for _, decl := range d.Activations {
+		if decl == nil {
+			continue
+		}
 		r.addDeclaration("activations", decl.Identifier, decl.ServerToken, decl.Active, string(decl.Valid), decl.Reasons, decl)
 	}
 	for _, decl := range d.Configurations {
+		if decl == nil {
+			continue
+		}
 		r.addDeclaration("configurations", decl.Identifier, decl.ServerToken, decl.Active, string(decl.Valid), decl.Reasons, decl)
 	}
 	for _, decl := range d.Assets {
+		if decl == nil {
+			continue
+		}
 		r.addDeclaration("assets", decl.Identifier, decl.ServerToken, decl.Active, string(decl.Valid), decl.Reasons, decl)
 	}
 	for _, decl := range d.Management {
+		if decl == nil {
+			continue
+		}
 		r.addDeclaration("management", decl.Identifier, decl.ServerToken, decl.Active, string(decl.Valid), decl.Reasons, decl)
 	}
 }

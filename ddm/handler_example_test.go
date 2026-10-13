@@ -32,9 +32,10 @@ const reportJSON = `{
 // each status report.
 //
 // A wrapper takes the next handler and returns a handler, so wrappers compose:
-// nest them to stack behavior. Call next last inside the wrapper instead of
-// first to do the work before the report is stored — for an action that should
-// only happen once storing has succeeded.
+// nest them to stack behavior. Where you call next decides when your work runs.
+// Calling it first, as below, runs your work after the report has been stored —
+// what you want for an action that should only follow a successful store.
+// Calling it last runs your work first, before storage.
 func ExampleStatusHandler() {
 	statusStorer := inmem.New(func() hash.Hash { return fnv.New128() })
 	store := storage.NewStatusStoreHandler(statusStorer, nil)

@@ -114,6 +114,50 @@ func TestStatusParseDeclarations(t *testing.T) {
 	}
 }
 
+// TestStatusParseDeclarationNull asserts a null element in a declaration array
+// is skipped rather than dereferenced.
+//
+// The generated declaration arrays are slices of pointers, and a JSON null
+// unmarshals to a nil element with no error, so this used to panic inside
+// parseDeclarations. In the e2e suite a panic here surfaces as a dead
+// connection rather than a clean error.
+func TestStatusParseDeclarationNull(t *testing.T) {
+	for _, tt := range []struct {
+		name string
+		raw  string
+	}{
+		{"null activation", `{"StatusItems":{"management":{"declarations":{"activations":[null]}}}}`},
+		{"null configuration", `{"StatusItems":{"management":{"declarations":{"configurations":[null]}}}}`},
+		{"null asset", `{"StatusItems":{"management":{"declarations":{"assets":[null]}}}}`},
+		{"null management", `{"StatusItems":{"management":{"declarations":{"management":[null]}}}}`},
+		{"null among declarations", `{"StatusItems":{"management":{"declarations":{"configurations":[{"identifier":"com.example.a","active":true,"valid":"valid"},null]}}}}`},
+		{"null declarations block", `{"StatusItems":{"management":{"declarations":null}}}`},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			// the unmarshal is expected to succeed: null is not a type error
+			report, err := parseReport([]byte(tt.raw))
+			if err != nil {
+				t.Fatalf("unmarshal: %v", err)
+			}
+
+			toStore, err := ParseStatusReport(context.Background(), report, log.NopLogger)
+			if err != nil {
+				t.Fatalf("ParseStatusReport: %v", err)
+			}
+
+			// only the declarations we can actually describe survive
+			if len(toStore.Declarations) > 1 {
+				t.Errorf("declarations: have: %d, want at most 1", len(toStore.Declarations))
+			}
+			for _, d := range toStore.Declarations {
+				if d.Identifier == "" {
+					t.Error("declaration with no identifier")
+				}
+			}
+		})
+	}
+}
+
 // TestStatusIsFullReport asserts the client's "full report" flag is readable.
 func TestStatusIsFullReport(t *testing.T) {
 	for _, tt := range []struct {

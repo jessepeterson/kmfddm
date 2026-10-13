@@ -50,6 +50,7 @@ func testStatus(t *testing.T, mux http.Handler, n *captureNotifier) {
 	t.Run("declaration-status-unknown", func(t *testing.T) { testStatusDeclarationUnknown(t, mux) })
 	t.Run("declaration-status", func(t *testing.T) { testStatusDeclarationStatus(t, mux) })
 	t.Run("reject-bad-types", func(t *testing.T) { testStatusRejectBadTypes(t, mux) })
+	t.Run("null-declaration", func(t *testing.T) { testStatusNullDeclaration(t, mux) })
 	t.Run("declaration-status-current", func(t *testing.T) { testStatusCurrent(t, mux, n) })
 	t.Run("second-report", func(t *testing.T) { testStatusSecondReport(t, mux) })
 	t.Run("error-count", func(t *testing.T) { testStatusErrorCount(t, mux) })
@@ -521,6 +522,47 @@ func testStatusRejectBadTypes(t *testing.T, mux http.Handler) {
 
 		if !reflect.DeepEqual(have, want) {
 			t.Errorf("values: have: (%d) %v, want: (%d) %v", len(have), have, len(want), want)
+		}
+	})
+}
+
+// testStatusNullDeclaration asserts a null element in a declaration array does
+// not take the connection down.
+//
+// A JSON null unmarshals into a nil pointer in the generated declaration
+// arrays without raising an error, so this used to panic while deriving the
+// write model. net/http recovers the panic and closes the connection rather
+// than answering, which reads as a device-side network failure rather than
+// anything to do with status reports.
+func testStatusNullDeclaration(t *testing.T, mux http.Handler) {
+	const enr = "golang_test_enr_8F3E2D1C0B99"
+
+	t.Run("accepted", func(t *testing.T) {
+		// a null entry is a client sending nothing, not a type error, so the
+		// report is accepted and the rest of it is still stored
+		expectHTTP(t, submitStatus(t, mux, enr, readStatusFixture(t, "status.null-declaration.json")), 200)
+	})
+
+	t.Run("real-declaration-stored", func(t *testing.T) {
+		have := getDeclarationStatus(t, mux, enr)[enr]
+
+		// the one declaration that carries content survives; the null does not
+		// become an empty row
+		if len(have) != 1 {
+			t.Fatalf("declarations: have: %d, want 1", len(have))
+		}
+		if id := have[0].Identifier; id != "com.example.notnull" {
+			t.Errorf("identifier: have: %q, want: %q", id, "com.example.notnull")
+		}
+	})
+
+	t.Run("values-still-collected", func(t *testing.T) {
+		want := []storage.StoredStatusValue{
+			{Path: ".StatusItems.device.identifier.udid", Value: "NULLDECL-1111-2222-3333-444455556666"},
+		}
+		have := getStatusValues(t, mux, enr)[enr]
+		if !reflect.DeepEqual(have, want) {
+			t.Errorf("values: have: %v, want: %v", have, want)
 		}
 	})
 }

@@ -115,8 +115,8 @@ func TokensOrDeclarationItemsHandler(store storage.TokensDeclarationItemsStorage
 	}
 }
 
-// StatusReportHandler creates a handler that parses the DDM status report sent
-// by a DDM client and passes it to h.
+// NewStatusReportHandler creates a handler that parses the DDM status report
+// sent by a DDM client and passes it to h.
 func NewStatusReportHandler(h ddm.StatusHandler, logger log.Logger) http.HandlerFunc {
 	if h == nil || logger == nil {
 		panic("nil status report handler or logger")
