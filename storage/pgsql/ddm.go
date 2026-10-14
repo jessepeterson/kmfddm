@@ -16,7 +16,7 @@ import (
 // delivery to a specific enrollment it queries to make sure that enrollment
 // should have access and that it is of the correct type.
 // See also the storage package for documentation on the storage interfaces.
-func (s *PSQLStorage) RetrieveEnrollmentDeclarationJSON(ctx context.Context, declarationID, declarationType, enrollmentID string) (raw []byte, err error) {
+func (s *PgSQLStorage) RetrieveEnrollmentDeclarationJSON(ctx context.Context, declarationID, declarationType, enrollmentID string) (raw []byte, err error) {
 	// we JOIN against the enrollments table to make sure only those
 	// declarations that are transitively related are able to be
 	// accessed. kinda-sorta like an ACL. almost.
@@ -34,7 +34,7 @@ func (s *PSQLStorage) RetrieveEnrollmentDeclarationJSON(ctx context.Context, dec
 }
 
 // RetrieveDeclarationItems retrieves the declarations for enrollmentID.
-func (s *PSQLStorage) RetrieveDeclarationItems(ctx context.Context, enrollmentID string) ([]*ddm.Declaration, error) {
+func (s *PgSQLStorage) RetrieveDeclarationItems(ctx context.Context, enrollmentID string) ([]*ddm.Declaration, error) {
 	items, err := s.q.GetManifestItems(ctx, enrollmentID)
 	if err != nil {
 		return nil, err
@@ -53,12 +53,12 @@ func (s *PSQLStorage) RetrieveDeclarationItems(ctx context.Context, enrollmentID
 
 // RetrieveDeclarationItemsJSON generates Declaration Items for enrollmentID.
 // See also the storage package for documentation on the storage interfaces.
-func (s *PSQLStorage) RetrieveDeclarationItemsJSON(ctx context.Context, enrollmentID string) ([]byte, error) {
+func (s *PgSQLStorage) RetrieveDeclarationItemsJSON(ctx context.Context, enrollmentID string) ([]byte, error) {
 	return storage.DeclarationItemsJSON(ctx, s, enrollmentID, s.newHash)
 }
 
 // RetrieveTokensJSON generates Sync Tokens for enrollmentID.
 // See also the storage package for documentation on the storage interfaces.
-func (s *PSQLStorage) RetrieveTokensJSON(ctx context.Context, enrollmentID string) ([]byte, error) {
+func (s *PgSQLStorage) RetrieveTokensJSON(ctx context.Context, enrollmentID string) ([]byte, error) {
 	return storage.TokensJSON(ctx, s, enrollmentID, s.newHash)
 }

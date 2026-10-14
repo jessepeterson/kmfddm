@@ -11,8 +11,8 @@ import (
 	"github.com/jessepeterson/kmfddm/storage/pgsql/sqlc"
 )
 
-// PSQLStorage implements a PostgreSQL storage backend.
-type PSQLStorage struct {
+// PgSQLStorage implements a PostgreSQL storage backend.
+type PgSQLStorage struct {
 	db      *sql.DB
 	q       *sqlc.Queries
 	newHash func() hash.Hash
@@ -100,7 +100,7 @@ func WithConnMaxIdleTime(d time.Duration) Option {
 
 // New creates and initializes a new PostgreSQL storage backend.
 // New attempts to Ping the database after opening to verify connectivity.
-func New(newHash func() hash.Hash, opts ...Option) (*PSQLStorage, error) {
+func New(newHash func() hash.Hash, opts ...Option) (*PgSQLStorage, error) {
 	if newHash == nil {
 		panic("nil hasher")
 	}
@@ -126,7 +126,7 @@ func New(newHash func() hash.Hash, opts ...Option) (*PSQLStorage, error) {
 	if err = cfg.db.Ping(); err != nil {
 		return nil, err
 	}
-	return &PSQLStorage{
+	return &PgSQLStorage{
 		db:      cfg.db,
 		q:       sqlc.New(cfg.db),
 		newHash: newHash,

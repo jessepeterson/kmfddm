@@ -15,7 +15,7 @@ import (
 
 // storeStatusDeclarations will completely remove and replace the set of declaration status for an enrollmentID with declarations.
 // Exits early if no declarations are present.
-func (s *PSQLStorage) storeStatusDeclarations(ctx context.Context, enrollmentID, statusID string, declarations []ddm.DeclarationStatus) error {
+func (s *PgSQLStorage) storeStatusDeclarations(ctx context.Context, enrollmentID, statusID string, declarations []ddm.DeclarationStatus) error {
 	if len(declarations) < 1 {
 		// do not delete existing declaration status if no status are included.
 		return nil
@@ -46,7 +46,7 @@ func (s *PSQLStorage) storeStatusDeclarations(ctx context.Context, enrollmentID,
 	})
 }
 
-func (s *PSQLStorage) storeStatusValues(ctx context.Context, enrollmentID, statusID string, values []ddm.StatusValue) error {
+func (s *PgSQLStorage) storeStatusValues(ctx context.Context, enrollmentID, statusID string, values []ddm.StatusValue) error {
 	if len(values) < 1 {
 		return nil
 	}
@@ -68,7 +68,7 @@ func (s *PSQLStorage) storeStatusValues(ctx context.Context, enrollmentID, statu
 	return s.q.PutStatusValues(ctx, params)
 }
 
-func (s *PSQLStorage) storeStatusErrors(ctx context.Context, enrollmentID, statusID string, errors []ddm.StatusError) error {
+func (s *PgSQLStorage) storeStatusErrors(ctx context.Context, enrollmentID, statusID string, errors []ddm.StatusError) error {
 	if len(errors) < 1 {
 		return nil
 	}
@@ -103,7 +103,7 @@ func (s *PSQLStorage) storeStatusErrors(ctx context.Context, enrollmentID, statu
 	return nil
 }
 
-func (s *PSQLStorage) storeStatusReport(ctx context.Context, enrollmentID, statusID string, raw []byte) error {
+func (s *PgSQLStorage) storeStatusReport(ctx context.Context, enrollmentID, statusID string, raw []byte) error {
 	if len(raw) < 1 {
 		return errors.New("empty raw status report")
 	}
@@ -134,7 +134,7 @@ func (s *PSQLStorage) storeStatusReport(ctx context.Context, enrollmentID, statu
 // in, so a report with \u0000 in those parts fails after the raw report is
 // stored.
 // See also the storage package for documentation on the storage interfaces.
-func (s *PSQLStorage) StoreDeclarationStatus(ctx context.Context, enrollmentID string, status *ddm.StatusReport) error {
+func (s *PgSQLStorage) StoreDeclarationStatus(ctx context.Context, enrollmentID string, status *ddm.StatusReport) error {
 	var err error
 	if !s.noSts {
 		err = s.storeStatusReport(ctx, enrollmentID, status.ID, status.Raw)
@@ -159,7 +159,7 @@ func (s *PSQLStorage) StoreDeclarationStatus(ctx context.Context, enrollmentID s
 
 // RetrieveDeclarationStatus retrieves the status of declarations for enrollmentIDs.
 // See also the storage package for documentation on the storage interfaces.
-func (s *PSQLStorage) RetrieveDeclarationStatus(ctx context.Context, enrollmentIDs []string) (map[string][]ddm.DeclarationQueryStatus, error) {
+func (s *PgSQLStorage) RetrieveDeclarationStatus(ctx context.Context, enrollmentIDs []string) (map[string][]ddm.DeclarationQueryStatus, error) {
 	if len(enrollmentIDs) < 1 {
 		return nil, errors.New("no enrollment IDs provided")
 	}
@@ -194,7 +194,7 @@ func (s *PSQLStorage) RetrieveDeclarationStatus(ctx context.Context, enrollmentI
 
 // RetrieveStatusErrors retrieves the reported status errors for enrollmentIDs.
 // See also the storage package for documentation on the storage interfaces.
-func (s *PSQLStorage) RetrieveStatusErrors(ctx context.Context, enrollmentIDs []string, offset, limit int) (map[string][]storage.StatusError, error) {
+func (s *PgSQLStorage) RetrieveStatusErrors(ctx context.Context, enrollmentIDs []string, offset, limit int) (map[string][]storage.StatusError, error) {
 	rows, err := s.q.SelectStatusErrors(ctx, sqlc.SelectStatusErrorsParams{
 		Ids:       enrollmentIDs,
 		RowOffset: int32(offset),
@@ -219,7 +219,7 @@ func (s *PSQLStorage) RetrieveStatusErrors(ctx context.Context, enrollmentIDs []
 // RetrieveStatusValues retrieves the status values for enrollmentIDs.
 // The search can be filtered with pathPrefix by using SQL LIKE syntax.
 // See also the storage package for documentation on the storage interfaces.
-func (s *PSQLStorage) RetrieveStatusValues(ctx context.Context, enrollmentIDs []string, pathPrefix string) (map[string][]storage.StatusValue, error) {
+func (s *PgSQLStorage) RetrieveStatusValues(ctx context.Context, enrollmentIDs []string, pathPrefix string) (map[string][]storage.StatusValue, error) {
 	rows, err := s.q.GetStatusValues(ctx, sqlc.GetStatusValuesParams{
 		Ids:        enrollmentIDs,
 		PathPrefix: nullEmptyString(pathPrefix),
@@ -246,7 +246,7 @@ func (s *PSQLStorage) RetrieveStatusValues(ctx context.Context, enrollmentIDs []
 // is found. The returned report's Index is likewise reverse-chronological
 // (0 is the most recent), including when searching by StatusID.
 // See also the storage package for documentation on the storage interfaces.
-func (s *PSQLStorage) RetrieveStatusReport(ctx context.Context, q storage.StatusReportQuery) (*storage.StoredStatusReport, error) {
+func (s *PgSQLStorage) RetrieveStatusReport(ctx context.Context, q storage.StatusReportQuery) (*storage.StoredStatusReport, error) {
 	if err := q.Valid(); err != nil {
 		return nil, err
 	}

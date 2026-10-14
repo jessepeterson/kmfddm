@@ -50,7 +50,7 @@ func TestPgSQL(t *testing.T) {
 
 // newTestStorage connects one session in timeZone, so session-dependent SQL
 // (e.g. timestamp to text casts) is exercised deterministically.
-func newTestStorage(t *testing.T, timeZone string) *PSQLStorage {
+func newTestStorage(t *testing.T, timeZone string) *PgSQLStorage {
 	t.Helper()
 	testDSN := os.Getenv("KMFDDM_PGSQL_STORAGE_TEST_DSN")
 	if testDSN == "" {
@@ -82,7 +82,7 @@ func TestPgSQLServerTokenIgnoresSessionTimeZone(t *testing.T) {
 		Type:       "com.apple.configuration.management.test",
 		Payload:    []byte(`{"Echo":"a"}`),
 	}
-	token := func(s *PSQLStorage, payload string) string {
+	token := func(s *PgSQLStorage, payload string) string {
 		t.Helper()
 		d.Payload = []byte(payload)
 		if _, err := s.StoreDeclaration(ctx, d); err != nil {

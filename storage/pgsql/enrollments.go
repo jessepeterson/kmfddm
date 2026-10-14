@@ -10,13 +10,13 @@ import (
 
 // RetrieveEnrollmentSets retrieves the list of sets an enrollment is assigned to.
 // See also the storage package for documentation on the storage interfaces.
-func (s *PSQLStorage) RetrieveEnrollmentSets(ctx context.Context, enrollmentID string) ([]string, error) {
+func (s *PgSQLStorage) RetrieveEnrollmentSets(ctx context.Context, enrollmentID string) ([]string, error) {
 	return s.q.GetEnrollmentSets(ctx, enrollmentID)
 }
 
 // StoreEnrollmentSet creates the association between an enrollment and a set.
 // See also the storage package for documentation on the storage interfaces.
-func (s *PSQLStorage) StoreEnrollmentSet(ctx context.Context, enrollmentID, setName string) (bool, error) {
+func (s *PgSQLStorage) StoreEnrollmentSet(ctx context.Context, enrollmentID, setName string) (bool, error) {
 	result, err := s.q.StoreEnrollmentSet(ctx, sqlc.StoreEnrollmentSetParams{
 		Now:          time.Now().UnixMilli(),
 		EnrollmentID: enrollmentID,
@@ -30,7 +30,7 @@ func (s *PSQLStorage) StoreEnrollmentSet(ctx context.Context, enrollmentID, setN
 
 // RemoveEnrollmentSet removes the association between an enrollment and a set.
 // See also the storage package for documentation on the storage interfaces.
-func (s *PSQLStorage) RemoveEnrollmentSet(ctx context.Context, enrollmentID, setName string) (bool, error) {
+func (s *PgSQLStorage) RemoveEnrollmentSet(ctx context.Context, enrollmentID, setName string) (bool, error) {
 	result, err := s.q.RemoveEnrollmentSet(ctx, sqlc.RemoveEnrollmentSetParams{
 		EnrollmentID: enrollmentID,
 		SetName:      setName,
@@ -44,7 +44,7 @@ func (s *PSQLStorage) RemoveEnrollmentSet(ctx context.Context, enrollmentID, set
 // RemoveAllEnrollmentSets dissociates enrollment ID from any sets.
 // If any associations are removed true is returned.
 // It should not be an error if no associations exist.
-func (s *PSQLStorage) RemoveAllEnrollmentSets(ctx context.Context, enrollmentID string) (bool, error) {
+func (s *PgSQLStorage) RemoveAllEnrollmentSets(ctx context.Context, enrollmentID string) (bool, error) {
 	r, err := s.q.RemoveAllEnrollmentSets(ctx, enrollmentID)
 	if err != nil {
 		return false, err
@@ -54,7 +54,7 @@ func (s *PSQLStorage) RemoveAllEnrollmentSets(ctx context.Context, enrollmentID 
 
 // RetrieveEnrollmentIDs retrieves enrollment IDs.
 // See also the storage package for documentation on the storage interfaces.
-func (s *PSQLStorage) RetrieveEnrollmentIDs(ctx context.Context, declarations []string, sets []string, ids []string) ([]string, error) {
+func (s *PgSQLStorage) RetrieveEnrollmentIDs(ctx context.Context, declarations []string, sets []string, ids []string) ([]string, error) {
 	if len(declarations) < 1 && len(sets) < 1 && len(ids) < 1 {
 		return nil, errors.New("no parameters provided")
 	}

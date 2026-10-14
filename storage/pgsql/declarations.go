@@ -14,7 +14,7 @@ import (
 
 // StoreDeclaration stores a declaration and returns whether it changed or not.
 // See also the storage package for documentation on the storage interfaces.
-func (s *PSQLStorage) StoreDeclaration(ctx context.Context, d *ddm.Declaration) (bool, error) {
+func (s *PgSQLStorage) StoreDeclaration(ctx context.Context, d *ddm.Declaration) (bool, error) {
 	result, err := s.q.StoreDeclaration(ctx, sqlc.StoreDeclarationParams{
 		Now:        time.Now().UnixMilli(),
 		Identifier: d.Identifier,
@@ -29,7 +29,7 @@ func (s *PSQLStorage) StoreDeclaration(ctx context.Context, d *ddm.Declaration) 
 
 // RetrieveDeclaration retrieves a declaration.
 // See also the storage package for documentation on the storage interfaces.
-func (s *PSQLStorage) RetrieveDeclaration(ctx context.Context, declarationID string) (*ddm.Declaration, error) {
+func (s *PgSQLStorage) RetrieveDeclaration(ctx context.Context, declarationID string) (*ddm.Declaration, error) {
 	qd, err := s.q.GetDeclaration(ctx, declarationID)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, fmt.Errorf("%w: %v", storage.ErrDeclarationNotFound, err)
@@ -47,7 +47,7 @@ func (s *PSQLStorage) RetrieveDeclaration(ctx context.Context, declarationID str
 
 // RetrieveDeclarationModTime retrieves the last modification time of the declaration.
 // See also the storage package for documentation on the storage interfaces.
-func (s *PSQLStorage) RetrieveDeclarationModTime(ctx context.Context, declarationID string) (time.Time, error) {
+func (s *PgSQLStorage) RetrieveDeclarationModTime(ctx context.Context, declarationID string) (time.Time, error) {
 	updatedAt, err := s.q.GetDeclarationModTime(ctx, declarationID)
 	if errors.Is(err, sql.ErrNoRows) {
 		return time.Time{}, fmt.Errorf("%w: %v", storage.ErrDeclarationNotFound, err)
@@ -59,7 +59,7 @@ func (s *PSQLStorage) RetrieveDeclarationModTime(ctx context.Context, declaratio
 
 // DeleteDeclaration deletes a declaration and returns whether it was deleted or already existed.
 // See also the storage package for documentation on the storage interfaces.
-func (s *PSQLStorage) DeleteDeclaration(ctx context.Context, declarationID string) (bool, error) {
+func (s *PgSQLStorage) DeleteDeclaration(ctx context.Context, declarationID string) (bool, error) {
 	result, err := s.q.DeleteDeclaration(ctx, declarationID)
 	if err != nil {
 		return false, err
@@ -69,19 +69,19 @@ func (s *PSQLStorage) DeleteDeclaration(ctx context.Context, declarationID strin
 
 // RetrieveDeclarationSets returns the list of sets a declaration is a part of.
 // See also the storage package for documentation on the storage interfaces.
-func (s *PSQLStorage) RetrieveDeclarationSets(ctx context.Context, declarationID string) ([]string, error) {
+func (s *PgSQLStorage) RetrieveDeclarationSets(ctx context.Context, declarationID string) ([]string, error) {
 	return s.q.GetDeclarationSets(ctx, declarationID)
 }
 
 // RetrieveDeclarations returns the list of declaration IDs.
 // See also the storage package for documentation on the storage interfaces.
-func (s *PSQLStorage) RetrieveDeclarations(ctx context.Context) ([]string, error) {
+func (s *PgSQLStorage) RetrieveDeclarations(ctx context.Context) ([]string, error) {
 	return s.q.GetDeclarationIdentifiers(ctx)
 }
 
 // TouchDeclaration updates a declaration's "touch count" which makes a new server token.
 // See also the storage package for documentation on the storage interfaces.
-func (s *PSQLStorage) TouchDeclaration(ctx context.Context, declarationID string) error {
+func (s *PgSQLStorage) TouchDeclaration(ctx context.Context, declarationID string) error {
 	result, err := s.q.TouchDeclaration(ctx, sqlc.TouchDeclarationParams{
 		Identifier: declarationID,
 		Now:        time.Now().UnixMilli(),
