@@ -8,7 +8,6 @@ package sqlc
 import (
 	"context"
 	"database/sql"
-	"time"
 
 	"github.com/lib/pq"
 )
@@ -173,9 +172,9 @@ const getDeclarationModTime = `-- name: GetDeclarationModTime :one
 SELECT updated_at FROM declarations WHERE identifier = $1
 `
 
-func (q *Queries) GetDeclarationModTime(ctx context.Context, identifier string) (time.Time, error) {
+func (q *Queries) GetDeclarationModTime(ctx context.Context, identifier string) (int64, error) {
 	row := q.db.QueryRowContext(ctx, getDeclarationModTime, identifier)
-	var updated_at time.Time
+	var updated_at int64
 	err := row.Scan(&updated_at)
 	return updated_at, err
 }
@@ -235,7 +234,7 @@ type GetDeclarationStatusRow struct {
 	Valid                 string
 	Reasons               sql.NullString
 	ServerToken           string
-	UpdatedAt             time.Time
+	UpdatedAt             int64
 	StatusID              sql.NullString
 	Current               bool
 }
@@ -469,7 +468,7 @@ type GetStatusValuesRow struct {
 	Path         string
 	Value        string
 	StatusID     sql.NullString
-	UpdatedAt    time.Time
+	UpdatedAt    int64
 }
 
 func (q *Queries) GetStatusValues(ctx context.Context, arg GetStatusValuesParams) ([]GetStatusValuesRow, error) {
@@ -506,8 +505,17 @@ INSERT INTO status_errors (
     enrollment_id,
     path,
     error,
-    status_id
-) VALUES ($1, $2, $3, $4)
+    status_id,
+    created_at,
+    updated_at
+) VALUES (
+    $1,
+    $2,
+    $3,
+    $4,
+    $5::bigint,
+    $5::bigint
+)
 `
 
 type InsertStatusErrorParams struct {
@@ -515,6 +523,7 @@ type InsertStatusErrorParams struct {
 	Path         string
 	Error        string
 	StatusID     sql.NullString
+	Now          int64
 }
 
 func (q *Queries) InsertStatusError(ctx context.Context, arg InsertStatusErrorParams) error {
@@ -523,6 +532,7 @@ func (q *Queries) InsertStatusError(ctx context.Context, arg InsertStatusErrorPa
 		arg.Path,
 		arg.Error,
 		arg.StatusID,
+		arg.Now,
 	)
 	return err
 }
@@ -531,18 +541,32 @@ const insertStatusReport = `-- name: InsertStatusReport :exec
 INSERT INTO status_reports (
     enrollment_id,
     status_id,
-    status_report
-) VALUES ($1, $2, $3)
+    status_report,
+    created_at,
+    updated_at
+) VALUES (
+    $1,
+    $2,
+    $3,
+    $4::bigint,
+    $4::bigint
+)
 `
 
 type InsertStatusReportParams struct {
 	EnrollmentID string
 	StatusID     sql.NullString
 	StatusReport string
+	Now          int64
 }
 
 func (q *Queries) InsertStatusReport(ctx context.Context, arg InsertStatusReportParams) error {
-	_, err := q.db.ExecContext(ctx, insertStatusReport, arg.EnrollmentID, arg.StatusID, arg.StatusReport)
+	_, err := q.db.ExecContext(ctx, insertStatusReport,
+		arg.EnrollmentID,
+		arg.StatusID,
+		arg.StatusReport,
+		arg.Now,
+	)
 	return err
 }
 
@@ -555,8 +579,21 @@ INSERT INTO status_declarations (
     valid,
     server_token,
     reasons,
-    status_id
-) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+    status_id,
+    created_at,
+    updated_at
+) VALUES (
+    $1,
+    $2,
+    $3,
+    $4,
+    $5,
+    $6,
+    $7,
+    $8,
+    $9::bigint,
+    $9::bigint
+)
 `
 
 type PutDeclarationStatusParams struct {
@@ -568,6 +605,7 @@ type PutDeclarationStatusParams struct {
 	ServerToken           string
 	Reasons               sql.NullString
 	StatusID              sql.NullString
+	Now                   int64
 }
 
 func (q *Queries) PutDeclarationStatus(ctx context.Context, arg PutDeclarationStatusParams) error {
@@ -580,38 +618,42 @@ func (q *Queries) PutDeclarationStatus(ctx context.Context, arg PutDeclarationSt
 		arg.ServerToken,
 		arg.Reasons,
 		arg.StatusID,
+		arg.Now,
 	)
 	return err
 }
 
 const putStatusValues = `-- name: PutStatusValues :exec
 INSERT INTO status_values
-    (enrollment_id, path, container_type, value_type, value, status_id)
+    (enrollment_id, path, container_type, value_type, value, status_id, created_at, updated_at)
 SELECT DISTINCT
     $1::text,
     v.path,
     v.container_type,
     v.value_type,
     v.value,
-    $2::text
+    $2::text,
+    $3::bigint,
+    $3::bigint
 FROM
     -- the unnests zip the equal-length arrays by position.
     (
         SELECT
-            unnest($3::text[])           AS path,
-            unnest($4::text[]) AS container_type,
-            unnest($5::text[])     AS value_type,
-            unnest($6::text[])            AS value
+            unnest($4::text[])           AS path,
+            unnest($5::text[]) AS container_type,
+            unnest($6::text[])     AS value_type,
+            unnest($7::text[])            AS value
     ) v
 ON CONFLICT (enrollment_id, path, container_type, value_type, value) DO UPDATE
 SET
-    updated_at = CURRENT_TIMESTAMP,
+    updated_at = excluded.updated_at,
     status_id  = excluded.status_id
 `
 
 type PutStatusValuesParams struct {
 	EnrollmentID   string
 	StatusID       sql.NullString
+	Now            int64
 	Paths          []string
 	ContainerTypes []string
 	ValueTypes     []string
@@ -624,6 +666,7 @@ func (q *Queries) PutStatusValues(ctx context.Context, arg PutStatusValuesParams
 	_, err := q.db.ExecContext(ctx, putStatusValues,
 		arg.EnrollmentID,
 		arg.StatusID,
+		arg.Now,
 		pq.Array(arg.Paths),
 		pq.Array(arg.ContainerTypes),
 		pq.Array(arg.ValueTypes),
@@ -714,7 +757,7 @@ type SelectStatusErrorsRow struct {
 	Path         string
 	Error        string
 	StatusID     sql.NullString
-	CreatedAt    time.Time
+	CreatedAt    int64
 }
 
 func (q *Queries) SelectStatusErrors(ctx context.Context, arg SelectStatusErrorsParams) ([]SelectStatusErrorsRow, error) {
@@ -767,7 +810,7 @@ type SelectStatusReportByIndexParams struct {
 
 type SelectStatusReportByIndexRow struct {
 	StatusID     sql.NullString
-	CreatedAt    time.Time
+	CreatedAt    int64
 	StatusReport string
 }
 
@@ -806,7 +849,7 @@ type SelectStatusReportByStatusIDParams struct {
 
 type SelectStatusReportByStatusIDRow struct {
 	StatusID     sql.NullString
-	CreatedAt    time.Time
+	CreatedAt    int64
 	StatusReport string
 	Idx          int64
 }
@@ -825,20 +868,22 @@ func (q *Queries) SelectStatusReportByStatusID(ctx context.Context, arg SelectSt
 
 const storeDeclaration = `-- name: StoreDeclaration :execresult
 INSERT INTO declarations
-    (identifier, type, payload, server_token)
+    (identifier, type, payload, server_token, created_at, updated_at)
 VALUES
     (
         $1::text,
         $2::text,
         $3::jsonb,
-        encode(sha256(convert_to(concat($1::text, $2::text, $3::jsonb::text, CURRENT_TIMESTAMP::text, '0'), 'UTF8')), 'hex')
+        encode(sha256(convert_to(concat($1::text, $2::text, $3::jsonb::text, $4::bigint::text, '0'), 'UTF8')), 'hex'),
+        $4::bigint,
+        $4::bigint
     )
 ON CONFLICT (identifier) DO UPDATE
 SET
     type         = excluded.type,
     payload      = excluded.payload,
     server_token = encode(sha256(convert_to(concat(excluded.identifier, excluded.type, excluded.payload::text, declarations.created_at::text, declarations.touched_ct::text), 'UTF8')), 'hex'),
-    updated_at   = CURRENT_TIMESTAMP
+    updated_at   = excluded.updated_at
 WHERE
     declarations.type IS DISTINCT FROM excluded.type OR
     declarations.payload IS DISTINCT FROM excluded.payload
@@ -848,46 +893,54 @@ type StoreDeclarationParams struct {
 	Identifier string
 	Type       string
 	Payload    string
+	Now        int64
 }
 
 // The WHERE on the conflict update leaves an unchanged declaration untouched,
 // so it reports no affected rows and keeps its server token.
 func (q *Queries) StoreDeclaration(ctx context.Context, arg StoreDeclarationParams) (sql.Result, error) {
-	return q.db.ExecContext(ctx, storeDeclaration, arg.Identifier, arg.Type, arg.Payload)
+	return q.db.ExecContext(ctx, storeDeclaration,
+		arg.Identifier,
+		arg.Type,
+		arg.Payload,
+		arg.Now,
+	)
 }
 
 const storeEnrollmentSet = `-- name: StoreEnrollmentSet :execresult
 INSERT INTO enrollment_sets
-    (enrollment_id, set_name)
+    (enrollment_id, set_name, created_at, updated_at)
 VALUES
-    ($1, $2)
+    ($1, $2, $3::bigint, $3::bigint)
 ON CONFLICT DO NOTHING
 `
 
 type StoreEnrollmentSetParams struct {
 	EnrollmentID string
 	SetName      string
+	Now          int64
 }
 
 func (q *Queries) StoreEnrollmentSet(ctx context.Context, arg StoreEnrollmentSetParams) (sql.Result, error) {
-	return q.db.ExecContext(ctx, storeEnrollmentSet, arg.EnrollmentID, arg.SetName)
+	return q.db.ExecContext(ctx, storeEnrollmentSet, arg.EnrollmentID, arg.SetName, arg.Now)
 }
 
 const storeSetDeclaration = `-- name: StoreSetDeclaration :execresult
 INSERT INTO set_declarations
-    (declaration_identifier, set_name)
+    (declaration_identifier, set_name, created_at, updated_at)
 VALUES
-    ($1, $2)
+    ($1, $2, $3::bigint, $3::bigint)
 ON CONFLICT DO NOTHING
 `
 
 type StoreSetDeclarationParams struct {
 	DeclarationIdentifier string
 	SetName               string
+	Now                   int64
 }
 
 func (q *Queries) StoreSetDeclaration(ctx context.Context, arg StoreSetDeclarationParams) (sql.Result, error) {
-	return q.db.ExecContext(ctx, storeSetDeclaration, arg.DeclarationIdentifier, arg.SetName)
+	return q.db.ExecContext(ctx, storeSetDeclaration, arg.DeclarationIdentifier, arg.SetName, arg.Now)
 }
 
 const touchDeclaration = `-- name: TouchDeclaration :execresult
@@ -896,11 +949,16 @@ UPDATE
 SET
     touched_ct   = touched_ct + 1,
     server_token = encode(sha256(convert_to(concat(identifier, type, payload::text, created_at::text, (touched_ct + 1)::text), 'UTF8')), 'hex'),
-    updated_at   = CURRENT_TIMESTAMP
+    updated_at   = $1::bigint
 WHERE
-    identifier = $1
+    identifier = $2
 `
 
-func (q *Queries) TouchDeclaration(ctx context.Context, identifier string) (sql.Result, error) {
-	return q.db.ExecContext(ctx, touchDeclaration, identifier)
+type TouchDeclarationParams struct {
+	Now        int64
+	Identifier string
+}
+
+func (q *Queries) TouchDeclaration(ctx context.Context, arg TouchDeclarationParams) (sql.Result, error) {
+	return q.db.ExecContext(ctx, touchDeclaration, arg.Now, arg.Identifier)
 }

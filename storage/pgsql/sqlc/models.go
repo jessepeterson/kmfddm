@@ -6,15 +6,14 @@ package sqlc
 
 import (
 	"database/sql"
-	"time"
 )
 
 type Declaration struct {
 	Identifier  string
 	Type        string
 	Payload     string
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
+	CreatedAt   int64
+	UpdatedAt   int64
 	TouchedCt   int32
 	ServerToken string
 }
@@ -22,15 +21,15 @@ type Declaration struct {
 type EnrollmentSet struct {
 	EnrollmentID string
 	SetName      string
-	CreatedAt    time.Time
-	UpdatedAt    time.Time
+	CreatedAt    int64
+	UpdatedAt    int64
 }
 
 type SetDeclaration struct {
 	SetName               string
 	DeclarationIdentifier string
-	CreatedAt             time.Time
-	UpdatedAt             time.Time
+	CreatedAt             int64
+	UpdatedAt             int64
 }
 
 type StatusDeclaration struct {
@@ -42,8 +41,8 @@ type StatusDeclaration struct {
 	ItemType              string
 	Reasons               sql.NullString
 	StatusID              sql.NullString
-	CreatedAt             time.Time
-	UpdatedAt             time.Time
+	CreatedAt             int64
+	UpdatedAt             int64
 }
 
 type StatusError struct {
@@ -52,8 +51,8 @@ type StatusError struct {
 	Path         string
 	Error        string
 	StatusID     sql.NullString
-	CreatedAt    time.Time
-	UpdatedAt    time.Time
+	CreatedAt    int64
+	UpdatedAt    int64
 }
 
 type StatusReport struct {
@@ -61,8 +60,8 @@ type StatusReport struct {
 	EnrollmentID string
 	StatusReport string
 	StatusID     sql.NullString
-	CreatedAt    time.Time
-	UpdatedAt    time.Time
+	CreatedAt    int64
+	UpdatedAt    int64
 }
 
 type StatusValue struct {
@@ -72,6 +71,6 @@ type StatusValue struct {
 	ValueType     string
 	Value         string
 	StatusID      sql.NullString
-	CreatedAt     time.Time
-	UpdatedAt     time.Time
+	CreatedAt     int64
+	UpdatedAt     int64
 }

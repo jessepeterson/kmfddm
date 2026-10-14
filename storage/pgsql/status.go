@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/jessepeterson/kmfddm/ddm"
 	"github.com/jessepeterson/kmfddm/storage"
@@ -19,6 +20,7 @@ func (s *PSQLStorage) storeStatusDeclarations(ctx context.Context, enrollmentID,
 		// do not delete existing declaration status if no status are included.
 		return nil
 	}
+	now := time.Now().UnixMilli()
 	return tx(ctx, s.db, s.q, func(ctx context.Context, tx *sql.Tx, qtx *sqlc.Queries) error {
 		err := qtx.RemoveDeclarationStatus(ctx, enrollmentID)
 		if err != nil {
@@ -26,6 +28,7 @@ func (s *PSQLStorage) storeStatusDeclarations(ctx context.Context, enrollmentID,
 		}
 		for _, ds := range declarations {
 			err = qtx.PutDeclarationStatus(ctx, sqlc.PutDeclarationStatusParams{
+				Now:                   now,
 				EnrollmentID:          enrollmentID,
 				ItemType:              ds.ManifestType,
 				DeclarationIdentifier: ds.Identifier,
@@ -48,6 +51,7 @@ func (s *PSQLStorage) storeStatusValues(ctx context.Context, enrollmentID, statu
 		return nil
 	}
 	params := sqlc.PutStatusValuesParams{
+		Now:            time.Now().UnixMilli(),
 		EnrollmentID:   enrollmentID,
 		StatusID:       nullEmptyString(statusID),
 		Paths:          make([]string, len(values)),
@@ -68,9 +72,11 @@ func (s *PSQLStorage) storeStatusErrors(ctx context.Context, enrollmentID, statu
 	if len(errors) < 1 {
 		return nil
 	}
+	now := time.Now().UnixMilli()
 	err := tx(ctx, s.db, s.q, func(ctx context.Context, _ *sql.Tx, qtx *sqlc.Queries) error {
 		for _, e := range errors {
 			err := qtx.InsertStatusError(ctx, sqlc.InsertStatusErrorParams{
+				Now:          now,
 				EnrollmentID: enrollmentID,
 				Path:         e.Path,
 				Error:        string(e.ErrorJSON),
@@ -102,6 +108,7 @@ func (s *PSQLStorage) storeStatusReport(ctx context.Context, enrollmentID, statu
 		return errors.New("empty raw status report")
 	}
 	err := s.q.InsertStatusReport(ctx, sqlc.InsertStatusReportParams{
+		Now:          time.Now().UnixMilli(),
 		EnrollmentID: enrollmentID,
 		StatusID:     nullEmptyString(statusID),
 		StatusReport: string(raw),
@@ -122,6 +129,10 @@ func (s *PSQLStorage) storeStatusReport(ctx context.Context, enrollmentID, statu
 }
 
 // StoreDeclarationStatus stores the status report from enrollmentID.
+// The raw report is stored as sent. Declaration status, values and errors
+// are stored in text and jsonb columns, which PostgreSQL cannot store \u0000
+// in, so a report with \u0000 in those parts fails after the raw report is
+// stored.
 // See also the storage package for documentation on the storage interfaces.
 func (s *PSQLStorage) StoreDeclarationStatus(ctx context.Context, enrollmentID string, status *ddm.StatusReport) error {
 	var err error
@@ -170,7 +181,7 @@ func (s *PSQLStorage) RetrieveDeclarationStatus(ctx context.Context, enrollmentI
 				ServerToken: row.ServerToken,
 			},
 			Current:        row.Current,
-			StatusReceived: row.UpdatedAt,
+			StatusReceived: time.UnixMilli(row.UpdatedAt),
 		}
 		if row.Reasons.Valid {
 			dqs.ReasonsJSON = []byte(row.Reasons.String)
@@ -197,7 +208,7 @@ func (s *PSQLStorage) RetrieveStatusErrors(ctx context.Context, enrollmentIDs []
 		sErr := storage.StatusError{
 			Path:      row.Path,
 			StatusID:  row.StatusID.String,
-			Timestamp: row.CreatedAt,
+			Timestamp: time.UnixMilli(row.CreatedAt),
 		}
 		_ = json.Unmarshal([]byte(row.Error), &sErr.Error)
 		resp[row.EnrollmentID] = append(resp[row.EnrollmentID], sErr)
@@ -222,7 +233,7 @@ func (s *PSQLStorage) RetrieveStatusValues(ctx context.Context, enrollmentIDs []
 			Path:      row.Path,
 			Value:     row.Value,
 			StatusID:  row.StatusID.String,
-			Timestamp: row.UpdatedAt,
+			Timestamp: time.UnixMilli(row.UpdatedAt),
 		})
 	}
 	return resp, nil
@@ -259,7 +270,7 @@ func (s *PSQLStorage) RetrieveStatusReport(ctx context.Context, q storage.Status
 		report.StatusID = row.StatusID.String
 		report.Index = *q.Index
 		report.Raw = []byte(row.StatusReport)
-		report.Timestamp = row.CreatedAt
+		report.Timestamp = time.UnixMilli(row.CreatedAt)
 	} else {
 		row, err := s.q.SelectStatusReportByStatusID(ctx, sqlc.SelectStatusReportByStatusIDParams{
 			EnrollmentID: q.EnrollmentID,
@@ -273,7 +284,7 @@ func (s *PSQLStorage) RetrieveStatusReport(ctx context.Context, q storage.Status
 		report.StatusID = row.StatusID.String
 		report.Index = int(row.Idx)
 		report.Raw = []byte(row.StatusReport)
-		report.Timestamp = row.CreatedAt
+		report.Timestamp = time.UnixMilli(row.CreatedAt)
 	}
 	return report, nil
 }

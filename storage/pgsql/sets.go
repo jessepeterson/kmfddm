@@ -2,6 +2,7 @@ package pgsql
 
 import (
 	"context"
+	"time"
 
 	"github.com/jessepeterson/kmfddm/storage/pgsql/sqlc"
 )
@@ -16,6 +17,7 @@ func (s *PSQLStorage) RetrieveSetDeclarations(ctx context.Context, setName strin
 // See also the storage package for documentation on the storage interfaces.
 func (s *PSQLStorage) StoreSetDeclaration(ctx context.Context, setName, declarationID string) (bool, error) {
 	result, err := s.q.StoreSetDeclaration(ctx, sqlc.StoreSetDeclarationParams{
+		Now:                   time.Now().UnixMilli(),
 		DeclarationIdentifier: declarationID,
 		SetName:               setName,
 	})

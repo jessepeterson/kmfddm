@@ -3,6 +3,7 @@ package pgsql
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/jessepeterson/kmfddm/storage/pgsql/sqlc"
 )
@@ -17,6 +18,7 @@ func (s *PSQLStorage) RetrieveEnrollmentSets(ctx context.Context, enrollmentID s
 // See also the storage package for documentation on the storage interfaces.
 func (s *PSQLStorage) StoreEnrollmentSet(ctx context.Context, enrollmentID, setName string) (bool, error) {
 	result, err := s.q.StoreEnrollmentSet(ctx, sqlc.StoreEnrollmentSetParams{
+		Now:          time.Now().UnixMilli(),
 		EnrollmentID: enrollmentID,
 		SetName:      setName,
 	})

@@ -3,11 +3,11 @@ CREATE TABLE declarations (
     type       VARCHAR(255) NOT NULL,
     payload    JSONB NOT NULL,
 
-    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    created_at BIGINT NOT NULL,
+    updated_at BIGINT NOT NULL,
     touched_ct INTEGER DEFAULT 0 NOT NULL,
 
-    -- computed in declarations.go from the identifier, type, payload,
+    -- computed in query.sql from the identifier, type, payload,
     -- created_at and touched_ct columns.
     server_token CHAR(64) NOT NULL,
 
@@ -30,8 +30,8 @@ CREATE TABLE set_declarations (
     FOREIGN KEY (declaration_identifier)
         REFERENCES declarations (identifier),
 
-    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL
+    created_at BIGINT NOT NULL,
+    updated_at BIGINT NOT NULL
 );
 
 CREATE INDEX set_declarations_declaration_identifier_idx ON set_declarations (declaration_identifier);
@@ -45,8 +45,8 @@ CREATE TABLE enrollment_sets (
     CHECK (enrollment_id != ''),
     CHECK (set_name != ''),
 
-    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL
+    created_at BIGINT NOT NULL,
+    updated_at BIGINT NOT NULL
 );
 
 CREATE INDEX enrollment_sets_set_name_idx ON enrollment_sets (set_name);
@@ -74,8 +74,8 @@ CREATE TABLE status_declarations (
     CHECK (enrollment_id != ''),
     CHECK (declaration_identifier != ''),
 
-    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL
+    created_at BIGINT NOT NULL,
+    updated_at BIGINT NOT NULL
 );
 
 CREATE TABLE status_values (
@@ -90,8 +90,8 @@ CREATE TABLE status_values (
 
     UNIQUE (enrollment_id, path, container_type, value_type, value),
 
-    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL
+    created_at BIGINT NOT NULL,
+    updated_at BIGINT NOT NULL
 );
 
 CREATE INDEX status_values_path_idx ON status_values (path);
@@ -106,8 +106,8 @@ CREATE TABLE status_errors (
 
     status_id VARCHAR(255) NULL,
 
-    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL
+    created_at BIGINT NOT NULL,
+    updated_at BIGINT NOT NULL
 );
 
 CREATE INDEX status_errors_created_at_idx ON status_errors (created_at);
@@ -118,15 +118,16 @@ CREATE TABLE status_reports (
 
     enrollment_id VARCHAR(255) NOT NULL,
 
-    status_report JSONB NOT NULL,
+    -- json, not jsonb: keeps the report as sent, including \u0000.
+    status_report JSON NOT NULL,
 
     status_id VARCHAR(255) NULL,
 
     CHECK (enrollment_id != ''),
-    CHECK (status_report != 'null'::jsonb),
+    CHECK (status_report::text != 'null'),
 
-    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL
+    created_at BIGINT NOT NULL,
+    updated_at BIGINT NOT NULL
 );
 
 CREATE INDEX status_reports_created_at_idx ON status_reports (created_at);

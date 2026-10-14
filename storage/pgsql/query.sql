@@ -70,8 +70,21 @@ INSERT INTO status_declarations (
     valid,
     server_token,
     reasons,
-    status_id
-) VALUES ($1, $2, $3, $4, $5, $6, $7, $8);
+    status_id,
+    created_at,
+    updated_at
+) VALUES (
+    sqlc.arg(enrollment_id),
+    sqlc.arg(item_type),
+    sqlc.arg(declaration_identifier),
+    sqlc.arg(active),
+    sqlc.arg(valid),
+    sqlc.arg(server_token),
+    sqlc.narg(reasons),
+    sqlc.narg(status_id),
+    sqlc.arg(now)::bigint,
+    sqlc.arg(now)::bigint
+);
 
 -- name: GetDeclarationStatus :many
 SELECT
@@ -98,8 +111,17 @@ INSERT INTO status_errors (
     enrollment_id,
     path,
     error,
-    status_id
-) VALUES ($1, $2, $3, $4);
+    status_id,
+    created_at,
+    updated_at
+) VALUES (
+    sqlc.arg(enrollment_id),
+    sqlc.arg(path),
+    sqlc.arg(error),
+    sqlc.narg(status_id),
+    sqlc.arg(now)::bigint,
+    sqlc.arg(now)::bigint
+);
 
 -- Keeps only the newest (offset) errors for the enrollment.
 -- name: DeleteStatusErrors :exec
@@ -133,8 +155,16 @@ LIMIT sqlc.arg(row_limit) OFFSET sqlc.arg(row_offset);
 INSERT INTO status_reports (
     enrollment_id,
     status_id,
-    status_report
-) VALUES ($1, $2, $3);
+    status_report,
+    created_at,
+    updated_at
+) VALUES (
+    sqlc.arg(enrollment_id),
+    sqlc.narg(status_id),
+    sqlc.arg(status_report),
+    sqlc.arg(now)::bigint,
+    sqlc.arg(now)::bigint
+);
 
 -- Keeps only the newest (offset) status reports for the enrollment.
 -- name: DeleteStatusReports :exec
@@ -186,20 +216,22 @@ LIMIT 1;
 -- so it reports no affected rows and keeps its server token.
 -- name: StoreDeclaration :execresult
 INSERT INTO declarations
-    (identifier, type, payload, server_token)
+    (identifier, type, payload, server_token, created_at, updated_at)
 VALUES
     (
         sqlc.arg(identifier)::text,
         sqlc.arg(type)::text,
         sqlc.arg(payload)::jsonb,
-        encode(sha256(convert_to(concat(sqlc.arg(identifier)::text, sqlc.arg(type)::text, sqlc.arg(payload)::jsonb::text, CURRENT_TIMESTAMP::text, '0'), 'UTF8')), 'hex')
+        encode(sha256(convert_to(concat(sqlc.arg(identifier)::text, sqlc.arg(type)::text, sqlc.arg(payload)::jsonb::text, sqlc.arg(now)::bigint::text, '0'), 'UTF8')), 'hex'),
+        sqlc.arg(now)::bigint,
+        sqlc.arg(now)::bigint
     )
 ON CONFLICT (identifier) DO UPDATE
 SET
     type         = excluded.type,
     payload      = excluded.payload,
     server_token = encode(sha256(convert_to(concat(excluded.identifier, excluded.type, excluded.payload::text, declarations.created_at::text, declarations.touched_ct::text), 'UTF8')), 'hex'),
-    updated_at   = CURRENT_TIMESTAMP
+    updated_at   = excluded.updated_at
 WHERE
     declarations.type IS DISTINCT FROM excluded.type OR
     declarations.payload IS DISTINCT FROM excluded.payload;
@@ -210,9 +242,9 @@ UPDATE
 SET
     touched_ct   = touched_ct + 1,
     server_token = encode(sha256(convert_to(concat(identifier, type, payload::text, created_at::text, (touched_ct + 1)::text), 'UTF8')), 'hex'),
-    updated_at   = CURRENT_TIMESTAMP
+    updated_at   = sqlc.arg(now)::bigint
 WHERE
-    identifier = $1;
+    identifier = sqlc.arg(identifier);
 
 -- name: DeleteDeclaration :execresult
 DELETE FROM declarations WHERE identifier = $1;
@@ -231,9 +263,9 @@ SELECT declaration_identifier FROM set_declarations WHERE set_name = $1;
 
 -- name: StoreSetDeclaration :execresult
 INSERT INTO set_declarations
-    (declaration_identifier, set_name)
+    (declaration_identifier, set_name, created_at, updated_at)
 VALUES
-    ($1, $2)
+    (sqlc.arg(declaration_identifier), sqlc.arg(set_name), sqlc.arg(now)::bigint, sqlc.arg(now)::bigint)
 ON CONFLICT DO NOTHING;
 
 -- name: RemoveSetDeclaration :execresult
@@ -250,9 +282,9 @@ SELECT set_name FROM enrollment_sets WHERE enrollment_id = $1;
 
 -- name: StoreEnrollmentSet :execresult
 INSERT INTO enrollment_sets
-    (enrollment_id, set_name)
+    (enrollment_id, set_name, created_at, updated_at)
 VALUES
-    ($1, $2)
+    (sqlc.arg(enrollment_id), sqlc.arg(set_name), sqlc.arg(now)::bigint, sqlc.arg(now)::bigint)
 ON CONFLICT DO NOTHING;
 
 -- name: RemoveEnrollmentSet :execresult
@@ -280,14 +312,16 @@ WHERE
 -- the same row twice in one INSERT ... ON CONFLICT DO UPDATE.
 -- name: PutStatusValues :exec
 INSERT INTO status_values
-    (enrollment_id, path, container_type, value_type, value, status_id)
+    (enrollment_id, path, container_type, value_type, value, status_id, created_at, updated_at)
 SELECT DISTINCT
     sqlc.arg(enrollment_id)::text,
     v.path,
     v.container_type,
     v.value_type,
     v.value,
-    sqlc.narg(status_id)::text
+    sqlc.narg(status_id)::text,
+    sqlc.arg(now)::bigint,
+    sqlc.arg(now)::bigint
 FROM
     -- the unnests zip the equal-length arrays by position.
     (
@@ -299,7 +333,7 @@ FROM
     ) v
 ON CONFLICT (enrollment_id, path, container_type, value_type, value) DO UPDATE
 SET
-    updated_at = CURRENT_TIMESTAMP,
+    updated_at = excluded.updated_at,
     status_id  = excluded.status_id;
 
 -- name: GetStatusValues :many

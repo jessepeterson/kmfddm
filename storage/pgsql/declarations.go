@@ -16,6 +16,7 @@ import (
 // See also the storage package for documentation on the storage interfaces.
 func (s *PSQLStorage) StoreDeclaration(ctx context.Context, d *ddm.Declaration) (bool, error) {
 	result, err := s.q.StoreDeclaration(ctx, sqlc.StoreDeclarationParams{
+		Now:        time.Now().UnixMilli(),
 		Identifier: d.Identifier,
 		Type:       d.Type,
 		Payload:    string(d.Payload),
@@ -49,9 +50,11 @@ func (s *PSQLStorage) RetrieveDeclaration(ctx context.Context, declarationID str
 func (s *PSQLStorage) RetrieveDeclarationModTime(ctx context.Context, declarationID string) (time.Time, error) {
 	updatedAt, err := s.q.GetDeclarationModTime(ctx, declarationID)
 	if errors.Is(err, sql.ErrNoRows) {
-		err = fmt.Errorf("%w: %v", storage.ErrDeclarationNotFound, err)
+		return time.Time{}, fmt.Errorf("%w: %v", storage.ErrDeclarationNotFound, err)
+	} else if err != nil {
+		return time.Time{}, err
 	}
-	return updatedAt, err
+	return time.UnixMilli(updatedAt), nil
 }
 
 // DeleteDeclaration deletes a declaration and returns whether it was deleted or already existed.
@@ -79,7 +82,10 @@ func (s *PSQLStorage) RetrieveDeclarations(ctx context.Context) ([]string, error
 // TouchDeclaration updates a declaration's "touch count" which makes a new server token.
 // See also the storage package for documentation on the storage interfaces.
 func (s *PSQLStorage) TouchDeclaration(ctx context.Context, declarationID string) error {
-	result, err := s.q.TouchDeclaration(ctx, declarationID)
+	result, err := s.q.TouchDeclaration(ctx, sqlc.TouchDeclarationParams{
+		Identifier: declarationID,
+		Now:        time.Now().UnixMilli(),
+	})
 	if err != nil {
 		return err
 	}
