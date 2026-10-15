@@ -1,0 +1,90 @@
+{
+  "StatusItems" : {
+    "management" : {
+      "declarations" : {
+        "management" : [
+          {
+            "active" : true,
+            "identifier" : "com.example.management",
+            "valid" : "valid",
+            "server-token" : "4d5e6f7a-8b9c-0d1e-2f3a-4b5c6d7e8f90"
+          }
+        ],
+        "assets" : [
+          {
+            "active" : true,
+            "identifier" : "com.example.asset",
+            "valid" : "valid",
+            "server-token" : "3c4d5e6f-7a8b-9c0d-1e2f-3a4b5c6d7e8f"
+          }
+        ],
+        "configurations" : [
+          {
+            "active" : true,
+            "identifier" : "com.example.configuration",
+            "valid" : "invalid",
+            "server-token" : "1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d",
+            "reasons" : [
+              {
+                "code" : "Error.ConfigurationCannotBeApplied",
+                "description" : "Configuration cannot be applied",
+                "details" : {
+                  "Error" : "An internal error has occurred."
+                }
+              }
+            ]
+          },
+          {
+            "active" : false,
+            "identifier" : "com.example.unactivated",
+            "valid" : "unknown",
+            "server-token" : "2b3c4d5e-6f7a-8b9c-0d1e-2f3a4b5c6d7e",
+            "reasons" : [
+              {
+                "code" : "Info.NotReferencedByActivation",
+                "description" : "Configuration is not referenced by an activation.",
+                "details" : {
+                  "Identifier" : "com.example.unactivated",
+                  "ServerToken" : "2b3c4d5e-6f7a-8b9c-0d1e-2f3a4b5c6d7e"
+                }
+              }
+            ]
+          }
+        ],
+        "activations" : [
+          {
+            "active" : true,
+            "identifier" : "com.example.activation",
+            "valid" : "valid",
+            "server-token" : "5e6f7a8b-9c0d-1e2f-3a4b-5c6d7e8f9a01"
+          }
+        ]
+      }
+    },
+    "device" : {
+      "model" : {
+        "family" : "iPhone",
+        "identifier" : "iPhone10,2"
+      },
+      "operating-system" : {
+        "family" : "iOS",
+        "version" : "16.0"
+      }
+    }
+  },
+  "Errors" : [
+    {
+      "StatusItem" : "management.declarations",
+      "Reasons" : [
+        {
+          "Code" : "Error.ConfigurationCannotBeApplied",
+          "Description" : "Configuration cannot be applied",
+          "Details" : {
+            "Identifier" : "com.example.configuration"
+          }
+        }
+      ]
+    }
+  ],
+  "FullReport" : true
+}

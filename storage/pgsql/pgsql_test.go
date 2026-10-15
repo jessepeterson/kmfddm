@@ -3,12 +3,14 @@ package pgsql
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"hash"
 	"hash/fnv"
 	"os"
 	"testing"
 
 	"github.com/jessepeterson/kmfddm/ddm"
+	ddmstatus "github.com/jessepeterson/kmfddm/ddm/status"
 	"github.com/jessepeterson/kmfddm/storage"
 	"github.com/jessepeterson/kmfddm/test/e2e"
 
@@ -108,13 +110,17 @@ func TestPgSQLStoresStatusReportExactly(t *testing.T) {
 
 	// \u0000 sits outside the parsed status items, so only the raw report holds it.
 	raw := []byte(`{"StatusItems":{"x-vendor":{"note":"a\u0000b"}},  "Errors":[]}`)
-	_, report, err := ddm.ParseStatus(raw)
-	if err != nil {
+	report := &ddm.StatusReport{Raw: raw, Status: new(ddmstatus.StatusReport)}
+	if err := json.Unmarshal(raw, report.Status); err != nil {
 		t.Fatal(err)
 	}
 	report.ID = "pgsql_test_exact"
 	const enrollmentID = "pgsql_test_enr_exact"
-	if err := s.StoreDeclarationStatus(ctx, enrollmentID, report); err != nil {
+	toStore, err := storage.ParseStatusReport(ctx, report, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := s.StoreDeclarationStatus(ctx, enrollmentID, toStore); err != nil {
 		t.Fatal(err)
 	}
 
