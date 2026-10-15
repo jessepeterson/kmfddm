@@ -126,3 +126,44 @@ jobs:
         run: echo "KMFDDM_MYSQL_STORAGE_TEST_DSN=kmfddm:kmfddm@tcp(localhost:$PORT)/kmfddm" >> $GITHUB_ENV
 
       - run: go test -v ./storage/mysql/...
+  pgsql-test:
+    runs-on: 'ubuntu-latest'
+    needs: format-build-test
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: kmfddm
+          POSTGRES_USER: kmfddm
+          POSTGRES_PASSWORD: kmfddm
+        ports:
+          - 5800:5432
+        options: --health-cmd="pg_isready -U kmfddm" --health-interval=5s --health-timeout=2s --health-retries=5
+    defaults:
+      run:
+        shell: bash
+    env:
+      PGPASSWORD: kmfddm
+      PORT: 5800
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e  # v7.0.0
+        with:
+          go-version: '1.23.x'
+
+      - name: verify postgres
+        run: |
+          while ! pg_isready --host=localhost --port=$PORT --username=kmfddm; do
+            sleep 1
+          done
+
+      - name: postgres schema
+        run: |
+          psql --version
+          psql --host=localhost --port=$PORT --username=kmfddm --set=ON_ERROR_STOP=1 kmfddm < ./storage/pgsql/schema.sql
+
+      - name: setup test dsn
+        run: echo "KMFDDM_PGSQL_STORAGE_TEST_DSN=postgres://kmfddm:kmfddm@localhost:$PORT/kmfddm?sslmode=disable" >> $GITHUB_ENV
+
+      - run: go test -v ./storage/pgsql/...

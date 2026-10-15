@@ -111,6 +111,18 @@ Options are specified as a comma-separated list of "key=value" pairs. The mysql 
 
 *Example:* `-storage mysql -storage-dsn kmfddm:kmfddm/mymdmdb -storage-options conn_max_lifetime=30s,conn_max_idle_time=15s`
 
+#### pgsql storage backend
+
+* `-storage pgsql`
+
+Configures the PostgreSQL storage backend. The `-storage-dsn` flag should be in the [format the SQL driver expects](https://pkg.go.dev/github.com/lib/pq#hdr-Connection_String_Parameters). Be sure to create your tables with the [schema.sql](../storage/pgsql/schema.sql) file that corresponds to your KMFDDM version. PostgreSQL 11 or later is required.
+
+*Example:* `-storage pgsql -storage-dsn postgres://kmfddm:kmfddm@localhost/kmfddm`
+
+The pgsql backend supports the same options as the mysql backend: `delete_errors`, `delete_status_reports`, `conn_max_lifetime`, and `conn_max_idle_time`.
+
+*Example:* `-storage pgsql -storage-dsn postgres://kmfddm:kmfddm@localhost/kmfddm -storage-options delete_errors=20,delete_status_reports=5`
+
 #### in-memory storage backend
 
 * `-storage inmem`
