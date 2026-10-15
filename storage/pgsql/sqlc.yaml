@@ -1,0 +1,22 @@
+version: 2
+sql:
+  - engine: "postgresql"
+    queries: "query.sql"
+    schema: "schema.sql"
+    gen:
+      go:
+        package: "sqlc"
+        out: "sqlc"
+        overrides:
+          # lib/pq sends []byte parameters as bytea, which jsonb rejects.
+          - db_type: "jsonb"
+            go_type:
+              type: "string"
+          - db_type: "jsonb"
+            nullable: true
+            go_type:
+              import: "database/sql"
+              type: "NullString"
+          - column: "status_reports.status_report"
+            go_type:
+              type: "string"

@@ -14,9 +14,11 @@ import (
 	"github.com/jessepeterson/kmfddm/storage/file"
 	"github.com/jessepeterson/kmfddm/storage/inmem"
 	"github.com/jessepeterson/kmfddm/storage/mysql"
+	"github.com/jessepeterson/kmfddm/storage/pgsql"
 
 	"github.com/cespare/xxhash"
 	_ "github.com/go-sql-driver/mysql"
+	_ "github.com/lib/pq"
 	"github.com/micromdm/nanolib/log"
 )
 
@@ -53,6 +55,8 @@ func setupStorage(name, dsn, options string, logger log.Logger) (allStorage, err
 		return diskv.New(dsn, hasher), nil
 	case "mysql":
 		return setupMySQLStorage(dsn, mapOptions, logger)
+	case "pgsql":
+		return setupPgSQLStorage(dsn, mapOptions, logger)
 	case "inmem":
 		if options != "" {
 			return nil, ErrOptionsNotSupported
@@ -112,6 +116,49 @@ func setupMySQLStorage(dsn string, options map[string]string, logger log.Logger)
 		}
 	}
 	return mysql.New(hasher, opts...)
+}
+
+func setupPgSQLStorage(dsn string, options map[string]string, logger log.Logger) (allStorage, error) {
+	opts := []pgsql.Option{pgsql.WithDSN(dsn)}
+	for k, v := range options {
+		switch k {
+		case "delete_errors":
+			const errorDeleteOption = "error delete option"
+			n, err := strconv.ParseUint(v, 10, 64)
+			if err != nil {
+				return nil, fmt.Errorf("invalid value for %s: %w", errorDeleteOption, err)
+			}
+			opts = append(opts, pgsql.WithErrorDeletion(uint(n)))
+			logger.Debug(logkeys.Message, errorDeleteOption, logkeys.GenericCount, int(n))
+		case "delete_status_reports":
+			const reportDeleteOption = "status report delete option"
+			n, err := strconv.ParseUint(v, 10, 64)
+			if err != nil {
+				return nil, fmt.Errorf("invalid value for %s: %w", reportDeleteOption, err)
+			}
+			opts = append(opts, pgsql.WithStatusReportDeletion(uint(n)))
+			logger.Debug(logkeys.Message, reportDeleteOption, logkeys.GenericCount, int(n))
+		case "conn_max_lifetime":
+			const connMaxLifetimeOption = "connection max lifetime option"
+			d, err := time.ParseDuration(v)
+			if err != nil {
+				return nil, fmt.Errorf("invalid value for %s: %w", connMaxLifetimeOption, err)
+			}
+			opts = append(opts, pgsql.WithConnMaxLifetime(d))
+			logger.Debug(logkeys.Message, connMaxLifetimeOption, "duration", d.String())
+		case "conn_max_idle_time":
+			const connMaxIdleTimeOption = "connection max idle time option"
+			d, err := time.ParseDuration(v)
+			if err != nil {
+				return nil, fmt.Errorf("invalid value for %s: %w", connMaxIdleTimeOption, err)
+			}
+			opts = append(opts, pgsql.WithConnMaxIdleTime(d))
+			logger.Debug(logkeys.Message, connMaxIdleTimeOption, "duration", d.String())
+		default:
+			return nil, fmt.Errorf("invalid option: %q", k)
+		}
+	}
+	return pgsql.New(hasher, opts...)
 }
 
 func splitOptions(s string) map[string]string {
