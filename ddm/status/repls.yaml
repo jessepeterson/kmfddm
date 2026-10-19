@@ -1,0 +1,96 @@
+# Replacements for the declarative schemas.
+
+# fix acronyms that are a whole dotted path segment
+"^(.*)Caldav(.*)$":
+  repl: "${1}CalDAV${2}"
+  types:
+    - "field"
+    - "struct"
+    - "const"
+"^(.*)Carddav(.*)$":
+  repl: "${1}CardDAV${2}"
+  types:
+    - "field"
+    - "struct"
+    - "const"
+"^(.*)Ldap(.*)$":
+  repl: "${1}LDAP${2}"
+  types:
+    - "field"
+    - "struct"
+    - "const"
+"^(.*)Mdm(.*)$":
+  repl: "${1}MDM${2}"
+  types:
+    - "field"
+    - "struct"
+    - "const"
+"^(.*)Udid(.*)$":
+  repl: "${1}UDID${2}"
+  types:
+    - "field"
+    - "struct"
+    - "const"
+
+# fix closed compounds that are a whole dotted path segment
+"^(.*)Diskmanagement(.*)$":
+  repl: "${1}DiskManagement${2}"
+  types:
+    - "field"
+    - "struct"
+    - "const"
+"^(.*)Filevault(.*)$":
+  repl: "${1}FileVault${2}"
+  types:
+    - "field"
+    - "struct"
+    - "const"
+"^(.*)Screensharing(.*)$":
+  repl: "${1}ScreenSharing${2}"
+  types:
+    - "field"
+    - "struct"
+    - "const"
+"^(.*)Softwareupdate(.*)$":
+  repl: "${1}SoftwareUpdate${2}"
+  types:
+    - "field"
+    - "struct"
+    - "const"
+
+# fix compound words
+"^(.*)Nameand(.*)$":
+  repl: "${1}NameAnd${2}"
+  types:
+    - "field"
+    - "struct"
+    - "const"
+"^(.*)Keysize(.*)$":
+  repl: "${1}KeySize${2}"
+  types:
+    - "field"
+    - "struct"
+
+# fix acronym casing
+"^(.*)OsVersion(.*)$":
+  repl: "${1}OSVersion${2}"
+  types:
+    - "field"
+    - "struct"
+    - "const"
+"^(.*)Rfc(.*)$":
+  repl: "${1}RFC${2}"
+  types:
+    - "field"
+"^(.*)Url(.*)$":
+  repl: "${1}URL${2}"
+  types:
+    - "field"
+"^(.*)Uid(.*)$":
+  repl: "${1}UID${2}"
+  types:
+    - "field"
+"^(.*)Id([A-Z].*|)$":
+  repl: "${1}ID${2}"
+  types:
+    - "field"

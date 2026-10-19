@@ -27,6 +27,12 @@ const (
 	ErrorCount       = "error_count"       // type: int
 	ValueCount       = "value_count"       // type: int
 
+	// status report is a "full report" (complete status, not just changes)
+	FullReport = "full_report" // type: bool
+
+	// unique identifier of a stored status report
+	StatusID = "status_id" // type: string
+
 	// HTTP handler
 	Handler = "handler" // type: string
 

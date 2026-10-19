@@ -20,7 +20,7 @@ import (
 	"github.com/jessepeterson/kmfddm/storage"
 )
 
-func (s *File) storeStatusDeclarations(enrollmentID string, declarations []ddm.DeclarationStatus) error {
+func (s *File) storeStatusDeclarations(enrollmentID string, declarations []storage.DeclarationStatus) error {
 	if len(declarations) < 1 {
 		return nil
 	}
@@ -59,7 +59,7 @@ func (s *File) storeStatusDeclarations(enrollmentID string, declarations []ddm.D
 	return nil
 }
 
-func (s *File) readStatusValues(enrollmentID string) ([]ddm.StatusValue, error) {
+func (s *File) readStatusValues(enrollmentID string) ([]storage.StatusValue, error) {
 	csvFile, err := os.Open(s.csvFilename(csvFilenameValues, enrollmentID))
 	if errors.Is(err, os.ErrNotExist) {
 		// no status values (yet)
@@ -70,7 +70,7 @@ func (s *File) readStatusValues(enrollmentID string) ([]ddm.StatusValue, error) 
 	defer csvFile.Close()
 	reader := csv.NewReader(csvFile)
 
-	var ret []ddm.StatusValue
+	var ret []storage.StatusValue
 	for {
 		// read a record
 		record, err := reader.Read()
@@ -85,7 +85,7 @@ func (s *File) readStatusValues(enrollmentID string) ([]ddm.StatusValue, error) 
 			return nil, fmt.Errorf("record fields: %d", len(record))
 		}
 
-		ret = append(ret, ddm.StatusValue{
+		ret = append(ret, storage.StatusValue{
 			Path:          record[0],
 			ContainerType: record[1],
 			ValueType:     record[2],
@@ -96,7 +96,7 @@ func (s *File) readStatusValues(enrollmentID string) ([]ddm.StatusValue, error) 
 	return ret, nil
 }
 
-func containsValue(values []ddm.StatusValue, v ddm.StatusValue) int {
+func containsValue(values []storage.StatusValue, v storage.StatusValue) int {
 	for i, value := range values {
 		if v.Path == value.Path && v.ValueType == value.ValueType && v.ContainerType == value.ContainerType && bytes.Equal(v.Value, value.Value) {
 			return i
@@ -105,8 +105,8 @@ func containsValue(values []ddm.StatusValue, v ddm.StatusValue) int {
 	return -1
 }
 
-func mergeStatusValues(dst, src []ddm.StatusValue) (ret []ddm.StatusValue) {
-	ret = append([]ddm.StatusValue{}, dst...)
+func mergeStatusValues(dst, src []storage.StatusValue) (ret []storage.StatusValue) {
+	ret = append([]storage.StatusValue{}, dst...)
 	for _, srcValue := range src {
 		if containsValue(ret, srcValue) < 0 {
 			ret = append(ret, srcValue)
@@ -115,7 +115,7 @@ func mergeStatusValues(dst, src []ddm.StatusValue) (ret []ddm.StatusValue) {
 	return
 }
 
-func (s *File) storeStatusValues(enrollmentID string, values []ddm.StatusValue) error {
+func (s *File) storeStatusValues(enrollmentID string, values []storage.StatusValue) error {
 	if len(values) < 1 {
 		return nil
 	}
@@ -171,7 +171,7 @@ func (s *File) errorsCSVFilename(enrollmentID string) string {
 	return s.csvFilename(csvFilenameErrors, enrollmentID)
 }
 
-func (s *File) storeStatusErrors(enrollmentID string, ddmErrors []ddm.StatusError) error {
+func (s *File) storeStatusErrors(enrollmentID string, ddmErrors []storage.StatusError) error {
 	if len(ddmErrors) < 1 {
 		return nil
 	}
@@ -208,7 +208,7 @@ func (s *File) storeStatusErrors(enrollmentID string, ddmErrors []ddm.StatusErro
 
 // StoreDeclarationStatus stores a status report from enrollmentID.
 // See also the storage package for documentation on the storage interfaces.
-func (s *File) StoreDeclarationStatus(_ context.Context, enrollmentID string, status *ddm.StatusReport) error {
+func (s *File) StoreDeclarationStatus(_ context.Context, enrollmentID string, status *storage.StatusReport) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	err := s.assureEnrollmentDirExists(enrollmentID)
@@ -238,10 +238,10 @@ func (s *File) StoreDeclarationStatus(_ context.Context, enrollmentID string, st
 
 // RetrieveDeclarationStatus retrieves the current status of declarations for the enrollment IDs.
 // See also the storage package for documentation on the storage interfaces.
-func (s *File) RetrieveDeclarationStatus(_ context.Context, enrollmentIDs []string) (map[string][]ddm.DeclarationQueryStatus, error) {
+func (s *File) RetrieveDeclarationStatus(_ context.Context, enrollmentIDs []string) (map[string][]storage.DeclarationQueryStatus, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	ret := make(map[string][]ddm.DeclarationQueryStatus)
+	ret := make(map[string][]storage.DeclarationQueryStatus)
 	for _, enrollmentID := range enrollmentIDs {
 		csvFile, err := os.Open(s.csvFilename(csvFilenameDeclarations, enrollmentID))
 		if errors.Is(err, os.ErrNotExist) {
@@ -252,7 +252,7 @@ func (s *File) RetrieveDeclarationStatus(_ context.Context, enrollmentIDs []stri
 		defer csvFile.Close()
 		reader := csv.NewReader(csvFile)
 
-		ddmStatuses := []ddm.DeclarationQueryStatus{}
+		ddmStatuses := []storage.DeclarationQueryStatus{}
 		for {
 			// read a record
 			record, err := reader.Read()
@@ -290,8 +290,8 @@ func (s *File) RetrieveDeclarationStatus(_ context.Context, enrollmentIDs []stri
 				return nil, fmt.Errorf("parse bool: %w", err)
 			}
 
-			ddmStatus := ddm.DeclarationQueryStatus{
-				DeclarationStatus: ddm.DeclarationStatus{
+			ddmStatus := storage.DeclarationQueryStatus{
+				DeclarationStatus: storage.DeclarationStatus{
 					Identifier:   record[1],
 					Active:       active,
 					Valid:        record[3],
@@ -346,7 +346,7 @@ func (s *File) RetrieveDeclarationStatus(_ context.Context, enrollmentIDs []stri
 
 		}
 		// turn back into a list
-		// ddmStatuses := make([]ddm.DeclarationQueryStatus, 0, len(manifestMap))
+		// ddmStatuses := make([]storage.DeclarationQueryStatus, 0, len(manifestMap))
 		// for k := range manifestMap {
 		// 	ddmStatuses = append(ddmStatuses, manifestMap[k])
 		// }
@@ -357,13 +357,13 @@ func (s *File) RetrieveDeclarationStatus(_ context.Context, enrollmentIDs []stri
 
 // RetrieveStatusErrors reads DDM errors from CSV file.
 // See also the storage package for documentation on the storage interfaces.
-func (s *File) RetrieveStatusErrors(_ context.Context, enrollmentIDs []string, offset, limit int) (map[string][]storage.StatusError, error) {
+func (s *File) RetrieveStatusErrors(_ context.Context, enrollmentIDs []string, offset, limit int) (map[string][]storage.StoredStatusError, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
 	// TODO: implement offset/limit?
 
-	ret := make(map[string][]storage.StatusError)
+	ret := make(map[string][]storage.StoredStatusError)
 	for _, enrollmentID := range enrollmentIDs {
 		csvFile, err := os.Open(s.errorsCSVFilename(enrollmentID))
 		if errors.Is(err, os.ErrNotExist) {
@@ -376,7 +376,7 @@ func (s *File) RetrieveStatusErrors(_ context.Context, enrollmentIDs []string, o
 
 		reader := csv.NewReader(csvFile)
 
-		var ddmErrors []storage.StatusError
+		var ddmErrors []storage.StoredStatusError
 		for {
 			// read a record
 			record, err := reader.Read()
@@ -408,7 +408,7 @@ func (s *File) RetrieveStatusErrors(_ context.Context, enrollmentIDs []string, o
 			}
 
 			// assemble and append the record
-			ddmErrors = append(ddmErrors, storage.StatusError{
+			ddmErrors = append(ddmErrors, storage.StoredStatusError{
 				Path:      record[1],
 				Error:     ddmError,
 				Timestamp: ts,
@@ -420,7 +420,7 @@ func (s *File) RetrieveStatusErrors(_ context.Context, enrollmentIDs []string, o
 	return ret, nil
 }
 
-func filterPathPrefix(values []ddm.StatusValue, pathPrefix string) (ret []ddm.StatusValue) {
+func filterPathPrefix(values []storage.StatusValue, pathPrefix string) (ret []storage.StatusValue) {
 	for _, v := range values {
 		var found bool
 		if hasPre, hasSuf := strings.HasPrefix(pathPrefix, "%"), strings.HasSuffix(pathPrefix, "%"); len(v.Path) >= 3 && hasPre && hasSuf {
@@ -442,10 +442,10 @@ func filterPathPrefix(values []ddm.StatusValue, pathPrefix string) (ret []ddm.St
 // RetrieveStatusValues returns the status values for the enrollment IDs.
 // The search can be filtered with pathPrefix by using an SQL LIKE-like syntax.
 // See also the storage package for documentation on the storage interfaces.
-func (s *File) RetrieveStatusValues(_ context.Context, enrollmentIDs []string, pathPrefix string) (map[string][]storage.StatusValue, error) {
+func (s *File) RetrieveStatusValues(_ context.Context, enrollmentIDs []string, pathPrefix string) (map[string][]storage.StoredStatusValue, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	ret := make(map[string][]storage.StatusValue)
+	ret := make(map[string][]storage.StoredStatusValue)
 	for _, enrollmentID := range enrollmentIDs {
 		values, err := s.readStatusValues(enrollmentID)
 		if err != nil {
@@ -454,9 +454,9 @@ func (s *File) RetrieveStatusValues(_ context.Context, enrollmentIDs []string, p
 		if pathPrefix != "" {
 			values = filterPathPrefix(values, pathPrefix)
 		}
-		var sValues []storage.StatusValue
+		var sValues []storage.StoredStatusValue
 		for _, v := range values {
-			sValues = append(sValues, storage.StatusValue{
+			sValues = append(sValues, storage.StoredStatusValue{
 				Path:  v.Path,
 				Value: string(v.Value),
 			})

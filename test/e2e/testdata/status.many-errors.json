@@ -1,0 +1,146 @@
+{
+  "StatusItems": {
+    "device": {
+      "identifier": {
+        "udid": "MANYERRR-1111-2222-3333-444455556666"
+      }
+    }
+  },
+  "Errors": [
+    {
+      "StatusItem": "test.item-01",
+      "Reasons": [
+        {
+          "Code": "Error.Synthetic01",
+          "Description": "synthetic error 1"
+        }
+      ]
+    },
+    {
+      "StatusItem": "test.item-02",
+      "Reasons": [
+        {
+          "Code": "Error.Synthetic02",
+          "Description": "synthetic error 2"
+        }
+      ]
+    },
+    {
+      "StatusItem": "test.item-03",
+      "Reasons": [
+        {
+          "Code": "Error.Synthetic03",
+          "Description": "synthetic error 3"
+        }
+      ]
+    },
+    {
+      "StatusItem": "test.item-04",
+      "Reasons": [
+        {
+          "Code": "Error.Synthetic04",
+          "Description": "synthetic error 4"
+        }
+      ]
+    },
+    {
+      "StatusItem": "test.item-05",
+      "Reasons": [
+        {
+          "Code": "Error.Synthetic05",
+          "Description": "synthetic error 5"
+        }
+      ]
+    },
+    {
+      "StatusItem": "test.item-06",
+      "Reasons": [
+        {
+          "Code": "Error.Synthetic06",
+          "Description": "synthetic error 6"
+        }
+      ]
+    },
+    {
+      "StatusItem": "test.item-07",
+      "Reasons": [
+        {
+          "Code": "Error.Synthetic07",
+          "Description": "synthetic error 7"
+        }
+      ]
+    },
+    {
+      "StatusItem": "test.item-08",
+      "Reasons": [
+        {
+          "Code": "Error.Synthetic08",
+          "Description": "synthetic error 8"
+        }
+      ]
+    },
+    {
+      "StatusItem": "test.item-09",
+      "Reasons": [
+        {
+          "Code": "Error.Synthetic09",
+          "Description": "synthetic error 9"
+        }
+      ]
+    },
+    {
+      "StatusItem": "test.item-10",
+      "Reasons": [
+        {
+          "Code": "Error.Synthetic10",
+          "Description": "synthetic error 10"
+        }
+      ]
+    },
+    {
+      "StatusItem": "test.item-11",
+      "Reasons": [
+        {
+          "Code": "Error.Synthetic11",
+          "Description": "synthetic error 11"
+        }
+      ]
+    },
+    {
+      "StatusItem": "test.item-12",
+      "Reasons": [
+        {
+          "Code": "Error.Synthetic12",
+          "Description": "synthetic error 12"
+        }
+      ]
+    },
+    {
+      "StatusItem": "test.item-13",
+      "Reasons": [
+        {
+          "Code": "Error.Synthetic13",
+          "Description": "synthetic error 13"
+        }
+      ]
+    },
+    {
+      "StatusItem": "test.item-14",
+      "Reasons": [
+        {
+          "Code": "Error.Synthetic14",
+          "Description": "synthetic error 14"
+        }
+      ]
+    },
+    {
+      "StatusItem": "test.item-15",
+      "Reasons": [
+        {
+          "Code": "Error.Synthetic15",
+          "Description": "synthetic error 15"
+        }
+      ]
+    }
+  ]
+}

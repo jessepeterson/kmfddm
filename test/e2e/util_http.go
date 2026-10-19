@@ -25,30 +25,30 @@ type DDMStorage interface {
 	storage.StatusStorer
 }
 
-func handleDDM(mux api.Mux, logger log.Logger, storage DDMStorage) {
+func handleDDM(mux api.Mux, logger log.Logger, store DDMStorage) {
 	mux.Handle(
 		"/declaration-items",
-		ddmhttp.TokensOrDeclarationItemsHandler(storage, false, logger.With(logkeys.Handler, "declaration-items")),
+		ddmhttp.TokensOrDeclarationItemsHandler(store, false, logger.With(logkeys.Handler, "declaration-items")),
 		"GET",
 	)
 
 	mux.Handle(
 		"/tokens",
-		ddmhttp.TokensOrDeclarationItemsHandler(storage, true, logger.With(logkeys.Handler, "tokens")),
+		ddmhttp.TokensOrDeclarationItemsHandler(store, true, logger.With(logkeys.Handler, "tokens")),
 		"GET",
 	)
 
 	mux.Handle(
 		"/declaration/:type/:id",
 		http.StripPrefix("/declaration/",
-			ddmhttp.DeclarationHandler(storage, logger.With(logkeys.Handler, "declaration")),
+			ddmhttp.DeclarationHandler(store, logger.With(logkeys.Handler, "declaration")),
 		),
 		"GET",
 	)
 
 	mux.Handle(
 		"/status",
-		ddmhttp.StatusReportHandler(storage, logger.With(logkeys.Handler, "status")),
+		ddmhttp.NewStatusReportHandler(storage.NewStatusStoreHandler(store, logger.With(logkeys.Handler, "status")), logger.With(logkeys.Handler, "status")),
 		"PUT",
 	)
 }

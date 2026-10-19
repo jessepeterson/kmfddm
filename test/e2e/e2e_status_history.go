@@ -30,11 +30,29 @@ type testErrorID struct {
 
 // statusReportWithErrors creates a status report for report number n that
 // contains errorCount errors identifying themselves.
+//
+// The errors conform to the generated status report schema: a required
+// StatusItem, and a Reason whose Details carries the identity. Details is the
+// schema's free-form dictionary, so it round-trips through storage intact.
 func statusReportWithErrors(t *testing.T, n, errorCount int) []byte {
 	t.Helper()
-	errs := make([]testErrorID, errorCount)
+	errs := make([]map[string]interface{}, errorCount)
 	for i := range errs {
-		errs[i] = testErrorID{Report: n, Error: i}
+		id, err := json.Marshal(testErrorID{Report: n, Error: i})
+		if err != nil {
+			t.Fatal(err)
+		}
+		var details map[string]interface{}
+		if err = json.Unmarshal(id, &details); err != nil {
+			t.Fatal(err)
+		}
+		errs[i] = map[string]interface{}{
+			"StatusItem": "test.item",
+			"Reasons": []map[string]interface{}{{
+				"Code":    "Error.Test",
+				"Details": details,
+			}},
+		}
 	}
 	b, err := json.Marshal(map[string]interface{}{
 		"StatusItems": map[string]interface{}{},
@@ -100,8 +118,34 @@ func expectStatusErrors(t *testing.T, mux http.Handler, enrollmentID string, wan
 	}
 	var have []testErrorID
 	for _, e := range errorJSON[enrollmentID] {
+		// the error is stored as the report sent it: a StatusItem and a Reason
+		// whose Details carries this test's identity
+		var stored struct {
+			StatusItem string `json:"StatusItem"`
+			Reasons    []struct {
+				Code    string         `json:"Code"`
+				Details map[string]any `json:"Details"`
+			} `json:"Reasons"`
+		}
+		if err := json.Unmarshal(e.Error, &stored); err != nil {
+			t.Fatal(err)
+		}
+		if stored.StatusItem != "test.item" {
+			t.Errorf("status item: have: %q, want: %q", stored.StatusItem, "test.item")
+		}
+		if len(stored.Reasons) != 1 {
+			t.Fatalf("reasons: have: %d, want: 1", len(stored.Reasons))
+		}
+		if got := stored.Reasons[0].Code; got != "Error.Test" {
+			t.Errorf("reason code: have: %q, want: %q", got, "Error.Test")
+		}
+
+		details, err := json.Marshal(stored.Reasons[0].Details)
+		if err != nil {
+			t.Fatal(err)
+		}
 		var id testErrorID
-		if err := json.Unmarshal(e.Error, &id); err != nil {
+		if err = json.Unmarshal(details, &id); err != nil {
 			t.Fatal(err)
 		}
 		have = append(have, id)

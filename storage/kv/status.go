@@ -8,7 +8,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/jessepeterson/kmfddm/ddm"
 	"github.com/jessepeterson/kmfddm/storage"
 	"github.com/micromdm/nanolib/storage/kv"
 )
@@ -54,7 +53,7 @@ func toTime(b []byte) (time.Time, error) {
 
 // StoreDeclarationStatus stores the status report details.
 // For later retrieval by the StatusAPIStorage interface(s).
-func (s *KV) StoreDeclarationStatus(ctx context.Context, enrollmentID string, status *ddm.StatusReport) error {
+func (s *KV) StoreDeclarationStatus(ctx context.Context, enrollmentID string, status *storage.StatusReport) error {
 	var idx int
 	now := time.Now()
 	// write the raw status report
@@ -216,8 +215,8 @@ func retrIdx(ctx context.Context, b kv.CRUDBucket, key string) (int, error) {
 }
 
 // RetrieveDeclarationStatus retrieves the status of the declarations for enrollmentIDs.
-func (s *KV) RetrieveDeclarationStatus(ctx context.Context, enrollmentIDs []string) (map[string][]ddm.DeclarationQueryStatus, error) {
-	r := make(map[string][]ddm.DeclarationQueryStatus)
+func (s *KV) RetrieveDeclarationStatus(ctx context.Context, enrollmentIDs []string) (map[string][]storage.DeclarationQueryStatus, error) {
+	r := make(map[string][]storage.DeclarationQueryStatus)
 	for _, id := range enrollmentIDs {
 		// ignoring errors as we don't technically need this to serve our status reply
 		enrDIs, _ := s.RetrieveDeclarationItems(ctx, id)
@@ -240,7 +239,7 @@ func (s *KV) RetrieveDeclarationStatus(ctx context.Context, enrollmentIDs []stri
 			statusID = string(rawID)
 		}
 
-		var dcls []ddm.DeclarationStatus
+		var dcls []storage.DeclarationStatus
 		if len(dMap[join(keyPfxStaDcl, id, keySfxStaDclJso)]) > 0 {
 			err = json.Unmarshal(dMap[join(keyPfxStaDcl, id, keySfxStaDclJso)], &dcls)
 			if err != nil {
@@ -253,10 +252,10 @@ func (s *KV) RetrieveDeclarationStatus(ctx context.Context, enrollmentIDs []stri
 			return nil, err
 		}
 
-		var dqss []ddm.DeclarationQueryStatus
+		var dqss []storage.DeclarationQueryStatus
 
 		for _, ds := range dcls {
-			dqs := ddm.DeclarationQueryStatus{
+			dqs := storage.DeclarationQueryStatus{
 				DeclarationStatus: ds,
 				StatusID:          statusID,
 				StatusReceived:    ts,
@@ -290,15 +289,15 @@ func (s *KV) RetrieveDeclarationStatus(ctx context.Context, enrollmentIDs []stri
 }
 
 // RetrieveStatusErrors retrieves the collected errors for enrollmentIDs.
-func (s *KV) RetrieveStatusErrors(ctx context.Context, enrollmentIDs []string, offset, limit int) (map[string][]storage.StatusError, error) {
-	r := make(map[string][]storage.StatusError)
+func (s *KV) RetrieveStatusErrors(ctx context.Context, enrollmentIDs []string, offset, limit int) (map[string][]storage.StoredStatusError, error) {
+	r := make(map[string][]storage.StoredStatusError)
 	for _, id := range enrollmentIDs {
 		idx, err := retrIdx(ctx, s.status, join(keyPfxStaErr, id))
 		if err != nil {
 			continue
 		}
 
-		var errs []storage.StatusError
+		var errs []storage.StoredStatusError
 		for i := 0; i <= idx; i++ {
 			// loop through all of the stored errors for this id
 
@@ -314,7 +313,7 @@ func (s *KV) RetrieveStatusErrors(ctx context.Context, enrollmentIDs []string, o
 				return nil, fmt.Errorf("error retrieving nth stored error: %d for id: %s: %w", i, id, err)
 			}
 
-			statusError := storage.StatusError{
+			statusError := storage.StoredStatusError{
 				Path: string(eMap[join(pfx, keySfxStaErrPth)]),
 			}
 
@@ -346,13 +345,13 @@ func (s *KV) RetrieveStatusErrors(ctx context.Context, enrollmentIDs []string, o
 }
 
 // RetrieveStatusValues retrieves the collected errors for enrollmentIDs.
-func (s *KV) RetrieveStatusValues(ctx context.Context, enrollmentIDs []string, pathPrefix string) (map[string][]storage.StatusValue, error) {
-	r := make(map[string][]storage.StatusValue)
+func (s *KV) RetrieveStatusValues(ctx context.Context, enrollmentIDs []string, pathPrefix string) (map[string][]storage.StoredStatusValue, error) {
+	r := make(map[string][]storage.StoredStatusValue)
 	for _, id := range enrollmentIDs {
 
 		rawKeys := kv.AllKeysPrefix(ctx, s.status, join(keyPfxStaVal, id, keySfxStaValPth)+keySep)
 
-		var values []storage.StatusValue
+		var values []storage.StoredStatusValue
 
 		for _, k := range rawKeys {
 			pk := k[len(join(keyPfxStaVal, id, keySfxStaValPth)+keySep):]
@@ -368,7 +367,7 @@ func (s *KV) RetrieveStatusValues(ctx context.Context, enrollmentIDs []string, p
 			if err != nil {
 				return nil, err
 			}
-			v := storage.StatusValue{
+			v := storage.StoredStatusValue{
 				Path:  string(pMap[join(keyPfxStaVal, id, keySfxStaValPth, pk)]),
 				Value: string(pMap[join(keyPfxStaVal, id, keySfxStaValVal, pk)]),
 			}

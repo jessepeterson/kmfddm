@@ -4,11 +4,11 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/jessepeterson/kmfddm/ddm"
+	"github.com/jessepeterson/kmfddm/storage"
 )
 
 func TestMergeStatusValues(t *testing.T) {
-	a := []ddm.StatusValue{
+	a := []storage.StatusValue{
 		{
 			Path: ".a",
 		},
@@ -16,7 +16,7 @@ func TestMergeStatusValues(t *testing.T) {
 			Path: ".d",
 		},
 	}
-	b := []ddm.StatusValue{
+	b := []storage.StatusValue{
 		{
 			Path: ".b",
 		},
