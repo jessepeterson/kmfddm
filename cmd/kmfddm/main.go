@@ -122,7 +122,7 @@ func main() {
 		"GET",
 	)
 
-	var statusHandler http.Handler = ddmhttp.StatusReportHandler(store, logger.With(logkeys.Handler, "status"))
+	var statusHandler http.Handler = ddmhttp.NewStatusReportHandler(storage.NewStatusStoreHandler(store, logger.With(logkeys.Handler, "status-store")), logger.With(logkeys.Handler, "status"))
 	if *flDumpStatus != "" {
 		f := os.Stdout
 		if *flDumpStatus != "-" {

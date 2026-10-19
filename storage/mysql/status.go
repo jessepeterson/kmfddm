@@ -9,14 +9,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/jessepeterson/kmfddm/ddm"
 	"github.com/jessepeterson/kmfddm/storage"
 	"github.com/jessepeterson/kmfddm/storage/mysql/sqlc"
 )
 
 // storeStatusDeclarations will completely remove and replace the set of declaration status for an enrollmentID with declarations.
 // Exits early if no declarations are present.
-func (s *MySQLStorage) storeStatusDeclarations(ctx context.Context, enrollmentID, statusID string, declarations []ddm.DeclarationStatus) error {
+func (s *MySQLStorage) storeStatusDeclarations(ctx context.Context, enrollmentID, statusID string, declarations []storage.DeclarationStatus) error {
 	if len(declarations) < 1 {
 		// do not delete existing declaration status if no status are included.
 		return nil
@@ -48,7 +47,7 @@ func (s *MySQLStorage) storeStatusDeclarations(ctx context.Context, enrollmentID
 	})
 }
 
-func (s *MySQLStorage) storeStatusValues(ctx context.Context, enrollmentID, statusID string, values []ddm.StatusValue) error {
+func (s *MySQLStorage) storeStatusValues(ctx context.Context, enrollmentID, statusID string, values []storage.StatusValue) error {
 	if len(values) < 1 {
 		return nil
 	}
@@ -88,7 +87,7 @@ UPDATE
 	return err
 }
 
-func (s *MySQLStorage) storeStatusErrors(ctx context.Context, enrollmentID, statusID string, errors []ddm.StatusError) error {
+func (s *MySQLStorage) storeStatusErrors(ctx context.Context, enrollmentID, statusID string, errors []storage.StatusError) error {
 	if len(errors) < 1 {
 		return nil
 	}
@@ -151,7 +150,7 @@ func (s *MySQLStorage) storeStatusReport(ctx context.Context, enrollmentID, stat
 
 // StoreDeclarationStatus stores the status report from enrollmentID.
 // See also the storage package for documentation on the storage interfaces.
-func (s *MySQLStorage) StoreDeclarationStatus(ctx context.Context, enrollmentID string, status *ddm.StatusReport) error {
+func (s *MySQLStorage) StoreDeclarationStatus(ctx context.Context, enrollmentID string, status *storage.StatusReport) error {
 	var err error
 	if !s.noSts {
 		err = s.storeStatusReport(ctx, enrollmentID, status.ID, status.Raw)
@@ -176,7 +175,7 @@ func (s *MySQLStorage) StoreDeclarationStatus(ctx context.Context, enrollmentID 
 
 // RetrieveDeclarationStatus retrieves the status of declarations for enrollmentIDs.
 // See also the storage package for documentation on the storage interfaces.
-func (s *MySQLStorage) RetrieveDeclarationStatus(ctx context.Context, enrollmentIDs []string) (map[string][]ddm.DeclarationQueryStatus, error) {
+func (s *MySQLStorage) RetrieveDeclarationStatus(ctx context.Context, enrollmentIDs []string) (map[string][]storage.DeclarationQueryStatus, error) {
 	if len(enrollmentIDs) < 1 {
 		return nil, errors.New("no enrollment IDs provided")
 	}
@@ -191,10 +190,10 @@ func (s *MySQLStorage) RetrieveDeclarationStatus(ctx context.Context, enrollment
 	if err != nil {
 		return nil, err
 	}
-	resp := make(map[string][]ddm.DeclarationQueryStatus)
+	resp := make(map[string][]storage.DeclarationQueryStatus)
 	for _, row := range rows {
-		dqs := ddm.DeclarationQueryStatus{
-			DeclarationStatus: ddm.DeclarationStatus{
+		dqs := storage.DeclarationQueryStatus{
+			DeclarationStatus: storage.DeclarationStatus{
 				Identifier:  row.DeclarationIdentifier,
 				Active:      row.Active,
 				Valid:       row.Valid,
@@ -214,7 +213,7 @@ func (s *MySQLStorage) RetrieveDeclarationStatus(ctx context.Context, enrollment
 
 // RetrieveStatusErrors retrieves the reported status errors for enrollmentIDs.
 // See also the storage package for documentation on the storage interfaces.
-func (s *MySQLStorage) RetrieveStatusErrors(ctx context.Context, enrollmentIDs []string, offset, limit int) (map[string][]storage.StatusError, error) {
+func (s *MySQLStorage) RetrieveStatusErrors(ctx context.Context, enrollmentIDs []string, offset, limit int) (map[string][]storage.StoredStatusError, error) {
 	rows, err := s.q.SelectStatusErrors(ctx, sqlc.SelectStatusErrorsParams{
 		Ids:    enrollmentIDs,
 		Offset: int32(offset),
@@ -223,9 +222,9 @@ func (s *MySQLStorage) RetrieveStatusErrors(ctx context.Context, enrollmentIDs [
 	if err != nil {
 		return nil, err
 	}
-	resp := make(map[string][]storage.StatusError)
+	resp := make(map[string][]storage.StoredStatusError)
 	for _, row := range rows {
-		sErr := storage.StatusError{
+		sErr := storage.StoredStatusError{
 			Path:     row.Path,
 			StatusID: row.StatusID.String,
 		}
@@ -239,7 +238,7 @@ func (s *MySQLStorage) RetrieveStatusErrors(ctx context.Context, enrollmentIDs [
 // RetrieveStatusValues retrieves the status values for enrollmentIDs.
 // The search can be filtered with pathPrefix by using SQL LIKE syntax.
 // See also the storage package for documentation on the storage interfaces.
-func (s *MySQLStorage) RetrieveStatusValues(ctx context.Context, enrollmentIDs []string, pathPrefix string) (map[string][]storage.StatusValue, error) {
+func (s *MySQLStorage) RetrieveStatusValues(ctx context.Context, enrollmentIDs []string, pathPrefix string) (map[string][]storage.StoredStatusValue, error) {
 	idSQL := strings.Repeat(", ?", len(enrollmentIDs))[2:]
 	args := make([]interface{}, len(enrollmentIDs))
 	for i, id := range enrollmentIDs {
@@ -270,10 +269,10 @@ ORDER BY
 		return nil, err
 	}
 	defer rows.Close()
-	resp := make(map[string][]storage.StatusValue)
+	resp := make(map[string][]storage.StoredStatusValue)
 	var id string
 	for rows.Next() {
-		sVal := storage.StatusValue{}
+		sVal := storage.StoredStatusValue{}
 		var dbTimestamp string
 		var statusID sql.NullString
 		err = rows.Scan(
