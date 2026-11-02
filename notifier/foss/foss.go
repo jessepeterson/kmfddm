@@ -148,7 +148,6 @@ func (m *FossMDM) Enqueue(ctx context.Context, ids []string, rawCommand []byte) 
 		// the same command UUID onto different ids.
 		return errors.New("multiple ids not supported")
 	}
-	buf := bytes.NewBuffer(rawCommand)
 	logger := ctxlog.Logger(ctx, m.logger).With("request", "enqueue")
 	// TODO: perhaps parallelize?
 	for _, idChunk := range chunk(ids, m.max) {
@@ -168,7 +167,7 @@ func (m *FossMDM) Enqueue(ctx context.Context, ids []string, rawCommand []byte) 
 			)
 			continue
 		}
-		req, err := http.NewRequestWithContext(ctx, m.enqMethod, ref, buf)
+		req, err := http.NewRequestWithContext(ctx, m.enqMethod, ref, bytes.NewReader(rawCommand))
 		if err != nil {
 			idsLogger.Info(
 				logkeys.Message, "creating HTTP request",
