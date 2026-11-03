@@ -111,6 +111,17 @@ func setupMySQLStorage(dsn string, options map[string]string, logger log.Logger)
 			}
 			opts = append(opts, mysql.WithConnMaxIdleTime(d))
 			logger.Debug(logkeys.Message, connMaxIdleTimeOption, "duration", d.String())
+		case "max_open_conns":
+			const maxOpenConnsOption = "max open connections option"
+			n, err := strconv.Atoi(v)
+			if err != nil {
+				return nil, fmt.Errorf("invalid value for %s: %w", maxOpenConnsOption, err)
+			}
+			if n < 0 {
+				return nil, fmt.Errorf("invalid value for %s: %d is negative", maxOpenConnsOption, n)
+			}
+			opts = append(opts, mysql.WithMaxOpenConns(n))
+			logger.Debug(logkeys.Message, maxOpenConnsOption, logkeys.GenericCount, n)
 		default:
 			return nil, fmt.Errorf("invalid option: %q", k)
 		}
@@ -154,6 +165,17 @@ func setupPgSQLStorage(dsn string, options map[string]string, logger log.Logger)
 			}
 			opts = append(opts, pgsql.WithConnMaxIdleTime(d))
 			logger.Debug(logkeys.Message, connMaxIdleTimeOption, "duration", d.String())
+		case "max_open_conns":
+			const maxOpenConnsOption = "max open connections option"
+			n, err := strconv.Atoi(v)
+			if err != nil {
+				return nil, fmt.Errorf("invalid value for %s: %w", maxOpenConnsOption, err)
+			}
+			if n < 0 {
+				return nil, fmt.Errorf("invalid value for %s: %d is negative", maxOpenConnsOption, n)
+			}
+			opts = append(opts, pgsql.WithMaxOpenConns(n))
+			logger.Debug(logkeys.Message, maxOpenConnsOption, logkeys.GenericCount, n)
 		default:
 			return nil, fmt.Errorf("invalid option: %q", k)
 		}
