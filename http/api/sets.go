@@ -44,6 +44,29 @@ func GetSetDeclarationsHandler(store storage.SetDeclarationsRetriever, logger lo
 	)
 }
 
+// GetSetEnrollmentsHandler retrieves the list of MDM enrollment IDs associated to a set.
+// The entire request URL path is assumed to contain the set name.
+// This implies the handler should have the path prefix stripped before use.
+//
+// Warning: the response is not paginated and may be very large for sets
+// assigned to many enrollments.
+func GetSetEnrollmentsHandler(store storage.EnrollmentIDRetriever, logger log.Logger) http.HandlerFunc {
+	if store == nil || logger == nil {
+		panic("nil store or logger")
+	}
+	return simpleJSONResourceHandler(
+		logger,
+		func(ctx context.Context, resource string, _ *url.URL) (interface{}, error) {
+			ids, err := store.RetrieveEnrollmentIDs(ctx, nil, []string{resource}, nil)
+			if err == nil && ids == nil {
+				// encode as an empty JSON array instead of null
+				ids = []string{}
+			}
+			return ids, err
+		},
+	)
+}
+
 // PutSetDeclarationHandler associates declarations to a set.
 // The entire request URL path is assumed to contain the set name.
 // This implies the handler should have the path prefix stripped before use.
