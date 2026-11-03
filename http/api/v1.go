@@ -22,6 +22,7 @@ type APIStorage interface {
 	storage.SetRetreiver
 	storage.StatusAPIStorage
 	storage.EnrollmentSetStorage
+	storage.EnrollmentIDRetriever
 }
 
 // func handlerName(endpoint string) string {
@@ -116,6 +117,13 @@ func HandleAPIv1(prefix string, mux Mux, logger log.Logger, store APIStorage, no
 		prefix+"/enrollment-sets-all/sets/:id",
 		DeleteAllEnrollmentSetsHandler(store, notifier, logger.With(logkeys.Handler, "delete-all-enrollment-sets")),
 		"DELETE",
+	)
+
+	// set enrollments
+	mux.Handle(
+		prefix+"/set-enrollments/:id",
+		GetSetEnrollmentsHandler(store, logger.With(logkeys.Handler, "get-set-enrollments")),
+		"GET",
 	)
 
 	// declarations sets

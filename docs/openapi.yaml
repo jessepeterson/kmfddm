@@ -248,6 +248,24 @@ paths:
         - $ref: '#/components/parameters/setNameInQuery'
     parameters:
       - $ref: '#/components/parameters/enrollmentID'
+  /v1/set-enrollments/{id}:
+    get:
+      description: Retrieve the list of MDM enrollment IDs associated to a set. The response is not paginated and may be large for sets assigned to many enrollments.
+      tags:
+        - sets
+      security:
+        - basicAuth: []
+      responses:
+        '200':
+          $ref: '#/components/responses/EnrollmentIDList'
+        '401':
+           $ref: '#/components/responses/UnauthorizedError'
+        '400':
+           $ref: '#/components/responses/JSONBadRequest'
+        '500':
+           $ref: '#/components/responses/JSONError'
+    parameters:
+      - $ref: '#/components/parameters/setName'
   /v1/enrollment-sets-all/{id}:
     delete:
       description: Dissociate all sets from enrollment ID.
@@ -626,6 +644,17 @@ components:
               - accounting
               - procurement-team
               - enroll.9AFDC638-0D78-41F1-BD42-1B9F770EABF7
+    EnrollmentIDList:
+      description: Array of MDM enrollment IDs.
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              type: string
+            example:
+              - 9AFDC638-0D78-41F1-BD42-1B9F770EABF7
+              - 2FF3196C-CACE-4AFE-9918-01C38160006F
     DeclarationIDList:
       description: Array of declaration IDs.
       content:
