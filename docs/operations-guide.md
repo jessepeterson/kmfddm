@@ -106,10 +106,12 @@ Options are specified as a comma-separated list of "key=value" pairs. The mysql 
   * This option sets the maximum amount of time a pooled connection may be reused. The value is a [Go duration string](https://pkg.go.dev/time#ParseDuration) such as `30s`, `3m`, or `1h`. When unset, connection lifetime is left at database/sql's default (connections are reused indefinitely). A value of `0` keeps connections forever.
 * `conn_max_idle_time=duration`
   * This option sets the maximum amount of time a pooled connection may sit idle before it is closed. The value is a duration string, as above. When unset, idle time is left at database/sql's default (idle connections are not closed by age). A value of `0` never closes connections due to idle time.
+* `max_open_conns=count`
+  * This option sets the maximum number of open connections to the database. When unset, or set to `0`, the pool size is left at database/sql's default of no limit: a burst of concurrent requests opens a connection per in-flight request until the database refuses them. A bounded pool makes those requests wait for a connection instead, which the `wait count` and `wait duration` in [DB.Stats](https://pkg.go.dev/database/sql#DBStats) report. Size it against the database's own connection limit, divided by the number of KMFDDM instances sharing it.
 
 *Example:* `-storage mysql -storage-dsn kmfddm:kmfddm/mymdmdb -storage-options delete_errors=20,delete_status_reports=5`
 
-*Example:* `-storage mysql -storage-dsn kmfddm:kmfddm/mymdmdb -storage-options conn_max_lifetime=30s,conn_max_idle_time=15s`
+*Example:* `-storage mysql -storage-dsn kmfddm:kmfddm/mymdmdb -storage-options conn_max_lifetime=30s,conn_max_idle_time=15s,max_open_conns=25`
 
 #### pgsql storage backend
 
@@ -119,7 +121,7 @@ Configures the PostgreSQL storage backend. The `-storage-dsn` flag should be in 
 
 *Example:* `-storage pgsql -storage-dsn postgres://kmfddm:kmfddm@localhost/kmfddm`
 
-The pgsql backend supports the same options as the mysql backend: `delete_errors`, `delete_status_reports`, `conn_max_lifetime`, and `conn_max_idle_time`.
+The pgsql backend supports the same options as the mysql backend: `delete_errors`, `delete_status_reports`, `conn_max_lifetime`, `conn_max_idle_time`, and `max_open_conns`.
 
 *Example:* `-storage pgsql -storage-dsn postgres://kmfddm:kmfddm@localhost/kmfddm -storage-options delete_errors=20,delete_status_reports=5`
 
