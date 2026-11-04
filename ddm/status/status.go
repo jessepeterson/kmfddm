@@ -1,9 +1,9 @@
 // DO NOT EDIT
-// generated from https://github.com/apple/device-management.git:09f249a06e7e3289930bf6d05f38fb562f748ebf/declarative/status,declarative/protocol/statusreport.yaml
+// generated from https://github.com/apple/device-management.git:9e7fdbe23990b2551c4b29b39bc8b0de956805eb/declarative/status,declarative/protocol/statusreport.yaml
 
 package status
 
-const DeviceManagementGenerateHash = "09f249a06e7e3289930bf6d05f38fb562f748ebf"
+const DeviceManagementGenerateHash = "9e7fdbe23990b2551c4b29b39bc8b0de956805eb"
 
 // StatusItemTypes lists every DDM status item these types can represent, by
 // Apple's dotted status item identifier.
@@ -45,6 +45,7 @@ var StatusItemTypes = []string{
 	"device.system.health",
 	"diskmanagement.filevault.enabled",
 	"enhanced-logging.applecare-token",
+	"enhanced-logging.noninteractive-eligibility",
 	"enhanced-logging.status",
 	"enhanced-logging.timestamp",
 	"management.client-capabilities",
@@ -785,6 +786,7 @@ type StatusItemsDeviceSystem struct {
 	// - `ok`: The component is operating normally.
 	// - `error`: The component has a detected error or failure.
 	// - `non-genuine`: The component isn't a genuine Apple component.
+	// - `pending-repair`: The component is a genuine Apple component that requires a restart to finish its repair.
 	// Not all keys are supported on each device. The dictionary includes only components that are present and reportable on the device.
 	// Status item: `device.system.health`.
 	Health *DeviceSystemHealth `json:"health,omitempty"`
@@ -794,6 +796,7 @@ type StatusItemsDeviceSystem struct {
 // - `ok`: The component is operating normally.
 // - `error`: The component has a detected error or failure.
 // - `non-genuine`: The component isn't a genuine Apple component.
+// - `pending-repair`: The component is a genuine Apple component that requires a restart to finish its repair.
 // Not all keys are supported on each device. The dictionary includes only components that are present and reportable on the device.
 // Status item: `device.system.health`.
 type DeviceSystemHealth struct {
@@ -805,15 +808,18 @@ type DeviceSystemHealth struct {
 	// - `ok`: The component is operating normally.
 	// - `error`: The component has a detected error or failure.
 	// - `non-genuine`: The component isn't a genuine Apple component.
+	// - `pending-repair`: The component is a genuine Apple component that requires a restart to finish its repair.
 	Camera *DeviceSystemHealthCamera `json:"Camera,omitempty"`
 	// The display health status, which has the following values:
 	// - `ok`: The component is operating normally.
 	// - `error`: The component has a detected error or failure.
 	// - `non-genuine`: The component isn't a genuine Apple component.
+	// - `pending-repair`: The component is a genuine Apple component that requires a restart to finish its repair.
 	Display *DeviceSystemHealthDisplay `json:"Display,omitempty"`
 	// The Face ID health status, which has the following values:
 	// - `ok`: The component is operating normally.
 	// - `error`: The component has a detected error or failure.
+	// - `pending-repair`: The component is a genuine Apple component that requires a restart to finish its repair.
 	FaceID *DeviceSystemHealthFaceID `json:"FaceID,omitempty"`
 	// The NFC (Near Field Communication) health status, which has the following values:
 	// - `ok`: The component is operating normally.
@@ -822,6 +828,7 @@ type DeviceSystemHealth struct {
 	// The Touch ID health status, which has the following values:
 	// - `ok`: The component is operating normally.
 	// - `error`: The component has a detected error or failure.
+	// - `pending-repair`: The component is a genuine Apple component that requires a restart to finish its repair.
 	TouchID *DeviceSystemHealthTouchID `json:"TouchID,omitempty"`
 	// The UWB (Ultra-Wideband) radio health status, which has the following values:
 	// - `ok`: The component is operating normally.
@@ -843,34 +850,40 @@ const (
 // - `ok`: The component is operating normally.
 // - `error`: The component has a detected error or failure.
 // - `non-genuine`: The component isn't a genuine Apple component.
+// - `pending-repair`: The component is a genuine Apple component that requires a restart to finish its repair.
 type DeviceSystemHealthCamera string
 
 const (
-	DeviceSystemHealthCameraOk         DeviceSystemHealthCamera = "ok"
-	DeviceSystemHealthCameraError      DeviceSystemHealthCamera = "error"
-	DeviceSystemHealthCameraNonGenuine DeviceSystemHealthCamera = "non-genuine"
+	DeviceSystemHealthCameraOk            DeviceSystemHealthCamera = "ok"
+	DeviceSystemHealthCameraError         DeviceSystemHealthCamera = "error"
+	DeviceSystemHealthCameraNonGenuine    DeviceSystemHealthCamera = "non-genuine"
+	DeviceSystemHealthCameraPendingRepair DeviceSystemHealthCamera = "pending-repair"
 )
 
 // The display health status, which has the following values:
 // - `ok`: The component is operating normally.
 // - `error`: The component has a detected error or failure.
 // - `non-genuine`: The component isn't a genuine Apple component.
+// - `pending-repair`: The component is a genuine Apple component that requires a restart to finish its repair.
 type DeviceSystemHealthDisplay string
 
 const (
-	DeviceSystemHealthDisplayOk         DeviceSystemHealthDisplay = "ok"
-	DeviceSystemHealthDisplayError      DeviceSystemHealthDisplay = "error"
-	DeviceSystemHealthDisplayNonGenuine DeviceSystemHealthDisplay = "non-genuine"
+	DeviceSystemHealthDisplayOk            DeviceSystemHealthDisplay = "ok"
+	DeviceSystemHealthDisplayError         DeviceSystemHealthDisplay = "error"
+	DeviceSystemHealthDisplayNonGenuine    DeviceSystemHealthDisplay = "non-genuine"
+	DeviceSystemHealthDisplayPendingRepair DeviceSystemHealthDisplay = "pending-repair"
 )
 
 // The Face ID health status, which has the following values:
 // - `ok`: The component is operating normally.
 // - `error`: The component has a detected error or failure.
+// - `pending-repair`: The component is a genuine Apple component that requires a restart to finish its repair.
 type DeviceSystemHealthFaceID string
 
 const (
-	DeviceSystemHealthFaceIDOk    DeviceSystemHealthFaceID = "ok"
-	DeviceSystemHealthFaceIDError DeviceSystemHealthFaceID = "error"
+	DeviceSystemHealthFaceIDOk            DeviceSystemHealthFaceID = "ok"
+	DeviceSystemHealthFaceIDError         DeviceSystemHealthFaceID = "error"
+	DeviceSystemHealthFaceIDPendingRepair DeviceSystemHealthFaceID = "pending-repair"
 )
 
 // The NFC (Near Field Communication) health status, which has the following values:
@@ -886,11 +899,13 @@ const (
 // The Touch ID health status, which has the following values:
 // - `ok`: The component is operating normally.
 // - `error`: The component has a detected error or failure.
+// - `pending-repair`: The component is a genuine Apple component that requires a restart to finish its repair.
 type DeviceSystemHealthTouchID string
 
 const (
-	DeviceSystemHealthTouchIDOk    DeviceSystemHealthTouchID = "ok"
-	DeviceSystemHealthTouchIDError DeviceSystemHealthTouchID = "error"
+	DeviceSystemHealthTouchIDOk            DeviceSystemHealthTouchID = "ok"
+	DeviceSystemHealthTouchIDError         DeviceSystemHealthTouchID = "error"
+	DeviceSystemHealthTouchIDPendingRepair DeviceSystemHealthTouchID = "pending-repair"
 )
 
 // The UWB (Ultra-Wideband) radio health status, which has the following values:
@@ -921,6 +936,9 @@ type StatusItemsEnhancedLogging struct {
 	// The current enhanced log collection session AppleCare token. The device returns an empty string if there's no session status to report.
 	// Status item: `enhanced-logging.applecare-token`.
 	ApplecareToken *string `json:"applecare-token,omitempty"`
+	// If `true`, the device is eligible to run a non-interactive enhanced log collection session.
+	// Status item: `enhanced-logging.noninteractive-eligibility`.
+	NoninteractiveEligibility *bool `json:"noninteractive-eligibility,omitempty"`
 	// The enhanced log collection session status, which has the following values:
 	// - `none`: The device has never run an enhanced log collection session.
 	// - `waiting-for-consent`: The device is waiting for the user to consent to the enhanced log collection.
