@@ -86,6 +86,31 @@
   repl: "${1}URL${2}"
   types:
     - "field"
+    - "const"
+"^(.*)Guid(.*)$":
+  repl: "${1}GUID${2}"
+  types:
+    - "field"
+
+# Names introduced by the content-cache, enhanced-logging, and VPN schemas.
+"^(.*)Applecare(.*)$":
+  repl: "${1}AppleCare${2}"
+  types:
+    - "field"
+"^(.*)Noninteractive(.*)$":
+  repl: "${1}NonInteractive${2}"
+  types:
+    - "field"
+"^IsSharedIpad$":
+  repl: "IsSharediPad"
+  types:
+    - "field"
+"^(.*)IKEV2(.*)$":
+  repl: "${1}IKEv2${2}"
+  types:
+    - "field"
+    - "struct"
+    - "const"
 "^(.*)Uid(.*)$":
   repl: "${1}UID${2}"
   types:

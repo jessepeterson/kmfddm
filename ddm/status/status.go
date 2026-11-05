@@ -598,7 +598,7 @@ type ContentCachePeers struct {
 // Status item: `content-cache.status`.
 type ContentCacheStatus struct {
 	// The unique identifier of the Content Cache.
-	ServerGuid string `json:"server-guid"`
+	ServerGUID string `json:"server-guid"`
 	// If `true`, the device has enabled the Content Cache. Enabling the Content Caching doesn't guarantee service. See the `Active` key for the readiness of the Content Cache to serve requests.
 	Activated *bool `json:"activated,omitempty"`
 	// If `true`, the Content Cache is ready to serve requests.
@@ -935,10 +935,10 @@ type StatusItemsDiskManagementFileVault struct {
 type StatusItemsEnhancedLogging struct {
 	// The current enhanced log collection session AppleCare token. The device returns an empty string if there's no session status to report.
 	// Status item: `enhanced-logging.applecare-token`.
-	ApplecareToken *string `json:"applecare-token,omitempty"`
+	AppleCareToken *string `json:"applecare-token,omitempty"`
 	// If `true`, the device is eligible to run a non-interactive enhanced log collection session.
 	// Status item: `enhanced-logging.noninteractive-eligibility`.
-	NoninteractiveEligibility *bool `json:"noninteractive-eligibility,omitempty"`
+	NonInteractiveEligibility *bool `json:"noninteractive-eligibility,omitempty"`
 	// The enhanced log collection session status, which has the following values:
 	// - `none`: The device has never run an enhanced log collection session.
 	// - `waiting-for-consent`: The device is waiting for the user to consent to the enhanced log collection.
@@ -1133,7 +1133,7 @@ type StatusItemsMDM struct {
 	IsReturnToService *bool `json:"is-return-to-service,omitempty"`
 	// If `true`, the device is a Shared iPad.
 	// Status item: `mdm.is-shared-ipad`.
-	IsSharedIpad *bool `json:"is-shared-ipad,omitempty"`
+	IsSharediPad *bool `json:"is-shared-ipad,omitempty"`
 	// The push magic value that the device expects the MDM server to include in Apple Push Notification service messages.
 	// Status item: `mdm.push-magic`.
 	PushMagic *string `json:"push-magic,omitempty"`
