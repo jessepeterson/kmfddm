@@ -20,7 +20,7 @@ func (s *MySQLStorage) storeStatusDeclarations(ctx context.Context, enrollmentID
 		// do not delete existing declaration status if no status are included.
 		return nil
 	}
-	return tx(ctx, s.db, s.q, func(ctx context.Context, tx *sql.Tx, qtx *sqlc.Queries) error {
+	return s.txn.Exec(ctx, func(ctx context.Context, tx *sql.Tx, qtx *sqlc.Queries) error {
 		err := qtx.RemoveDeclarationStatus(ctx, enrollmentID)
 		if err != nil {
 			return err
@@ -65,8 +65,12 @@ func (s *MySQLStorage) storeStatusValues(ctx context.Context, enrollmentID, stat
 			Valid:  len(statusID) > 0,
 		}
 	}
-	_, err := s.db.ExecContext(
-		ctx, `
+	// a single statement, but wrapped in a transaction for retries:
+	// this multi-row upsert on a unique secondary index is prone to
+	// InnoDB gap lock deadlocks under concurrent status reports.
+	return s.txn.Exec(ctx, func(ctx context.Context, tx *sql.Tx, _ *sqlc.Queries) error {
+		_, err := tx.ExecContext(
+			ctx, `
 INSERT INTO status_values
     (
         enrollment_id,
@@ -82,16 +86,17 @@ ON DUPLICATE KEY
 UPDATE
     updated_at = CURRENT_TIMESTAMP,
     status_id = new.status_id;`,
-		args...,
-	)
-	return err
+			args...,
+		)
+		return err
+	})
 }
 
 func (s *MySQLStorage) storeStatusErrors(ctx context.Context, enrollmentID, statusID string, errors []storage.StatusError) error {
 	if len(errors) < 1 {
 		return nil
 	}
-	err := tx(ctx, s.db, s.q, func(ctx context.Context, _ *sql.Tx, qtx *sqlc.Queries) error {
+	err := s.txn.Exec(ctx, func(ctx context.Context, _ *sql.Tx, qtx *sqlc.Queries) error {
 		for _, e := range errors {
 			err := qtx.InsertStatusError(ctx, sqlc.InsertStatusErrorParams{
 				EnrollmentID: enrollmentID,
@@ -125,7 +130,7 @@ func (s *MySQLStorage) storeStatusReport(ctx context.Context, enrollmentID, stat
 	if len(raw) < 1 {
 		return errors.New("empty raw status report")
 	}
-	err := tx(ctx, s.db, s.q, func(ctx context.Context, _ *sql.Tx, qtx *sqlc.Queries) error {
+	err := s.txn.Exec(ctx, func(ctx context.Context, _ *sql.Tx, qtx *sqlc.Queries) error {
 		return qtx.InsertStatusReport(ctx, sqlc.InsertStatusReportParams{
 			EnrollmentID: enrollmentID,
 			StatusID:     nullEmptyString(statusID),

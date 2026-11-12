@@ -4,7 +4,6 @@ package mysql
 import (
 	"context"
 	"database/sql"
-	"fmt"
 	"hash"
 	"time"
 
@@ -26,6 +25,7 @@ const mysqlTimeFormat = "2006-01-02 15:04:05"
 type MySQLStorage struct {
 	db      *sql.DB
 	q       *sqlc.Queries
+	txn     *Txn
 	newHash func() hash.Hash
 	errDel  uint
 	stsDel  uint
@@ -42,6 +42,7 @@ type config struct {
 	connMaxLifetime time.Duration
 	connMaxIdleTime time.Duration
 	maxOpenConns    int
+	txnOpts         []TxnOption
 }
 
 type Option func(*config)
@@ -110,8 +111,6 @@ func WithConnMaxIdleTime(d time.Duration) Option {
 	}
 }
 
-// New creates and initializes a new MySQL storage backend.
-// New attempts to Ping the database after opening to verify connectivity.
 // WithMaxOpenConns sets the maximum number of open connections to the
 // database. A non-positive value leaves database/sql's default of no limit,
 // under which a burst of concurrent requests opens a connection per in-flight
@@ -124,6 +123,16 @@ func WithMaxOpenConns(n int) Option {
 	}
 }
 
+// WithTxnOptions configures the transactions this storage runs, overriding
+// the defaults documented on [NewTxn]. Options accumulate across calls.
+func WithTxnOptions(opts ...TxnOption) Option {
+	return func(c *config) {
+		c.txnOpts = append(c.txnOpts, opts...)
+	}
+}
+
+// New creates and initializes a new MySQL storage backend.
+// New attempts to Ping the database after opening to verify connectivity.
 func New(newHash func() hash.Hash, opts ...Option) (*MySQLStorage, error) {
 	if newHash == nil {
 		panic("nil hasher")
@@ -153,9 +162,11 @@ func New(newHash func() hash.Hash, opts ...Option) (*MySQLStorage, error) {
 	if err = cfg.db.Ping(); err != nil {
 		return nil, err
 	}
+	q := sqlc.New(cfg.db)
 	return &MySQLStorage{
 		db:      cfg.db,
-		q:       sqlc.New(cfg.db),
+		q:       q,
+		txn:     NewTxn(cfg.db, q, cfg.txnOpts...),
 		newHash: newHash,
 		errDel:  cfg.errDel,
 		stsDel:  cfg.stsDel,
@@ -205,23 +216,4 @@ func (s *MySQLStorage) singleStringColumn(ctx context.Context, sql string, args 
 		err = rows.Err()
 	}
 	return strs, err
-}
-
-// tx wraps g in transactions using db.
-// If g returns an err the transaction will be rolled back; otherwise committed.
-func tx(ctx context.Context, db *sql.DB, q *sqlc.Queries, g func(ctx context.Context, tx *sql.Tx, qtx *sqlc.Queries) error) error {
-	tx, err := db.BeginTx(ctx, nil)
-	if err != nil {
-		return fmt.Errorf("tx begin: %w", err)
-	}
-	if err = g(ctx, tx, q.WithTx(tx)); err != nil {
-		if rbErr := tx.Rollback(); rbErr != nil {
-			return fmt.Errorf("tx rollback: %w; while trying to handle error: %v", rbErr, err)
-		}
-		return fmt.Errorf("tx rolled back: %w", err)
-	}
-	if err = tx.Commit(); err != nil {
-		return fmt.Errorf("tx commit: %w", err)
-	}
-	return nil
 }
