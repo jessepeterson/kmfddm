@@ -119,15 +119,48 @@ func (m *FossMDM) SupportsMultiCommands() bool {
 	return m.max > 1
 }
 
+// validID checks that id can be used as a single (unescaped) path
+// segment in a multi-targeted enrollment ID URL.
+func validID(id string) error {
+	switch {
+	case id == "" || id == "." || id == "..":
+		return fmt.Errorf("invalid enrollment id: %q", id)
+	case strings.ContainsAny(id, "/,"):
+		// "/" would introduce extra path segments and "," is the
+		// separator for multi-targeted enrollment IDs.
+		return fmt.Errorf("invalid character in enrollment id: %q", id)
+	}
+	return nil
+}
+
+// concatURL appends the comma-joined ids to the path of base up to and
+// including its last slash. Each id is treated as an unescaped path
+// segment: any "%", "?", or "#" is escaped rather than interpreted.
+// The ids may not be empty, ".", or "..", nor contain "/" or ",".
+// The query and fragment of base are dropped.
 func concatURL(base *url.URL, ids []string) (string, error) {
 	if base == nil {
 		return "", errors.New("invalid base URL")
 	}
-	joinedIDs, err := url.Parse(strings.Join(ids, ","))
-	if err != nil {
-		return "", err
+	if len(ids) < 1 {
+		return "", ErrNoIDsInIDChunk
 	}
-	return base.ResolveReference(joinedIDs).String(), nil
+	for _, id := range ids {
+		if err := validID(id); err != nil {
+			return "", err
+		}
+	}
+
+	dir := base.Path[:strings.LastIndex(base.Path, "/")+1]
+	if dir == "" {
+		dir = "/"
+	}
+
+	u := *base
+	u.Path, u.RawPath = dir+strings.Join(ids, ","), "" // net/url escapes Path
+	u.ForceQuery, u.RawQuery = false, ""
+	u.Fragment, u.RawFragment = "", ""
+	return u.String(), nil
 }
 
 func chunk(s []string, n int) (chunks [][]string) {
